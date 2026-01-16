@@ -7,36 +7,36 @@ import { useSession, signIn } from "next-auth/react";
 import { toast } from "sonner";
 import { 
   Loader2, ArrowRight, Lock, User, Phone, Mail, 
-  Copy, CheckCircle2, AlertTriangle, Wallet 
+  Copy, AlertTriangle, Wallet, ShieldCheck
 } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
-// ⚡ CONFIG: Payment Numbers
+// ⚡ CONFIG: Correct Numbers
 const PAYMENT_METHODS = {
   bkash: {
     id: "bkash",
     name: "Bkash Personal",
     number: "01858957312",
-    theme: "pink",
-    borderColor: "peer-data-[state=checked]:border-pink-500",
-    textColor: "peer-data-[state=checked]:text-pink-500"
+    color: "text-pink-500",
+    border: "peer-data-[state=checked]:border-pink-600",
+    bg: "peer-data-[state=checked]:bg-pink-500/10"
   },
   nagad: {
     id: "nagad",
-    name: "Nagad Personal", 
-    // The prompt said "Bkash/Nagad - 01857887025", implying this number might be used for both or specifically Nagad here.
-    // I am assigning it to Nagad for clarity in UI selection.
-    number: "01857887025", 
-    theme: "orange",
-    borderColor: "peer-data-[state=checked]:border-orange-500",
-    textColor: "peer-data-[state=checked]:text-orange-500"
+    name: "Nagad Personal",
+    number: "01857887025",
+    color: "text-orange-500",
+    border: "peer-data-[state=checked]:border-orange-600",
+    bg: "peer-data-[state=checked]:bg-orange-500/10"
   }
 };
+
+type PaymentMethodKey = keyof typeof PAYMENT_METHODS;
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -44,8 +44,8 @@ export default function CheckoutPage() {
   const { cart, totalAmount, clearCart } = useCart();
   const [loading, setLoading] = useState(false);
   
-  // Default to Bkash
-  const [paymentMethod, setPaymentMethod] = useState<"bkash" | "nagad">("bkash");
+  // ⚡ State for Payment Selection
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodKey>("bkash");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -54,7 +54,7 @@ export default function CheckoutPage() {
     transactionId: "",
   });
 
-  // Auto-Fill User Data
+  // Auto-Fill
   useEffect(() => {
     if (session?.user) {
       setFormData(prev => ({
@@ -72,36 +72,26 @@ export default function CheckoutPage() {
 
   const copyNumber = (number: string) => {
     navigator.clipboard.writeText(number);
-    toast.success("Number copied!", { position: "top-center" });
+    toast.success("Number copied!", { duration: 1500 });
   };
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validation
-    if (!formData.name || !formData.phone || !formData.email) {
-      return toast.error("Please fill in contact details");
-    }
-    if (!formData.transactionId) {
-      return toast.error("Please provide the Transaction ID");
-    }
+    if (!formData.name || !formData.phone || !formData.email) return toast.error("Fill contact details");
+    if (!formData.transactionId) return toast.error("Transaction ID is required");
 
     setLoading(true);
 
     try {
-      // 1. Create Order API Call
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contact: {
-            name: formData.name,
-            phone: formData.phone,
-            email: formData.email,
-          },
+          contact: { name: formData.name, phone: formData.phone, email: formData.email },
           payment: {
-            method: PAYMENT_METHODS[paymentMethod].name, // e.g. "Bkash Personal"
-            senderNumber: "N/A", // ⚡ User doesn't provide this anymore, sending default
+            method: PAYMENT_METHODS[paymentMethod].name,
+            senderNumber: "N/A",
             transactionId: formData.transactionId,
             amount: totalAmount
           },
@@ -110,167 +100,134 @@ export default function CheckoutPage() {
       });
 
       const data = await res.json();
+      if (!data.success) throw new Error(data.error);
 
-      if (!data.success) {
-        throw new Error(data.error || "Order creation failed");
-      }
-
-      // 2. Auto-Login (if new user)
       if (data.isNewUser) {
-        await signIn("credentials", {
-          redirect: false,
-          email: formData.email,
-          password: formData.email, 
-        });
+        await signIn("credentials", { redirect: false, email: formData.email, password: formData.email });
       }
 
-      // 3. Success State
       toast.success("Order Placed Successfully!");
       clearCart();
-      // Redirect to success page or dashboard
       router.push(`/dashboard/orders`); 
 
     } catch (error: any) {
-      console.error(error);
-      toast.error(error.message || "Failed to place order");
+      toast.error(error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  if (cart.length === 0) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center flex-col bg-black text-white">
-         <div className="text-center">
-            <h2 className="text-2xl font-bold">Your cart is empty</h2>
-            <Button onClick={() => router.push("/")} className="mt-4 bg-white text-black hover:bg-gray-200">Go Shopping</Button>
-         </div>
-      </div>
-    );
-  }
+  if (cart.length === 0) return null; // Or loading spinner
 
-  // Get current active payment details
-  const activePayInfo = PAYMENT_METHODS[paymentMethod];
+  // ⚡ Active Payment Details
+  const activePay = PAYMENT_METHODS[paymentMethod];
 
   return (
-    <div className="bg-black min-h-screen py-10 text-white font-sans selection:bg-green-500/30">
-      <div className="container mx-auto px-4 max-w-6xl">
+    <div className="bg-black min-h-screen py-6 md:py-10 text-white font-sans">
+      <div className="container mx-auto px-3 max-w-5xl">
         
-        <div className="flex flex-col items-center mb-10 text-center">
-          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-2">Secure Checkout</h1>
-          <p className="text-gray-400 text-sm flex items-center gap-2">
-            <Lock className="w-3 h-3" /> Encrypted Payment Gateway
-          </p>
+        {/* Header */}
+        <div className="flex flex-col items-center mb-6 md:mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Checkout</h1>
+          <div className="flex items-center gap-1.5 text-xs text-gray-400 mt-1">
+            <Lock className="w-3 h-3" /> Secure Encrypted Payment
+          </div>
         </div>
 
-        <form onSubmit={handlePlaceOrder} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <form onSubmit={handlePlaceOrder} className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-8">
           
           {/* LEFT COLUMN: Inputs */}
-          <div className="lg:col-span-7 space-y-8">
+          <div className="lg:col-span-7 space-y-5">
             
-            {/* 1. Contact Info */}
-            <Card className="border border-gray-800 bg-[#111]">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-3 text-lg font-bold text-white">
-                  <div className="bg-white text-black w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold">1</div>
-                  Contact Information
+            {/* 1. Contact Info (Compact) */}
+            <Card className="border border-white/10 bg-[#111]">
+              <CardHeader className="py-3 px-4 md:px-5 border-b border-white/5">
+                <CardTitle className="flex items-center gap-2 text-base font-bold text-white">
+                  <User className="w-4 h-4 text-green-500" /> Contact Info
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-5">
-                <div className="space-y-2">
-                  <Label className="text-gray-400 text-xs uppercase font-bold">Full Name</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
-                    <Input name="name" placeholder="Your Name" value={formData.name} onChange={handleChange} className="pl-9 bg-[#0a0a0a] border-gray-700 text-white" required />
+              <CardContent className="p-4 md:p-5 space-y-4">
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] text-gray-400 uppercase font-bold tracking-wider">Full Name</Label>
+                    <Input name="name" placeholder="Your Name" value={formData.name} onChange={handleChange} className="h-9 bg-black/50 border-white/10 text-sm" required />
                   </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div className="space-y-2">
-                    <Label className="text-gray-400 text-xs uppercase font-bold">Phone Number</Label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
-                      <Input name="phone" placeholder="017..." value={formData.phone} onChange={handleChange} className="pl-9 bg-[#0a0a0a] border-gray-700 text-white" required />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-[11px] text-gray-400 uppercase font-bold tracking-wider">Phone</Label>
+                      <Input name="phone" placeholder="017..." value={formData.phone} onChange={handleChange} className="h-9 bg-black/50 border-white/10 text-sm" required />
                     </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-gray-400 text-xs uppercase font-bold">Email Address</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
-                      <Input name="email" type="email" placeholder="you@mail.com" value={formData.email} onChange={handleChange} className="pl-9 bg-[#0a0a0a] border-gray-700 text-white" required readOnly={!!session?.user?.email} />
+                    <div className="space-y-1.5">
+                      <Label className="text-[11px] text-gray-400 uppercase font-bold tracking-wider">Email</Label>
+                      <Input name="email" type="email" placeholder="mail@.." value={formData.email} onChange={handleChange} className="h-9 bg-black/50 border-white/10 text-sm" required readOnly={!!session?.user?.email} />
                     </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* 2. Payment Method */}
-            <Card className="border border-green-900/30 bg-[#111] shadow-lg shadow-green-900/10">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-3 text-lg font-bold text-white">
-                  <div className="bg-green-600 text-white w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold">2</div>
-                  Payment Method
+            {/* 2. Payment Method (Compact) */}
+            <Card className="border border-white/10 bg-[#111] overflow-hidden">
+              <CardHeader className="py-3 px-4 md:px-5 border-b border-white/5 bg-white/5">
+                <CardTitle className="flex items-center gap-2 text-base font-bold text-white">
+                  <Wallet className="w-4 h-4 text-green-500" /> Send Money Method
                 </CardTitle>
-                <CardDescription className="text-gray-400">
-                  Select a method and <b>Send Money</b> (Not Cashout).
-                </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="p-4 md:p-5 space-y-5">
                 
                 {/* Selector */}
-                {/* @ts-ignore */}
-                <RadioGroup defaultValue="bkash" onValueChange={setPaymentMethod} className="grid grid-cols-2 gap-4">
+                <RadioGroup 
+                  value={paymentMethod} 
+                  onValueChange={(val) => setPaymentMethod(val as PaymentMethodKey)} 
+                  className="grid grid-cols-2 gap-3"
+                >
                   {Object.values(PAYMENT_METHODS).map((method) => (
                     <div key={method.id}>
                       <RadioGroupItem value={method.id} id={method.id} className="peer sr-only" />
-                      <Label htmlFor={method.id} className={`flex flex-col items-center justify-between rounded-xl border-2 border-gray-700 bg-[#1a1a1a] p-4 hover:bg-gray-800 hover:text-white cursor-pointer transition-all ${method.borderColor} ${method.textColor}`}>
-                        <span className="font-bold text-lg">{method.name}</span>
-                        <span className="text-xs opacity-70">Personal</span>
+                      <Label htmlFor={method.id} className={`flex flex-col items-center justify-center gap-1 h-20 rounded-lg border border-white/10 bg-black/40 hover:bg-white/5 cursor-pointer transition-all ${method.border} ${method.bg}`}>
+                        <span className={`font-bold text-sm ${method.id === paymentMethod ? method.color : "text-gray-300"}`}>{method.name}</span>
+                        <span className="text-[10px] text-gray-500 uppercase tracking-widest">Personal</span>
                       </Label>
                     </div>
                   ))}
                 </RadioGroup>
 
-                {/* Number Display Box */}
-                <div className="bg-black border border-gray-800 p-5 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4">
-                   <div className="space-y-1 text-center sm:text-left">
-                      <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">Send Money To</p>
-                      <p className={`text-2xl font-mono font-bold tracking-wider ${paymentMethod === 'bkash' ? 'text-pink-500' : 'text-orange-500'}`}>
-                        {activePayInfo.number}
+                {/* ⚡ Auto-Updating Number Display */}
+                <div className="bg-black/60 border border-white/10 p-3 rounded-lg flex items-center justify-between gap-3">
+                   <div className="min-w-0">
+                      <p className="text-[10px] text-gray-500 font-bold uppercase">Send Money To</p>
+                      <p className={`text-lg sm:text-xl font-mono font-bold tracking-wider truncate ${activePay.color}`}>
+                        {activePay.number}
                       </p>
                    </div>
-                   <Button type="button" variant="secondary" onClick={() => copyNumber(activePayInfo.number)} className="h-10 px-6 font-bold bg-white text-black hover:bg-gray-200">
-                      <Copy className="w-4 h-4 mr-2" /> Copy Number
+                   <Button type="button" size="sm" variant="secondary" onClick={() => copyNumber(activePay.number)} className="h-8 px-3 text-xs font-bold bg-white/10 hover:bg-white/20 text-white border-0">
+                      <Copy className="w-3.5 h-3.5 mr-1.5" /> Copy
                    </Button>
                 </div>
 
                 {/* TrxID Input */}
-                <div className="space-y-3 pt-2">
-                   <Label className="text-white text-sm font-bold flex items-center gap-2">
-                     Transaction ID (TrxID) <span className="text-red-500">*</span>
+                <div className="space-y-2">
+                   <Label className="text-white text-xs font-bold flex justify-between">
+                     <span>Transaction ID (TrxID)</span>
+                     <span className="text-red-500 text-[10px] uppercase">* Required</span>
                    </Label>
                    <Input 
                      name="transactionId" 
                      placeholder="e.g. 9H7S6K2..." 
                      value={formData.transactionId} 
                      onChange={handleChange} 
-                     className="bg-[#0a0a0a] border-gray-700 text-white h-12 text-lg focus-visible:ring-green-500 font-mono placeholder:font-sans" 
+                     className="bg-black/50 border-white/15 h-11 text-base focus-visible:ring-green-500 font-mono text-center tracking-wide" 
                      required 
                    />
-                   <p className="text-xs text-gray-500">
-                     Copy the Transaction ID from your {activePayInfo.name.split(" ")[0]} app message and paste it here.
-                   </p>
                 </div>
 
                 {/* ⚡ Bengali Info Alert */}
-                <div className="flex items-start gap-3 text-yellow-500 bg-yellow-500/10 p-4 rounded-xl border border-yellow-500/20">
-                   <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
-                   <div className="space-y-1">
-                     <p className="text-sm font-bold">গুরুত্বপূর্ণ নোটিশ (Important)</p>
-                     <p className="text-xs opacity-90 leading-relaxed">
-                       আপনার পেমেন্ট ভেরিফাই করার জন্য অনুগ্রহ করে অপেক্ষা করুন। 
-                       <br/>
-                       <span className="font-bold text-yellow-400">১২ ঘন্টার মধ্যে আপনার অর্ডারটি কনফার্ম করা হবে।</span>
-                     </p>
+                <div className="flex gap-3 text-yellow-500/90 bg-yellow-500/5 p-3 rounded-lg border border-yellow-500/10 text-xs">
+                   <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                   <div className="leading-relaxed">
+                     <span className="font-bold block mb-0.5">গুরুত্বপূর্ণ নোটিশ:</span>
+                     আপনার পেমেন্ট ভেরিফাই করার জন্য অনুগ্রহ করে অপেক্ষা করুন। 
+                     <span className="text-yellow-400 font-medium"> ১২ ঘন্টার মধ্যে অর্ডার কনফার্ম হবে।</span>
                    </div>
                 </div>
 
@@ -280,45 +237,48 @@ export default function CheckoutPage() {
 
           {/* RIGHT COLUMN: Summary */}
           <div className="lg:col-span-5">
-            <div className="sticky top-24 space-y-6">
-              <Card className="border border-gray-800 bg-[#111] shadow-2xl">
-                <CardHeader className="bg-[#1a1a1a] border-b border-gray-800 py-5">
-                  <CardTitle className="text-lg font-bold text-white flex justify-between items-center">
+            <div className="sticky top-20">
+              <Card className="border border-white/10 bg-[#111] shadow-2xl">
+                <CardHeader className="py-4 px-5 border-b border-white/5 bg-white/5">
+                  <CardTitle className="text-base font-bold text-white flex justify-between items-center">
                     Order Summary
-                    <span className="text-xs font-normal text-gray-400 bg-black px-2 py-1 rounded border border-gray-800">{cart.length} Items</span>
+                    <span className="text-[10px] font-medium text-gray-400 bg-black px-2 py-0.5 rounded border border-white/10">{cart.length} Items</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-6">
-                  <div className="space-y-4">
+                <CardContent className="p-5">
+                  <div className="space-y-3 max-h-[200px] overflow-y-auto pr-1 scrollbar-hide">
                     {cart.map((item) => (
-                      <div key={item.cartId} className="flex justify-between text-sm">
-                        <span className="text-gray-300 max-w-[70%]">
-                          {item.quantity}x {item.name} 
-                          {item.validity && <span className="block text-xs text-gray-500 mt-0.5">({item.validity})</span>}
-                        </span>
-                        <span className="font-medium text-white">৳{(item.price * item.quantity).toLocaleString()}</span>
+                      <div key={item.cartId} className="flex justify-between text-xs sm:text-sm group">
+                        <div className="flex gap-2">
+                           <span className="text-gray-500 text-xs mt-0.5">{item.quantity}x</span>
+                           <div className="flex flex-col">
+                             <span className="text-gray-300 line-clamp-1">{item.name}</span>
+                             <span className="text-[10px] text-green-500">{item.validity || "Standard"}</span>
+                           </div>
+                        </div>
+                        <span className="font-mono text-gray-400">৳{(item.price * item.quantity).toLocaleString()}</span>
                       </div>
                     ))}
                   </div>
                   
-                  <div className="my-6 border-t border-gray-800"></div>
+                  <div className="my-4 border-t border-white/10"></div>
                   
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm text-gray-400"><span>Subtotal</span><span>৳{totalAmount.toLocaleString()}</span></div>
-                    <div className="flex justify-between text-sm text-gray-400"><span>Delivery Method</span><span className="text-green-400">Digital / Email</span></div>
-                    <div className="flex justify-between items-end pt-4 border-t border-gray-800 mt-4">
-                       <span className="text-gray-200 font-bold">Total Payable</span>
-                       <span className="text-2xl font-bold text-white">৳{totalAmount.toLocaleString()}</span>
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-xs text-gray-400"><span>Subtotal</span><span>৳{totalAmount.toLocaleString()}</span></div>
+                    <div className="flex justify-between text-xs text-gray-400"><span>Method</span><span className="text-gray-300">{activePay.name}</span></div>
+                    <div className="flex justify-between items-end pt-3 border-t border-white/10 mt-3">
+                       <span className="text-sm text-gray-200 font-bold">Total</span>
+                       <span className="text-xl font-bold text-green-400 font-mono">৳{totalAmount.toLocaleString()}</span>
                     </div>
                   </div>
 
-                  <Button type="submit" disabled={loading} className="w-full mt-8 h-14 text-base font-bold bg-white text-black hover:bg-gray-200 shadow-xl transition-all transform hover:scale-[1.01] active:scale-[0.99]">
-                    {loading ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Verifying Payment...</> : <>Confirm Order <ArrowRight className="ml-2 h-5 w-5" /></>}
+                  <Button type="submit" disabled={loading} className="w-full mt-6 h-11 text-sm font-bold bg-white text-black hover:bg-gray-200 transition-all active:scale-[0.98]">
+                    {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <>Confirm Payment <ArrowRight className="ml-2 h-4 w-4" /></>}
                   </Button>
-                   test 
-                  <p className="text-[10px] text-center text-gray-500 mt-4">
-                    By clicking Confirm, you acknowledge that you have sent the money to the correct number.
-                  </p>
+                  
+                  <div className="flex justify-center items-center gap-2 mt-4 text-[10px] text-gray-600">
+                    <ShieldCheck className="w-3 h-3" /> Secure 256-bit SSL Encrypted
+                  </div>
                 </CardContent>
               </Card>
             </div>
