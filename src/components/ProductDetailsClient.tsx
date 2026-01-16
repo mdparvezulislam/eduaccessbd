@@ -97,11 +97,11 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
   };
 
   return (
-    <div className="bg-black text-white min-h-screen pb-12 font-sans selection:bg-green-500 selection:text-black">
+    <div className="bg-black text-white min-h-screen pb-6 font-sans selection:bg-green-500 selection:text-black">
       
       {/* === BREADCRUMB === */}
       <div className="border-b border-white/5 bg-black/90 backdrop-blur-md sticky top-0 z-30">
-        <div className="container mx-auto px-4 py-3 text-xs md:text-sm text-gray-400 flex items-center gap-1.5 overflow-hidden">
+        <div className="container mx-auto px-2 py-3 text-xs md:text-sm text-gray-400 flex items-center gap-1.5 overflow-hidden">
           <Link href="/" className="hover:text-white transition-colors shrink-0">Home</Link> 
           <ChevronRight className="w-3 h-3 shrink-0 text-gray-600" />
           <Link href="/shop" className="hover:text-white transition-colors shrink-0">{categoryName}</Link>
@@ -110,7 +110,7 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
         </div>
       </div>
 
-      <div className="container mx-auto px-3 md:px-6 py-6 md:py-10">
+      <div className="container mx-auto px-1 md:px-6 py-4 md:py-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10">
           
           {/* =================================

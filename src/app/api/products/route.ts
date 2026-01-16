@@ -15,18 +15,16 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const categorySlug = searchParams.get("category");
     const isFeatured = searchParams.get("featured");
-    const searchQuery = searchParams.get("search"); // Optional search
+    const searchQuery = searchParams.get("search"); 
     
     let query: any = { isAvailable: true };
 
-    // 1. Filter by Category Slug
+    // 1. Filter by Category
     if (categorySlug && categorySlug !== "all") {
-      // Find category ID first because Product stores ObjectId
       const category = await Category.findOne({ slug: categorySlug });
       if (category) {
         query.category = category._id;
       } else {
-        // If category doesn't exist, return empty
         return NextResponse.json({ success: true, products: [] }, { status: 200 });
       }
     }
@@ -36,14 +34,13 @@ export async function GET(req: NextRequest) {
       query.isFeatured = true;
     }
 
-    // 3. Optional: Search by Title
+    // 3. Search
     if (searchQuery) {
       query.title = { $regex: searchQuery, $options: "i" };
     }
 
     // 4. Fetch Data
-    // Note: Mongoose automatically hides fields marked { select: false } in Schema
-    // like 'accessLink' inside the pricing objects.
+    // (Mongoose automatically hides 'select: false' fields like accessLink)
     const products = await Product.find(query)
       .populate("category", "name slug") 
       .sort({ createdAt: -1 })
@@ -64,7 +61,7 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     
-    // ✅ Security: Admin Only
+    // ✅ Security Check
     if (!session || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
@@ -72,12 +69,12 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     await connectToDatabase();
 
-    // 1. Basic Validation
+    // 1. Validation
     if (!body.title) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 });
     }
 
-    // 2. Auto-Generate Slug if missing
+    // 2. Slug Generation
     let slug = body.slug;
     if (!slug) {
       slug = body.title.toLowerCase()
@@ -85,13 +82,25 @@ export async function POST(req: NextRequest) {
         .replace(/[^\w-]+/g, "");
     }
 
-    // 3. Duplicate Slug Check
+    // 3. Check Duplicate
     const existingProduct = await Product.findOne({ slug });
     if (existingProduct) {
-      return NextResponse.json({ error: "Slug already exists. Please modify it." }, { status: 400 });
+      return NextResponse.json({ error: "Slug already exists" }, { status: 400 });
     }
 
-    // 4. Create Product with VIP Pricing Structure
+    // 4. ⚡ Helper to Clean Plan Data
+    // Ensures numbers are numbers and strings are strings
+    const parsePlan = (plan: any) => ({
+      isEnabled: Boolean(plan?.isEnabled),
+      price: Number(plan?.price) || 0,
+      regularPrice: Number(plan?.regularPrice) || 0,
+      validityLabel: plan?.validityLabel || "",
+      description: plan?.description || "", // ✅ New Description Field
+      accessLink: plan?.accessLink || "",
+      accessNote: plan?.accessNote || ""
+    });
+
+    // 5. Create Product
     const newProduct = await Product.create({
       title: body.title,
       slug: slug,
@@ -99,7 +108,7 @@ export async function POST(req: NextRequest) {
       description: body.description,
       shortDescription: body.shortDescription || "",
       
-      // ✅ Fallback / Legacy Pricing
+      // Standard / Fallback Pricing
       defaultPrice: Number(body.defaultPrice) || 0,
       salePrice: Number(body.salePrice) || 0,
       regularPrice: Number(body.regularPrice) || 0,
@@ -107,7 +116,7 @@ export async function POST(req: NextRequest) {
       thumbnail: body.thumbnail,
       gallery: body.gallery || [],
       
-      category: body.category, // Assumes ID is sent
+      category: body.category,
       tags: body.tags || [],
       features: body.features || [],
       
@@ -117,16 +126,14 @@ export async function POST(req: NextRequest) {
       
       salesCount: 0,
 
-      // ⚡ NEW: VIP Pricing Structure
-      // The secure fields inside 'pricing' (accessLink) are 
-      // automatically handled by Mongoose (saved but hidden on GET)
-      pricing: body.pricing || {
-        monthly: { isEnabled: false },
-        yearly: { isEnabled: false },
-        lifetime: { isEnabled: false }
+      // ⚡ VIP Pricing Structure (Parsed)
+      pricing: {
+        monthly: parsePlan(body.pricing?.monthly),
+        yearly: parsePlan(body.pricing?.yearly),
+        lifetime: parsePlan(body.pricing?.lifetime),
       },
 
-      // Legacy Secure Fields (Optional Backup)
+      // ✅ Standard Product Delivery (Root Level)
       accessLink: body.accessLink || "", 
       accessNote: body.accessNote || ""
     });

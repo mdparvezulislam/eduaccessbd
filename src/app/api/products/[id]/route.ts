@@ -21,7 +21,7 @@ export async function GET(req: NextRequest, { params }: IdParams) {
 
     // 🔓 If Admin: Unlock the secure fields for editing
     if (isAdmin) {
-      // 1. Reveal Root Secure Fields (Legacy)
+      // 1. Reveal Root Secure Fields (Standard Delivery)
       query = query.select("+accessLink +accessNote");
       
       // 2. Reveal VIP Plan Secure Fields (Monthly/Yearly/Lifetime)
@@ -52,22 +52,43 @@ export async function PUT(req: NextRequest, { params }: IdParams) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Admins only" }, { status: 403 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
     const { id } = await params;
     const body = await req.json();
     await connectToDatabase();
 
-    // ⚡ Prep Payload: Ensure numbers are actually numbers
-    // This prevents string "500" from causing issues in math operations later
+    // ⚡ Helper: Clean & Parse Plan Data (Ensures numbers are valid)
+    const parsePlan = (plan: any) => ({
+      isEnabled: Boolean(plan?.isEnabled),
+      price: Number(plan?.price) || 0,
+      regularPrice: Number(plan?.regularPrice) || 0,
+      validityLabel: plan?.validityLabel || "",
+      description: plan?.description || "", // ✅ Updates Description
+      accessLink: plan?.accessLink || "",
+      accessNote: plan?.accessNote || ""
+    });
+
+    // ⚡ Prep Payload: Explicitly parse structure to prevent data corruption
     const updateData = {
       ...body,
+      
+      // Standard Numbers
       defaultPrice: Number(body.defaultPrice) || 0,
       salePrice: Number(body.salePrice) || 0,
       regularPrice: Number(body.regularPrice) || 0,
-      // The 'pricing' object is nested, so we pass it as-is. 
-      // Mongoose handles the sub-document updates automatically via $set.
+
+      // VIP Pricing Structure (Parsed)
+      pricing: {
+        monthly: parsePlan(body.pricing?.monthly),
+        yearly: parsePlan(body.pricing?.yearly),
+        lifetime: parsePlan(body.pricing?.lifetime),
+      },
+
+      // Standard Delivery
+      accessLink: body.accessLink || "",
+      accessNote: body.accessNote || ""
     };
 
     const updatedProduct = await Product.findByIdAndUpdate(
@@ -97,7 +118,7 @@ export async function DELETE(req: NextRequest, { params }: IdParams) {
   try {
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Admins only" }, { status: 403 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
     const { id } = await params;

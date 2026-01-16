@@ -24,7 +24,7 @@ export default async function OrdersPage() {
   // The API returns { success: true, orders: [...] }
   const data = await res.json();
   const orders = data.orders || [];
-
+console.log(orders  )
   return (
     // Responsive Container: 
     // - flex-col flex-1: Fills height

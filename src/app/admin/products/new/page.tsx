@@ -3,12 +3,11 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { 
-  ArrowLeft, Save, LayoutGrid, Loader2, UploadCloud, 
-  X, DollarSign, Lock, Link as LinkIcon, 
-  Clock, Wand2, Sparkles, Crown, Calendar, CheckCircle2, AlertCircle,
-  FileText
+  ArrowLeft, Save, LayoutGrid, Loader2, 
+  X, Lock, Link as LinkIcon, 
+  Wand2, Sparkles, Crown, Calendar, FileText, Package
 } from "lucide-react";
 
 // --- Components ---
@@ -20,7 +19,6 @@ import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/com
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -34,7 +32,7 @@ interface IPlanState {
   price: string;
   regularPrice: string;
   validityLabel: string;
-  description: string; // ✅ Rich Text Description
+  description: string;
   accessLink: string;
   accessNote: string;
 }
@@ -46,8 +44,6 @@ export default function CreateProduct() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [categories, setCategories] = useState<ICategory[]>([]);
-  
-  // Automation States
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
 
   // Form Fields
@@ -55,7 +51,6 @@ export default function CreateProduct() {
   const [gallery, setGallery] = useState<string[]>([]);
   const [features, setFeatures] = useState<string[]>([""]); 
   const [tags, setTags] = useState<string[]>([]);
-  const [tagInput, setTagInput] = useState("");
 
   // ⚡ VIP PRICING STATE
   const [pricing, setPricing] = useState<{
@@ -80,7 +75,10 @@ export default function CreateProduct() {
     isFeatured: false,
     defaultPrice: "",     
     salePrice: "",        
-    regularPrice: "",    
+    regularPrice: "",
+    // ✅ Standard Delivery Fields
+    accessLink: "",
+    accessNote: ""
   });
 
   // Load Categories
@@ -99,13 +97,11 @@ export default function CreateProduct() {
     fetchCats();
   }, []);
 
-  // --- Helpers & Automation ---
   const handleImagePick = useCallback(async (): Promise<string | null> => {
     const url = prompt("Enter image URL");
     return url ? url : null;
   }, []);
 
-  // 1. Calculate Discount %
   const getDiscount = (reg: string, sale: string) => {
     const r = Number(reg);
     const s = Number(sale);
@@ -113,7 +109,6 @@ export default function CreateProduct() {
     return Math.round(((r - s) / r) * 100);
   };
 
-  // 2. Handle Text Change & Auto-Slug
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => {
@@ -132,7 +127,6 @@ export default function CreateProduct() {
     toast.info("Slug regenerated");
   };
 
-  // 3. Handle VIP Plan Changes
   const updatePlan = (plan: "monthly" | "yearly" | "lifetime", field: keyof IPlanState, value: any) => {
     setPricing(prev => ({
       ...prev,
@@ -140,7 +134,6 @@ export default function CreateProduct() {
     }));
   };
 
-  // 4. Submit
   const handleSubmit = async () => {
     if (!formData.title) return toast.error("Title is required");
     if (!thumbnail) return toast.error("Thumbnail is required");
@@ -161,22 +154,14 @@ export default function CreateProduct() {
         
         // ⚡ VIP Pricing Object
         pricing: {
-          monthly: {
-            ...pricing.monthly,
-            price: Number(pricing.monthly.price),
-            regularPrice: Number(pricing.monthly.regularPrice),
-          },
-          yearly: {
-            ...pricing.yearly,
-            price: Number(pricing.yearly.price),
-            regularPrice: Number(pricing.yearly.regularPrice),
-          },
-          lifetime: {
-            ...pricing.lifetime,
-            price: Number(pricing.lifetime.price),
-            regularPrice: Number(pricing.lifetime.regularPrice),
-          },
-        }
+          monthly: { ...pricing.monthly, price: Number(pricing.monthly.price), regularPrice: Number(pricing.monthly.regularPrice) },
+          yearly: { ...pricing.yearly, price: Number(pricing.yearly.price), regularPrice: Number(pricing.yearly.regularPrice) },
+          lifetime: { ...pricing.lifetime, price: Number(pricing.lifetime.price), regularPrice: Number(pricing.lifetime.regularPrice) },
+        },
+
+        // ✅ Standard Delivery Fields
+        accessLink: formData.accessLink,
+        accessNote: formData.accessNote,
       };
 
       const res = await fetch("/api/products", {
@@ -197,22 +182,20 @@ export default function CreateProduct() {
     }
   };
 
-  // Render Helpers
+  // Render Plan Inputs
   const renderPlanInputs = (planKey: "monthly" | "yearly" | "lifetime", label: string, Icon: any) => {
     const plan = pricing[planKey];
     const discount = getDiscount(plan.regularPrice, plan.price);
 
     return (
-      <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
-        {/* Enable Switch */}
-        <div className="flex items-center justify-between bg-secondary/20 p-4 rounded-xl border border-border">
+      <div className="space-y-4 animate-in fade-in zoom-in-95 duration-300">
+        <div className="flex items-center justify-between bg-secondary/30 p-3 rounded-lg border border-border/60">
           <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-full ${plan.isEnabled ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-500"}`}>
-               <Icon className="w-5 h-5" />
+            <div className={`p-1.5 rounded-full ${plan.isEnabled ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-500"}`}>
+               <Icon className="w-4 h-4" />
             </div>
             <div>
-              <Label className="text-base font-bold cursor-pointer" htmlFor={`${planKey}-enable`}>Enable {label} Plan</Label>
-              <p className="text-xs text-muted-foreground">Activate this duration for customers</p>
+              <Label className="text-sm font-bold cursor-pointer" htmlFor={`${planKey}-enable`}>Enable {label} Plan</Label>
             </div>
           </div>
           <Switch 
@@ -224,85 +207,80 @@ export default function CreateProduct() {
 
         {plan.isEnabled && (
           <>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Selling Price</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Selling Price</Label>
                 <div className="relative">
-                   <span className="absolute left-3 top-2.5 font-bold text-gray-500">৳</span>
+                   <span className="absolute left-3 top-2 font-bold text-gray-500 text-xs">৳</span>
                    <Input 
                       type="number" 
                       placeholder="0"
                       value={plan.price} 
                       onChange={(e) => updatePlan(planKey, "price", e.target.value)} 
-                      className="pl-8 font-bold text-green-600 border-green-200 focus:ring-green-500"
+                      className="pl-7 h-9 font-bold text-green-600 border-green-200 focus:ring-green-500 text-sm"
                    />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label>Regular Price (MRP)</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Regular Price</Label>
                 <div className="relative">
-                   <span className="absolute left-3 top-2.5 font-bold text-gray-400">৳</span>
+                   <span className="absolute left-3 top-2 font-bold text-gray-400 text-xs">৳</span>
                    <Input 
                       type="number" 
                       placeholder="0"
                       value={plan.regularPrice} 
                       onChange={(e) => updatePlan(planKey, "regularPrice", e.target.value)} 
-                      className="pl-8 text-gray-500"
+                      className="pl-7 h-9 text-gray-500 text-sm"
                    />
                 </div>
-                {discount > 0 && <span className="text-xs text-green-600 font-bold flex items-center gap-1"><Sparkles className="w-3 h-3"/> {discount}% Discount Applied</span>}
+                {discount > 0 && <span className="text-[10px] text-green-600 font-bold flex items-center gap-1"><Sparkles className="w-3 h-3"/> {discount}% Off</span>}
               </div>
             </div>
 
-            {/* Validity & Description Row */}
-            <div className="space-y-4">
-               <div className="space-y-2">
-                  <Label>Validity Label (Display Name)</Label>
-                  <Input 
-                     value={plan.validityLabel} 
-                     onChange={(e) => updatePlan(planKey, "validityLabel", e.target.value)}
-                     placeholder={`e.g. ${label}`}
-                  />
-               </div>
-
-               {/* ✅ NEW: Rich Text Editor for Plan Description */}
-               <div className="space-y-2">
-                  <Label>Plan Description</Label>
-                  <div className="border rounded-md overflow-hidden min-h-[180px] bg-white">
-                    <RichTextEditor 
-                      onPickImage={handleImagePick}
-                      value={plan.description || ""} // Handle potentially undefined initially
-                      onChange={(val) => updatePlan(planKey, "description", val)}
-                    />
-                  </div>
-               </div>
+            <div className="space-y-1.5">
+               <Label className="text-xs">Validity Label</Label>
+               <Input 
+                  value={plan.validityLabel} 
+                  onChange={(e) => updatePlan(planKey, "validityLabel", e.target.value)}
+                  placeholder={`e.g. ${label}`}
+                  className="h-9 text-sm"
+               />
             </div>
 
-            <Separator className="my-4" />
+            <div className="space-y-1.5">
+                <Label className="text-xs">Plan Description</Label>
+                <div className="border rounded-md overflow-hidden min-h-[120px] bg-white">
+                  <RichTextEditor 
+                    onPickImage={handleImagePick}
+                    value={plan.description || ""} 
+                    onChange={(val) => updatePlan(planKey, "description", val)}
+                  />
+                </div>
+            </div>
 
-            <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 space-y-4">
-               <h4 className="text-sm font-bold text-blue-800 flex items-center gap-2">
-                 <Lock className="w-4 h-4" /> Secure Delivery for {label}
+            <Separator className="my-2" />
+
+            <div className="bg-blue-50/50 p-3 rounded-lg border border-blue-100 space-y-3">
+               <h4 className="text-xs font-bold text-blue-800 flex items-center gap-1.5">
+                 <Lock className="w-3.5 h-3.5" /> Secure Delivery ({label})
                </h4>
-               <div className="space-y-2">
-                  <Label className="text-xs uppercase text-blue-600/80 font-bold">Access Link</Label>
+               <div className="space-y-1.5">
                   <div className="relative">
-                    <LinkIcon className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                    <LinkIcon className="absolute left-3 top-2.5 w-3.5 h-3.5 text-gray-400" />
                     <Input 
-                       placeholder="https://drive.google.com/..."
+                       placeholder="Access Link..."
                        value={plan.accessLink}
                        onChange={(e) => updatePlan(planKey, "accessLink", e.target.value)}
-                       className="pl-9 bg-white"
+                       className="pl-8 bg-white h-9 text-xs"
                     />
                   </div>
                </div>
-               <div className="space-y-2">
-                  <Label className="text-xs uppercase text-blue-600/80 font-bold">Credentials / Note</Label>
+               <div className="space-y-1.5">
                   <Textarea 
-                     placeholder="Username: user1..."
+                     placeholder="Notes / Credentials..."
                      value={plan.accessNote}
                      onChange={(e) => updatePlan(planKey, "accessNote", e.target.value)}
-                     className="bg-white min-h-[80px]"
+                     className="bg-white min-h-[60px] text-xs resize-none"
                   />
                </div>
             </div>
@@ -321,43 +299,45 @@ export default function CreateProduct() {
       className="w-full pb-20 max-w-7xl mx-auto px-4 sm:px-6"
     >
       {/* Sticky Header */}
-      <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b -mx-6 px-6 py-4 mb-8 flex items-center justify-between shadow-sm">
+      <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b -mx-6 px-6 py-3 mb-6 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => router.back()}><ArrowLeft className="w-5 h-5" /></Button>
+          <Button variant="ghost" size="icon" onClick={() => router.back()} className="h-8 w-8"><ArrowLeft className="w-4 h-4" /></Button>
           <div>
-            <h1 className="text-xl font-bold">Create Product</h1>
-            <p className="text-xs text-muted-foreground">Add new item with VIP pricing</p>
+            <h1 className="text-lg font-bold leading-tight">Create Product</h1>
           </div>
         </div>
-        <Button onClick={handleSubmit} disabled={saving} className="bg-green-600 hover:bg-green-700 text-white min-w-[140px]">
+        <Button onClick={handleSubmit} disabled={saving} size="sm" className="bg-green-600 hover:bg-green-700 text-white min-w-[100px]">
           {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2"/> : <Save className="w-4 h-4 mr-2"/>} Save
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
         {/* LEFT COLUMN */}
-        <div className="lg:col-span-8 space-y-8">
+        <div className="lg:col-span-8 space-y-6">
           
-          {/* Basic Details */}
-          <Card>
-            <CardHeader><CardTitle className="flex items-center gap-2"><LayoutGrid className="w-5 h-5"/> Core Info</CardTitle></CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label>Product Title <span className="text-red-500">*</span></Label>
-                <Input name="title" value={formData.title} onChange={handleChange} placeholder="e.g. Masterclass 2024" className="text-lg font-medium"/>
+          {/* Core Info */}
+          <Card className="shadow-sm">
+            <CardHeader className="py-4 px-5 border-b bg-secondary/5">
+              <CardTitle className="flex items-center gap-2 text-base"><LayoutGrid className="w-4 h-4"/> Core Info</CardTitle>
+            </CardHeader>
+            <CardContent className="p-5 space-y-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold">Product Title <span className="text-red-500">*</span></Label>
+                <Input name="title" value={formData.title} onChange={handleChange} placeholder="e.g. Premium Course" className="font-medium"/>
               </div>
               <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                   <Label>Slug (Auto)</Label>
+                <div className="space-y-1.5">
+                   <Label className="text-xs font-bold">Slug (Auto)</Label>
                    <div className="flex gap-2">
-                      <Input name="slug" value={formData.slug} onChange={(e) => {setSlugManuallyEdited(true); setFormData({...formData, slug: e.target.value})}} />
-                      <Button variant="outline" size="icon" onClick={regenerateSlug}><Wand2 className="w-4 h-4"/></Button>
+                      <Input name="slug" value={formData.slug} onChange={(e) => {setSlugManuallyEdited(true); setFormData({...formData, slug: e.target.value})}} className="text-sm" />
+                      <Button variant="outline" size="icon" onClick={regenerateSlug} className="shrink-0"><Wand2 className="w-4 h-4"/></Button>
                    </div>
                 </div>
-                <div className="space-y-2">
-                   <Label>Category</Label>
+                <div className="space-y-1.5">
+                   <Label className="text-xs font-bold">Category</Label>
                    <Select value={formData.categoryId} onValueChange={(v) => setFormData(prev => ({...prev, categoryId: v}))}>
-                     <SelectTrigger><SelectValue placeholder="Select Category" /></SelectTrigger>
+                     <SelectTrigger className="text-sm"><SelectValue placeholder="Select Category" /></SelectTrigger>
                      <SelectContent>
                        {categories.map(cat => <SelectItem key={cat._id} value={cat._id}>{cat.name}</SelectItem>)}
                      </SelectContent>
@@ -365,10 +345,9 @@ export default function CreateProduct() {
                 </div>
               </div>
               
-              {/* Main Product Description */}
-              <div className="space-y-2">
-                <Label>Main Description</Label>
-                <div className="border rounded-md overflow-hidden min-h-[300px]">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold">Description</Label>
+                <div className="border rounded-md overflow-hidden min-h-[250px]">
                   <RichTextEditor 
                   onPickImage={handleImagePick}
                   value={formData.description} 
@@ -378,40 +357,26 @@ export default function CreateProduct() {
             </CardContent>
           </Card>
 
-          {/* ⚡ VIP PRICING MANAGER */}
-          <Card className="border-blue-200 bg-blue-50/10 shadow-md">
-            <CardHeader className="bg-blue-100/30 pb-4 border-b border-blue-100">
-               <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2 text-blue-900"><Crown className="w-5 h-5 text-blue-600"/> VIP Pricing & Delivery</CardTitle>
-                    <CardDescription>Manage Monthly, Yearly, and Lifetime access details independently.</CardDescription>
-                  </div>
+          {/* VIP Pricing Manager */}
+          <Card className="border-blue-200 bg-blue-50/10 shadow-sm">
+            <CardHeader className="py-3 px-5 bg-blue-100/30 border-b border-blue-100">
+               <div className="flex items-center gap-2">
+                  <Crown className="w-4 h-4 text-blue-600"/>
+                  <h3 className="text-sm font-bold text-blue-900">VIP Pricing Plans</h3>
                </div>
             </CardHeader>
-            <CardContent className="pt-6">
+            <CardContent className="p-5">
                <Tabs defaultValue="monthly" className="w-full">
-                  <TabsList className="grid w-full grid-cols-3 mb-6 bg-blue-100/50">
-                    <TabsTrigger value="monthly" className="data-[state=active]:bg-white data-[state=active]:text-blue-700 font-bold">
-                       Monthly {pricing.monthly.isEnabled && <div className="ml-2 w-2 h-2 rounded-full bg-green-500"/>}
-                    </TabsTrigger>
-                    <TabsTrigger value="yearly" className="data-[state=active]:bg-white data-[state=active]:text-blue-700 font-bold">
-                       Yearly {pricing.yearly.isEnabled && <div className="ml-2 w-2 h-2 rounded-full bg-green-500"/>}
-                    </TabsTrigger>
-                    <TabsTrigger value="lifetime" className="data-[state=active]:bg-white data-[state=active]:text-amber-600 font-bold">
-                       Lifetime {pricing.lifetime.isEnabled && <div className="ml-2 w-2 h-2 rounded-full bg-green-500"/>}
-                    </TabsTrigger>
+                  <TabsList className="grid w-full grid-cols-3 mb-4 bg-blue-100/50 h-9">
+                    <TabsTrigger value="monthly" className="text-xs font-bold data-[state=active]:bg-white">Monthly</TabsTrigger>
+                    <TabsTrigger value="yearly" className="text-xs font-bold data-[state=active]:bg-white">Yearly</TabsTrigger>
+                    <TabsTrigger value="lifetime" className="text-xs font-bold data-[state=active]:bg-white">Lifetime</TabsTrigger>
                   </TabsList>
                   
-                  <div className="bg-white border rounded-xl p-6 shadow-sm">
-                    <TabsContent value="monthly">
-                       {renderPlanInputs("monthly", "Monthly", Calendar)}
-                    </TabsContent>
-                    <TabsContent value="yearly">
-                       {renderPlanInputs("yearly", "Yearly", Calendar)}
-                    </TabsContent>
-                    <TabsContent value="lifetime">
-                       {renderPlanInputs("lifetime", "Lifetime", Crown)}
-                    </TabsContent>
+                  <div className="bg-white border rounded-xl p-4 shadow-sm">
+                    <TabsContent value="monthly" className="mt-0">{renderPlanInputs("monthly", "Monthly", Calendar)}</TabsContent>
+                    <TabsContent value="yearly" className="mt-0">{renderPlanInputs("yearly", "Yearly", Calendar)}</TabsContent>
+                    <TabsContent value="lifetime" className="mt-0">{renderPlanInputs("lifetime", "Lifetime", Crown)}</TabsContent>
                   </div>
                </Tabs>
             </CardContent>
@@ -419,50 +384,74 @@ export default function CreateProduct() {
         </div>
 
         {/* RIGHT COLUMN */}
-        <div className="lg:col-span-4 space-y-8">
+        <div className="lg:col-span-4 space-y-6">
            
-           {/* Fallback Pricing */}
-           <Card>
-              <CardHeader><CardTitle className="text-base">Default Display Price</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                 <div className="space-y-2">
-                    <Label>Starting Price (Shown on Cards)</Label>
-                    <Input type="number" value={formData.defaultPrice} onChange={(e) => setFormData(p => ({...p, defaultPrice: e.target.value}))} placeholder="0" />
-                    <p className="text-[10px] text-muted-foreground">Used for sorting & list view ("Starts at...")</p>
+           {/* Standard / Normal Product Settings */}
+           <Card className="shadow-sm">
+              <CardHeader className="py-3 px-4 border-b bg-secondary/5">
+                <CardTitle className="text-sm flex items-center gap-2"><Package className="w-4 h-4"/> Standard Product</CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 space-y-4">
+                 
+                 <div className="space-y-1.5">
+                    <Label className="text-xs">Starting Price</Label>
+                    <Input type="number" value={formData.defaultPrice} onChange={(e) => setFormData(p => ({...p, defaultPrice: e.target.value}))} placeholder="0" className="h-9"/>
                  </div>
+
+                 {/* ✅ STANDARD DELIVERY FIELDS */}
+                 <div className="bg-gray-50 border border-gray-100 rounded-lg p-3 space-y-3">
+                    <div className="flex items-center gap-2 mb-1">
+                       <Lock className="w-3 h-3 text-gray-500"/>
+                       <span className="text-xs font-bold text-gray-600">Standard Delivery</span>
+                    </div>
+                    <Input 
+                       placeholder="Access Link" 
+                       value={formData.accessLink} 
+                       onChange={(e) => setFormData(p => ({...p, accessLink: e.target.value}))}
+                       className="bg-white h-8 text-xs"
+                    />
+                    <Textarea 
+                       placeholder="Notes / Credentials" 
+                       value={formData.accessNote} 
+                       onChange={(e) => setFormData(p => ({...p, accessNote: e.target.value}))}
+                       className="bg-white min-h-[50px] text-xs resize-none"
+                    />
+                 </div>
+
                  <Separator />
+                 
                  <div className="flex items-center justify-between">
-                    <Label>Availability</Label>
-                    <Switch checked={formData.isAvailable} onCheckedChange={c => setFormData(p => ({...p, isAvailable: c}))} />
+                    <Label className="text-xs">Is Available?</Label>
+                    <Switch checked={formData.isAvailable} onCheckedChange={c => setFormData(p => ({...p, isAvailable: c}))} className="scale-75" />
                  </div>
                  <div className="flex items-center justify-between">
-                    <Label>Featured Product</Label>
-                    <Switch checked={formData.isFeatured} onCheckedChange={c => setFormData(p => ({...p, isFeatured: c}))} />
+                    <Label className="text-xs">Featured?</Label>
+                    <Switch checked={formData.isFeatured} onCheckedChange={c => setFormData(p => ({...p, isFeatured: c}))} className="scale-75" />
                  </div>
               </CardContent>
            </Card>
 
            {/* Media */}
-           <Card>
-              <CardHeader><CardTitle className="text-base">Thumbnail</CardTitle></CardHeader>
-              <CardContent>
+           <Card className="shadow-sm">
+              <CardHeader className="py-3 px-4 border-b bg-secondary/5"><CardTitle className="text-sm">Thumbnail</CardTitle></CardHeader>
+              <CardContent className="p-4">
                  <FileUpload initialImages={thumbnail ? [thumbnail] : []} onChange={(u) => setThumbnail(u[0] || "")} />
               </CardContent>
            </Card>
 
            {/* Features */}
-           <Card>
-              <CardHeader><CardTitle className="text-base">Features List</CardTitle></CardHeader>
-              <CardContent className="space-y-2">
+           <Card className="shadow-sm">
+              <CardHeader className="py-3 px-4 border-b bg-secondary/5"><CardTitle className="text-sm">Features List</CardTitle></CardHeader>
+              <CardContent className="p-4 space-y-2">
                  {features.map((f, i) => (
                     <div key={i} className="flex gap-2">
                        <Input value={f} onChange={(e) => {
                           const n = [...features]; n[i] = e.target.value; setFeatures(n);
-                       }} className="h-8 text-sm" />
-                       <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => setFeatures(features.filter((_, idx) => idx !== i))}><X className="w-4 h-4"/></Button>
+                       }} className="h-8 text-xs" />
+                       <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => setFeatures(features.filter((_, idx) => idx !== i))}><X className="w-3 h-3"/></Button>
                     </div>
                  ))}
-                 <Button variant="outline" size="sm" className="w-full" onClick={() => setFeatures([...features, ""])}>Add Feature</Button>
+                 <Button variant="outline" size="sm" className="w-full h-8 text-xs" onClick={() => setFeatures([...features, ""])}>Add Feature</Button>
               </CardContent>
            </Card>
         </div>

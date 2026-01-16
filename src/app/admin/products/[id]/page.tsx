@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  ArrowLeft, Save, LayoutGrid, Loader2, UploadCloud, 
-  X, DollarSign, Lock, Link as LinkIcon, 
+  ArrowLeft, Save, LayoutGrid, Loader2, 
+  X, Lock, Link as LinkIcon, 
   Crown, Calendar, Sparkles, Wand2,
   CheckCircle2, FileText, Tag, Image as ImageIcon,
-  CreditCard
+  CreditCard, Package
 } from "lucide-react";
 
 // --- Components ---
@@ -17,7 +17,7 @@ import FileUpload from "@/components/Fileupload";
 import RichTextEditor from "@/components/RichTextEditor";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -29,13 +29,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 // --- Interfaces ---
 interface ICategory { _id: string; name: string; }
 
-// ⚡ VIP Plan Structure (Updated with Description)
+// ⚡ VIP Plan Structure
 interface IPlanState {
   isEnabled: boolean;
   price: string | number;
   regularPrice: string | number;
   validityLabel: string;
-  description: string; // ✅ Added Description Field
+  description: string;
   accessLink: string;
   accessNote: string;
 }
@@ -51,7 +51,6 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   
   // Automation States
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(true); 
-  const [highlightDigital, setHighlightDigital] = useState(false);
 
   // Form Fields
   const [thumbnail, setThumbnail] = useState<string>("");
@@ -60,7 +59,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
 
-  // ⚡ VIP PRICING STATE (Updated Initial State)
+  // ⚡ VIP PRICING STATE
   const [pricing, setPricing] = useState<{
     monthly: IPlanState;
     yearly: IPlanState;
@@ -82,7 +81,10 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     isFeatured: false,
     defaultPrice: "",      
     salePrice: "",        
-    regularPrice: "",     
+    regularPrice: "",
+    // ✅ Standard Delivery
+    accessLink: "",
+    accessNote: ""
   });
 
   // --- Fetch Data ---
@@ -115,6 +117,9 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
             defaultPrice: String(p.defaultPrice || 0),
             salePrice: String(p.salePrice || 0),
             regularPrice: String(p.regularPrice || 0),
+            // Map Standard Delivery (if available from API)
+            accessLink: p.accessLink || "",
+            accessNote: p.accessNote || ""
         });
 
         // 4. Map Complex Fields
@@ -141,15 +146,6 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
 
     if (id) initData();
   }, [id]);
-
-  // ⚡ Automation: Highlight Digital Section
-  useEffect(() => {
-    if (["Download Link", "Credentials", "License Key"].includes(formData.fileType)) {
-      setHighlightDigital(true);
-      const timer = setTimeout(() => setHighlightDigital(false), 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [formData.fileType]);
 
   // --- Logic Helpers ---
 
@@ -238,7 +234,11 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
           monthly: { ...pricing.monthly, price: Number(pricing.monthly.price), regularPrice: Number(pricing.monthly.regularPrice) },
           yearly: { ...pricing.yearly, price: Number(pricing.yearly.price), regularPrice: Number(pricing.yearly.regularPrice) },
           lifetime: { ...pricing.lifetime, price: Number(pricing.lifetime.price), regularPrice: Number(pricing.lifetime.regularPrice) },
-        }
+        },
+
+        // ✅ Standard Delivery
+        accessLink: formData.accessLink,
+        accessNote: formData.accessNote,
       };
 
       const res = await fetch(`/api/products/${id}`, {
@@ -266,16 +266,15 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     const discount = getDiscount(plan.regularPrice, plan.price);
 
     return (
-      <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
+      <div className="space-y-4 animate-in fade-in zoom-in-95 duration-300">
         {/* Enable Switch */}
-        <div className="flex items-center justify-between bg-secondary/20 p-4 rounded-xl border border-border">
+        <div className="flex items-center justify-between bg-secondary/20 p-3 rounded-lg border border-border/50">
           <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-full ${plan.isEnabled ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-500"}`}>
-               <Icon className="w-5 h-5" />
+            <div className={`p-1.5 rounded-full ${plan.isEnabled ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-500"}`}>
+               <Icon className="w-4 h-4" />
             </div>
             <div>
-              <Label className="text-base font-bold cursor-pointer" htmlFor={`${planKey}-enable`}>Enable {label} Plan</Label>
-              <p className="text-xs text-muted-foreground">Activate this duration for customers</p>
+              <Label className="text-sm font-bold cursor-pointer" htmlFor={`${planKey}-enable`}>Enable {label} Plan</Label>
             </div>
           </div>
           <Switch 
@@ -287,83 +286,81 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
 
         {plan.isEnabled && (
           <>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Selling Price</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Selling Price</Label>
                 <div className="relative">
-                   <span className="absolute left-3 top-2.5 font-bold text-gray-500">৳</span>
+                   <span className="absolute left-3 top-2 font-bold text-gray-500 text-xs">৳</span>
                    <Input 
                       type="number" 
                       value={plan.price} 
                       onChange={(e) => updatePlan(planKey, "price", e.target.value)} 
-                      className="pl-8 font-bold text-green-600 border-green-200 focus:ring-green-500"
+                      className="pl-7 h-9 font-bold text-green-600 border-green-200"
                    />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label>Regular Price (MRP)</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Regular Price</Label>
                 <div className="relative">
-                   <span className="absolute left-3 top-2.5 font-bold text-gray-400">৳</span>
+                   <span className="absolute left-3 top-2 font-bold text-gray-400 text-xs">৳</span>
                    <Input 
                       type="number" 
                       value={plan.regularPrice} 
                       onChange={(e) => updatePlan(planKey, "regularPrice", e.target.value)} 
-                      className="pl-8 text-gray-500"
+                      className="pl-7 h-9 text-gray-500"
                    />
                 </div>
-                {discount > 0 && <span className="text-xs text-green-600 font-bold flex items-center gap-1"><Sparkles className="w-3 h-3"/> {discount}% OFF</span>}
+                {discount > 0 && <span className="text-[10px] text-green-600 font-bold flex items-center gap-1"><Sparkles className="w-3 h-3"/> {discount}% OFF</span>}
               </div>
             </div>
 
             {/* Validity Label */}
-            <div className="space-y-4">
-               <div className="space-y-2">
-                  <Label>Validity Label</Label>
-                  <Input 
-                     value={plan.validityLabel} 
-                     onChange={(e) => updatePlan(planKey, "validityLabel", e.target.value)}
-                     placeholder={`e.g. ${label}`}
-                  />
-               </div>
-
-               {/* ✅ NEW: Rich Text Editor for Plan Description */}
-               <div className="space-y-2">
-                  <Label>Plan Description</Label>
-                  <div className="border rounded-md overflow-hidden min-h-[150px] bg-white">
-                    <RichTextEditor 
-                      onPickImage={handleImagePick}
-                      value={plan.description || ""} // Fallback if empty
-                      onChange={(val) => updatePlan(planKey, "description", val)}
-                    />
-                  </div>
-               </div>
+            <div className="space-y-1.5">
+               <Label className="text-xs">Validity Label</Label>
+               <Input 
+                  value={plan.validityLabel} 
+                  onChange={(e) => updatePlan(planKey, "validityLabel", e.target.value)}
+                  placeholder={`e.g. ${label}`}
+                  className="h-9 text-sm"
+               />
             </div>
 
-            <Separator className="my-4" />
+            {/* ✅ Rich Text Description */}
+            <div className="space-y-1.5">
+                <Label className="text-xs">Plan Description</Label>
+                <div className="border rounded-md overflow-hidden min-h-[120px] bg-white">
+                  <RichTextEditor 
+                    onPickImage={handleImagePick}
+                    value={plan.description || ""} 
+                    onChange={(val) => updatePlan(planKey, "description", val)}
+                  />
+                </div>
+            </div>
+
+            <Separator className="my-2" />
 
             {/* Secure Delivery Section */}
-            <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 space-y-4">
-               <h4 className="text-sm font-bold text-blue-800 flex items-center gap-2">
-                 <Lock className="w-4 h-4" /> Secure Delivery for {label}
+            <div className="bg-blue-50/50 p-3 rounded-lg border border-blue-100 space-y-3">
+               <h4 className="text-xs font-bold text-blue-800 flex items-center gap-1.5">
+                 <Lock className="w-3.5 h-3.5" /> Secure Delivery ({label})
                </h4>
-               <div className="space-y-2">
-                  <Label className="text-xs uppercase text-blue-600/80 font-bold">Access Link</Label>
+               <div className="space-y-1.5">
                   <div className="relative">
-                    <LinkIcon className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                    <LinkIcon className="absolute left-3 top-2.5 w-3.5 h-3.5 text-gray-400" />
                     <Input 
                        value={plan.accessLink || ""}
                        onChange={(e) => updatePlan(planKey, "accessLink", e.target.value)}
-                       className="pl-9 bg-white"
-                       placeholder="https://..."
+                       className="pl-8 bg-white h-9 text-xs"
+                       placeholder="Access Link..."
                     />
                   </div>
                </div>
-               <div className="space-y-2">
-                  <Label className="text-xs uppercase text-blue-600/80 font-bold">Credentials / Note</Label>
+               <div className="space-y-1.5">
                   <Textarea 
                      value={plan.accessNote || ""}
                      onChange={(e) => updatePlan(planKey, "accessNote", e.target.value)}
-                     className="bg-white min-h-[80px]"
+                     className="bg-white min-h-[60px] text-xs resize-none"
+                     placeholder="Notes / Credentials..."
                   />
                </div>
             </div>
@@ -375,8 +372,8 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
 
   if (loading) return (
     <div className="h-[80vh] flex flex-col items-center justify-center gap-4">
-      <Loader2 className="animate-spin text-primary w-12 h-12"/>
-      <p className="text-muted-foreground animate-pulse">Loading Product...</p>
+      <Loader2 className="animate-spin text-primary w-10 h-10"/>
+      <p className="text-muted-foreground animate-pulse text-sm">Loading Product...</p>
     </div>
   );
 
@@ -387,47 +384,49 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
       className="w-full pb-20 max-w-7xl mx-auto px-4 sm:px-6"
     >
       {/* Sticky Header */}
-      <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b -mx-6 px-6 py-4 mb-8 flex items-center justify-between shadow-sm">
+      <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b -mx-6 px-6 py-3 mb-6 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => router.back()}><ArrowLeft className="w-5 h-5" /></Button>
+          <Button variant="ghost" size="icon" onClick={() => router.back()} className="h-8 w-8"><ArrowLeft className="w-4 h-4" /></Button>
           <div>
-            <h1 className="text-xl font-bold">Edit Product</h1>
-            <p className="text-xs text-muted-foreground">Updating: {formData.title}</p>
+            <h1 className="text-lg font-bold leading-tight">Edit Product</h1>
+            <p className="text-[10px] text-muted-foreground">Updating: {formData.title}</p>
           </div>
         </div>
-        <Button onClick={handleSubmit} disabled={saving} className="bg-green-600 hover:bg-green-700 text-white min-w-[140px]">
+        <Button onClick={handleSubmit} disabled={saving} size="sm" className="bg-green-600 hover:bg-green-700 text-white min-w-[100px]">
           {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2"/> : <Save className="w-4 h-4 mr-2"/>} Update
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
         {/* === LEFT COLUMN === */}
-        <div className="lg:col-span-8 space-y-8">
+        <div className="lg:col-span-8 space-y-6">
           
           {/* Core Info */}
-          <Card>
-            <CardHeader><CardTitle className="flex items-center gap-2"><LayoutGrid className="w-5 h-5"/> Core Info</CardTitle></CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label>Product Title <span className="text-red-500">*</span></Label>
-                <Input name="title" value={formData.title} onChange={handleChange} className="text-lg font-medium"/>
+          <Card className="shadow-sm">
+            <CardHeader className="py-4 px-5 border-b bg-secondary/5">
+              <CardTitle className="flex items-center gap-2 text-base"><LayoutGrid className="w-4 h-4"/> Core Info</CardTitle>
+            </CardHeader>
+            <CardContent className="p-5 space-y-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold">Product Title</Label>
+                <Input name="title" value={formData.title} onChange={handleChange} className="font-medium"/>
               </div>
               <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Slug</Label>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold">Slug</Label>
                   <div className="flex gap-2">
                     <div className="flex-1 flex items-center relative">
-                      <span className="absolute left-3 text-muted-foreground text-sm">/</span>
-                      <Input name="slug" value={formData.slug} onChange={(e) => {setSlugManuallyEdited(true); setFormData({...formData, slug: e.target.value})}} className="pl-6" />
+                      <span className="absolute left-3 text-muted-foreground text-xs">/</span>
+                      <Input name="slug" value={formData.slug} onChange={(e) => {setSlugManuallyEdited(true); setFormData({...formData, slug: e.target.value})}} className="pl-5 text-sm" />
                     </div>
-                    <Button variant="outline" size="icon" onClick={regenerateSlug}><Wand2 className="w-4 h-4"/></Button>
+                    <Button variant="outline" size="icon" onClick={regenerateSlug} className="shrink-0 h-9 w-9"><Wand2 className="w-4 h-4"/></Button>
                   </div>
                 </div>
-                <div className="space-y-2">
-                   <Label>Category</Label>
+                <div className="space-y-1.5">
+                   <Label className="text-xs font-bold">Category</Label>
                    <Select value={formData.categoryId} onValueChange={(v) => setFormData(prev => ({...prev, categoryId: v}))}>
-                     <SelectTrigger><SelectValue placeholder="Select Category" /></SelectTrigger>
+                     <SelectTrigger className="text-sm"><SelectValue/></SelectTrigger>
                      <SelectContent>
                        {categories.map(cat => <SelectItem key={cat._id} value={cat._id}>{cat.name}</SelectItem>)}
                      </SelectContent>
@@ -435,131 +434,127 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                 </div>
               </div>
               
-              {/* Main Product Description */}
-              <div className="space-y-2">
-                <Label>Main Description</Label>
-                <div className="border rounded-md overflow-hidden min-h-[300px]">
-                  <RichTextEditor 
-                  onPickImage={handleImagePick}
-                  value={formData.description} 
-                  onChange={(val) => setFormData(p => ({...p, description: val}))} />
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold">Description</Label>
+                <div className="border rounded-md overflow-hidden min-h-[250px]">
+                  <RichTextEditor onPickImage={handleImagePick} value={formData.description} onChange={(val) => setFormData(p => ({...p, description: val}))} />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           {/* ⚡ VIP PRICING MANAGER */}
-          <Card className="border-blue-200 bg-blue-50/10 shadow-md">
-            <CardHeader className="bg-blue-100/30 pb-4 border-b border-blue-100">
-               <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2 text-blue-900"><Crown className="w-5 h-5 text-blue-600"/> VIP Pricing</CardTitle>
-                    <CardDescription>Edit plan details, prices, and secure links.</CardDescription>
-                  </div>
+          <Card className="border-blue-200 bg-blue-50/10 shadow-sm">
+            <CardHeader className="py-3 px-5 bg-blue-100/30 border-b border-blue-100">
+               <div className="flex items-center gap-2">
+                  <Crown className="w-4 h-4 text-blue-600"/>
+                  <h3 className="text-sm font-bold text-blue-900">VIP Pricing Plans</h3>
                </div>
             </CardHeader>
-            <CardContent className="pt-6">
+            <CardContent className="p-5">
                <Tabs defaultValue="monthly" className="w-full">
-                  <TabsList className="grid w-full grid-cols-3 mb-6 bg-blue-100/50">
-                    <TabsTrigger value="monthly" className="data-[state=active]:bg-white data-[state=active]:text-blue-700 font-bold">
-                       Monthly {pricing.monthly.isEnabled && <CheckCircle2 className="w-3 h-3 ml-2 text-green-600" />}
-                    </TabsTrigger>
-                    <TabsTrigger value="yearly" className="data-[state=active]:bg-white data-[state=active]:text-blue-700 font-bold">
-                       Yearly {pricing.yearly.isEnabled && <CheckCircle2 className="w-3 h-3 ml-2 text-green-600" />}
-                    </TabsTrigger>
-                    <TabsTrigger value="lifetime" className="data-[state=active]:bg-white data-[state=active]:text-amber-600 font-bold">
-                       Lifetime {pricing.lifetime.isEnabled && <CheckCircle2 className="w-3 h-3 ml-2 text-green-600" />}
-                    </TabsTrigger>
+                  <TabsList className="grid w-full grid-cols-3 mb-4 bg-blue-100/50 h-9">
+                    <TabsTrigger value="monthly" className="text-xs font-bold data-[state=active]:bg-white">Monthly</TabsTrigger>
+                    <TabsTrigger value="yearly" className="text-xs font-bold data-[state=active]:bg-white">Yearly</TabsTrigger>
+                    <TabsTrigger value="lifetime" className="text-xs font-bold data-[state=active]:bg-white">Lifetime</TabsTrigger>
                   </TabsList>
                   
-                  <div className="bg-white border rounded-xl p-6 shadow-sm">
-                    <TabsContent value="monthly">{renderPlanInputs("monthly", "Monthly", Calendar)}</TabsContent>
-                    <TabsContent value="yearly">{renderPlanInputs("yearly", "Yearly", Calendar)}</TabsContent>
-                    <TabsContent value="lifetime">{renderPlanInputs("lifetime", "Lifetime", Crown)}</TabsContent>
+                  <div className="bg-white border rounded-xl p-4 shadow-sm">
+                    <TabsContent value="monthly" className="mt-0">{renderPlanInputs("monthly", "Monthly", Calendar)}</TabsContent>
+                    <TabsContent value="yearly" className="mt-0">{renderPlanInputs("yearly", "Yearly", Calendar)}</TabsContent>
+                    <TabsContent value="lifetime" className="mt-0">{renderPlanInputs("lifetime", "Lifetime", Crown)}</TabsContent>
                   </div>
                </Tabs>
             </CardContent>
           </Card>
-
-          {/* Digital Delivery (Legacy/Fallback) */}
-          <motion.div animate={highlightDigital ? { scale: 1.01, boxShadow: "0 0 15px rgba(34, 197, 94, 0.25)" } : { scale: 1 }}>
-            <Card className={`transition-colors ${highlightDigital ? "border-green-400 bg-green-50/30" : "border-slate-200"}`}>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-green-800"><Lock className="w-5 h-5"/> Standard Delivery</CardTitle>
-                <CardDescription>Fallback delivery settings for plans that don't have specific override.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Delivery Type</Label>
-                  <Select value={formData.fileType} onValueChange={(v) => setFormData(prev => ({...prev, fileType: v}))}>
-                    <SelectTrigger><SelectValue/></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Credentials">Credentials</SelectItem>
-                      <SelectItem value="License Key">License Key</SelectItem>
-                      <SelectItem value="Download Link">Download Link</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
         </div>
 
-        {/* RIGHT COLUMN */}
-        <div className="lg:col-span-4 space-y-8">
-           
-           {/* Fallback Pricing */}
-           <Card>
-              <CardHeader><CardTitle className="text-base">Default Display Price</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                 <div className="space-y-2">
-                    <Label>Starting Price (Display)</Label>
-                    <Input type="number" value={formData.defaultPrice} onChange={(e) => setFormData(p => ({...p, defaultPrice: e.target.value}))} placeholder="0" />
-                    <p className="text-[10px] text-muted-foreground">Used for sorting & list view ("Starts at...")</p>
-                 </div>
-                 {Number(formData.salePrice) > 0 && (
-                 <div className="bg-slate-50 p-3 rounded-lg border text-xs text-muted-foreground flex items-center gap-2">
-                    <CreditCard className="w-3 h-3" />
-                    <p>Legacy Sale Price: ৳{formData.salePrice}</p>
-                 </div>
-               )}
+        {/* === RIGHT COLUMN === */}
+        <div className="lg:col-span-4 space-y-6">
+          
+          {/* Org */}
+          <Card className="shadow-sm">
+            <CardHeader className="py-3 px-4 border-b bg-secondary/5"><CardTitle className="text-sm">Organization</CardTitle></CardHeader>
+            <CardContent className="p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Available</Label>
+                <Switch checked={formData.isAvailable} onCheckedChange={(c) => setFormData(prev => ({...prev, isAvailable: c}))} className="scale-75"/>
+              </div>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Featured</Label>
+                <Switch checked={formData.isFeatured} onCheckedChange={(c) => setFormData(prev => ({...prev, isFeatured: c}))} className="scale-75"/>
+              </div>
             </CardContent>
           </Card>
 
-           {/* Media */}
-           <Card>
-              <CardHeader><CardTitle className="flex items-center gap-2"><ImageIcon className="w-4 h-4"/> Thumbnail</CardTitle></CardHeader>
-              <CardContent>
-                 <FileUpload initialImages={thumbnail ? [thumbnail] : []} onChange={(u) => setThumbnail(u[0] || "")} />
-              </CardContent>
-           </Card>
+          {/* Standard Product Settings */}
+          <Card className="shadow-sm">
+            <CardHeader className="py-3 px-4 border-b bg-secondary/5">
+              <CardTitle className="text-sm flex items-center gap-2"><Package className="w-4 h-4"/> Standard Product</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 space-y-4">
+               
+               <div className="space-y-1.5">
+                  <Label className="text-xs">Starting Price</Label>
+                  <Input type="number" value={formData.defaultPrice} onChange={(e) => setFormData(p => ({...p, defaultPrice: e.target.value}))} placeholder="0" className="h-9"/>
+               </div>
 
-           {/* Features */}
-           <Card>
-              <CardHeader><CardTitle className="flex items-center gap-2"><FileText className="w-4 h-4"/> Features</CardTitle></CardHeader>
-              <CardContent className="space-y-2">
-                 {features.map((f, i) => (
-                    <div key={i} className="flex gap-2">
-                       <Input value={f} onChange={(e) => handleFeatureChange(i, e.target.value)} className="h-8 text-sm" />
-                       <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => removeFeature(i)}><X className="w-4 h-4"/></Button>
-                    </div>
-                 ))}
-                 <Button variant="outline" size="sm" className="w-full" onClick={addFeature}>Add Feature</Button>
-              </CardContent>
-           </Card>
+               {/* ✅ STANDARD DELIVERY FIELDS */}
+               <div className="bg-gray-50 border border-gray-100 rounded-lg p-3 space-y-3">
+                  <div className="flex items-center gap-2 mb-1">
+                     <Lock className="w-3 h-3 text-gray-500"/>
+                     <span className="text-xs font-bold text-gray-600">Standard Delivery</span>
+                  </div>
+                  <Input 
+                     placeholder="Access Link" 
+                     value={formData.accessLink} 
+                     onChange={(e) => setFormData(p => ({...p, accessLink: e.target.value}))}
+                     className="bg-white h-8 text-xs"
+                  />
+                  <Textarea 
+                     placeholder="Notes / Credentials" 
+                     value={formData.accessNote} 
+                     onChange={(e) => setFormData(p => ({...p, accessNote: e.target.value}))}
+                     className="bg-white min-h-[50px] text-xs resize-none"
+                  />
+               </div>
+            </CardContent>
+          </Card>
 
-           {/* Tags */}
-           <Card>
-            <CardHeader><CardTitle className="flex items-center gap-2"><Tag className="w-4 h-4"/> Tags</CardTitle></CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2 mb-3 min-h-[40px] border p-2 rounded-lg bg-white">
+          {/* Media */}
+          <Card className="shadow-sm">
+            <CardHeader className="py-3 px-4 border-b bg-secondary/5"><CardTitle className="text-sm flex items-center gap-2"><ImageIcon className="w-4 h-4"/> Thumbnail</CardTitle></CardHeader>
+            <CardContent className="p-4">
+               <FileUpload initialImages={thumbnail ? [thumbnail] : []} onChange={(u) => setThumbnail(u[0] || "")} />
+            </CardContent>
+          </Card>
+
+          {/* Features */}
+          <Card className="shadow-sm">
+            <CardHeader className="py-3 px-4 border-b bg-secondary/5"><CardTitle className="text-sm flex items-center gap-2"><FileText className="w-4 h-4"/> Features</CardTitle></CardHeader>
+            <CardContent className="p-4 space-y-2">
+               {features.map((f, i) => (
+                  <div key={i} className="flex gap-2">
+                     <Input value={f} onChange={(e) => handleFeatureChange(i, e.target.value)} className="h-8 text-xs" />
+                     <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => removeFeature(i)}><X className="w-3 h-3"/></Button>
+                  </div>
+               ))}
+               <Button variant="outline" size="sm" className="w-full h-8 text-xs" onClick={addFeature}>Add Feature</Button>
+            </CardContent>
+          </Card>
+
+          {/* Tags */}
+          <Card className="shadow-sm">
+            <CardHeader className="py-3 px-4 border-b bg-secondary/5"><CardTitle className="text-sm flex items-center gap-2"><Tag className="w-4 h-4"/> Tags</CardTitle></CardHeader>
+            <CardContent className="p-4">
+              <div className="flex flex-wrap gap-2 mb-2 min-h-[36px] border p-2 rounded-md bg-secondary/10">
                 {tags.map(tag => (
-                  <Badge key={tag} variant="secondary" className="pl-2 pr-1 py-1 gap-1 text-xs">
+                  <Badge key={tag} variant="secondary" className="pl-2 pr-1 py-0.5 gap-1 text-[10px] h-5">
                     {tag} <X className="w-3 h-3 cursor-pointer hover:text-red-500" onClick={() => removeTag(tag)}/>
                   </Badge>
                 ))}
                 <input 
-                  className="flex-1 bg-transparent border-none outline-none text-sm min-w-[60px]" 
+                  className="flex-1 bg-transparent border-none outline-none text-xs min-w-[50px]" 
                   placeholder={tags.length===0?"Type...":""} 
                   value={tagInput} 
                   onChange={(e) => setTagInput(e.target.value)} 

@@ -105,25 +105,39 @@ export interface IDeliveredContent {
   downloadLink?: string;
 }
 
+// 2. Interface for a Single Item inside the Order
+export interface IOrderItem {
+  product: IProduct | string; // Can be full Product object or just ID
+  quantity: number;
+  price: number;
+  title?: string;   // Snapshot of title
+  variant?: string; // e.g. "Monthly", "Yearly"
+  _id?: string;
+}
+
+// 3. Main Order Interface
 export interface IOrder {
   _id: string;
   
   // Relations
-  user: IUser | string;      // Populated User or ID
-  product: IProduct | string; // Populated Product or ID
+  user: IUser | { _id: string; name: string; email: string; phone?: string }; 
   
+  // ✅ Corrected Products Array
+  products: IOrderItem[];
+
   // Payment Info
   transactionId: string;
   paymentMethod: string;
   amount: number;
-  screenshot?: string;
   
-  // State
-  status: "pending" | "completed" | "cancelled" | "declined" | "processing";
+  // Statuses
+  paymentStatus: "paid" | "unpaid" | "failed";
+  status: "pending" | "processing" | "completed" | "cancelled" | "declined";
   
-  // Delivery (Only present if status is completed)
+  // Delivery (Optional, exists when completed)
   deliveredContent?: IDeliveredContent;
   
+  // Timestamps
   createdAt: string;
   updatedAt: string;
 }

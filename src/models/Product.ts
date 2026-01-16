@@ -1,17 +1,17 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 
-// ✅ 1. Helper Interface for a Plan (To avoid repetition)
+// 1. Interface for VIP Plan
 interface IVipPlan {
   isEnabled: boolean;
   price: number;
   regularPrice?: number;
   validityLabel: string;
-  description?: string; // ⚡ NEW: Public description for this plan
+  description?: string;
   accessLink?: string;
   accessNote?: string;
 }
 
-// ✅ 2. Main Product Document Interface
+// 2. Main Product Interface
 export interface IProductDocument extends Document {
   title: string;
   slug: string;
@@ -28,76 +28,58 @@ export interface IProductDocument extends Document {
   salesCount: number;
   fileType: string;
 
-  // ⚡ VIP Pricing (Updated with Description)
+  // VIP Pricing Structure
   pricing: {
     monthly: IVipPlan;
     yearly:  IVipPlan;
     lifetime: IVipPlan;
   };
 
-  // Standard Pricing
+  // Standard Pricing (For Normal Products)
   defaultPrice: number;
   salePrice: number;
   regularPrice: number;
 
-  // Legacy secure fields
+  // ✅ STANDARD DELIVERY FIELDS (For Normal Products)
   accessLink?: string;
   accessNote?: string;
 }
 
-// ✅ 3. Schema Definition for a Plan
+// 3. Schema Definition
 const planSchema = new Schema(
   {
     isEnabled: { type: Boolean, default: false },
     price: { type: Number, default: 0 },
     regularPrice: { type: Number, default: 0 },
     validityLabel: { type: String, default: "" },
-    
-    // ⚡ NEW: Description Field
-    description: { type: String, default: "" }, 
-
-    // Secure Fields
-    accessLink: { type: String, select: false }, 
-    accessNote: { type: String, select: false }, 
+    description: { type: String, default: "" },
+    accessLink: { type: String, select: false }, // Private
+    accessNote: { type: String, select: false }, // Private
   },
   { _id: false }
 );
 
-// ✅ 4. Main Product Schema
 const productSchema = new Schema<IProductDocument>(
   {
     title: { type: String, required: true, trim: true },
     slug: { type: String, required: true, unique: true, index: true },
-    
     thumbnail: { type: String, required: true },
     gallery: [{ type: String }],
-    
     description: { type: String, required: true },
     shortDescription: { type: String, maxlength: 500 },
     features: [{ type: String }],
-    
     category: { type: Schema.Types.ObjectId, ref: "Category", required: true },
     tags: [{ type: String }],
-    
     isAvailable: { type: Boolean, default: true },
     isFeatured: { type: Boolean, default: false },
     salesCount: { type: Number, default: 0 },
     fileType: { type: String, default: "Subscription" },
 
-    // ⚡ VIP Pricing Structure (Updated Defaults)
+    // VIP Pricing
     pricing: {
-      monthly: { 
-        type: planSchema, 
-        default: () => ({ isEnabled: false, price: 0, validityLabel: "1 Month", description: "" }) 
-      },
-      yearly: { 
-        type: planSchema, 
-        default: () => ({ isEnabled: false, price: 0, validityLabel: "1 Year", description: "" }) 
-      },
-      lifetime: { 
-        type: planSchema, 
-        default: () => ({ isEnabled: false, price: 0, validityLabel: "Lifetime", description: "" }) 
-      },
+      monthly: { type: planSchema, default: () => ({ isEnabled: false }) },
+      yearly: { type: planSchema, default: () => ({ isEnabled: false }) },
+      lifetime: { type: planSchema, default: () => ({ isEnabled: false }) },
     },
 
     // Standard Pricing
@@ -105,7 +87,7 @@ const productSchema = new Schema<IProductDocument>(
     salePrice: { type: Number, default: 0 },
     regularPrice: { type: Number, default: 0 },
 
-    // Legacy fields
+    // ✅ STANDARD DELIVERY DATA (Hidden by default)
     accessLink: { type: String, select: false },
     accessNote: { type: String, select: false },
   },
