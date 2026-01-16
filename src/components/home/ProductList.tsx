@@ -4,8 +4,8 @@ import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { IProduct } from "@/types";
-import { ShoppingCart, Star, Check, Zap, ArrowRight } from "lucide-react";
-import { useCart } from "@/lib/CartContext"; 
+import { ShoppingCart, Star, Check, Zap, ArrowRight, Clock, Crown } from "lucide-react";
+import { useCart, PlanType } from "@/lib/CartContext"; 
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,15 +23,37 @@ import { Badge } from "@/components/ui/badge";
 const ProductCard = ({ product }: { product: IProduct }) => {
   const { addToCart, mapProductToCartItem } = useCart();
   
-  // ⚡ State: Default to the first variant if available
-  const hasVariants = product.variants && product.variants.length > 0;
-  const [selectedVariantIdx, setSelectedVariantIdx] = useState<number>(0);
-
-  // ⚡ Derived Data: Current Price & Details
-  const currentVariant = hasVariants ? product.variants![selectedVariantIdx] : null;
+  // ⚡ VIP Plan Logic
+  // Detect available plans
+  const pricing = product.pricing || {};
+  const availablePlans: PlanType[] = [];
   
-  const displayPrice = currentVariant ? currentVariant.price : product.salePrice;
-  const regularPrice = product.regularPrice; // Base regular price (or you could add regular price to variants too)
+  if (pricing.monthly?.isEnabled) availablePlans.push("monthly");
+  if (pricing.yearly?.isEnabled) availablePlans.push("yearly");
+  if (pricing.lifetime?.isEnabled) availablePlans.push("lifetime");
+
+  // Default to first plan found, or null if simple product
+  const [selectedPlan, setSelectedPlan] = useState<PlanType | "default">(
+    availablePlans.length > 0 ? availablePlans[0] : "default"
+  );
+
+  // ⚡ Derived Data: Current Price
+  let displayPrice = product.defaultPrice || product.salePrice || 0;
+  let regularPrice = product.regularPrice || 0;
+  let validityLabel = "Standard";
+
+  if (selectedPlan !== "default" && pricing[selectedPlan as PlanType]) {
+    const plan = pricing[selectedPlan as PlanType];
+    if (plan) {
+      displayPrice = plan.price;
+      regularPrice = plan.regularPrice || 0;
+      validityLabel = plan.validityLabel;
+    }
+  } else {
+    // Fallback logic for simple products
+    displayPrice = product.salePrice;
+    regularPrice = product.regularPrice;
+  }
   
   // Discount Calculation
   const discount = regularPrice > displayPrice
@@ -40,18 +62,18 @@ const ProductCard = ({ product }: { product: IProduct }) => {
 
   // Handler: Add To Cart
   const handleAddToCart = (e: React.MouseEvent) => {
-    e.preventDefault(); // Stop navigation to detail page
+    e.preventDefault(); 
     e.stopPropagation();
 
-    // ⚡ Map with specific variant
+    // Map cart item using the NEW Plan logic
     const cartItem = mapProductToCartItem(
       product, 
       1, 
-      currentVariant || undefined // Pass the variant object if it exists
+      selectedPlan !== "default" ? (selectedPlan as PlanType) : undefined
     );
     
     addToCart(cartItem);
-    toast.success(`Added ${currentVariant ? currentVariant.name : product.title} to cart`);
+    toast.success(`Added ${product.title} to cart`);
   };
 
   const formatPrice = (price: number) =>
@@ -87,11 +109,12 @@ const ProductCard = ({ product }: { product: IProduct }) => {
                 -{discount}% OFF
               </Badge>
             )}
-            {/* If Variant Selected, show Validity Badge */}
-            {hasVariants && (
+            
+            {/* Show Plan Badge if VIP */}
+            {selectedPlan !== "default" && (
                <Badge variant="outline" className="bg-black/50 text-white border-white/20 text-[10px] backdrop-blur-md">
-                 <Check className="w-3 h-3 mr-1 text-green-400" /> 
-                 {currentVariant?.validity} Access
+                 <Clock className="w-3 h-3 mr-1 text-green-400" /> 
+                 {validityLabel}
                </Badge>
             )}
           </div>
@@ -116,37 +139,42 @@ const ProductCard = ({ product }: { product: IProduct }) => {
             {product.title}
           </h3>
 
-          {/* ⚡ Variant Selector (Click blocker to prevent navigation) */}
-          {hasVariants && (
+          {/* ⚡ VIP Plan Selector (Click blocker to prevent navigation) */}
+          {availablePlans.length > 0 && (
             <div 
               className="mt-1" 
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
             >
               <Select 
-                value={String(selectedVariantIdx)} 
-                onValueChange={(v) => setSelectedVariantIdx(Number(v))}
+                value={selectedPlan} 
+                onValueChange={(v) => setSelectedPlan(v as PlanType)}
               >
                 <SelectTrigger className="h-8 text-xs bg-white/5 border-white/10 text-gray-300 focus:ring-0 focus:ring-offset-0">
                   <SelectValue placeholder="Select Plan" />
                 </SelectTrigger>
                 <SelectContent className="bg-[#1a1a1d] border-white/10 text-gray-300">
-                  {product.variants!.map((v, idx) => (
-                    <SelectItem key={idx} value={String(idx)} className="text-xs focus:bg-white/10 focus:text-white">
-                      {v.name} - {v.validity}
-                    </SelectItem>
-                  ))}
+                  {availablePlans.map((planKey) => {
+                    const pInfo = pricing[planKey];
+                    // Capitalize first letter
+                    const label = planKey.charAt(0).toUpperCase() + planKey.slice(1);
+                    return (
+                      <SelectItem key={planKey} value={planKey} className="text-xs focus:bg-white/10 focus:text-white">
+                        {label} - {pInfo?.validityLabel}
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
           )}
 
-          {/* Rating (Static/Dynamic placeholder) */}
-          {!hasVariants && (
+          {/* Fallback Info for Simple Products */}
+          {availablePlans.length === 0 && (
              <div className="flex items-center gap-1.5">
                <div className="flex text-yellow-500">
                  <Star className="w-3 h-3 fill-current" />
                </div>
-               <span className="text-xs text-gray-500 font-medium pt-0.5">4.9 (120 Reviews)</span>
+               <span className="text-xs text-gray-500 font-medium pt-0.5">4.9 (120+ Sold)</span>
              </div>
           )}
 
@@ -161,8 +189,8 @@ const ProductCard = ({ product }: { product: IProduct }) => {
               )}
               <span className="text-base md:text-lg font-bold text-white tracking-tight flex items-center gap-1">
                 {formatPrice(displayPrice)}
-                {/* Small indicator if price is for a specific variant */}
-                {hasVariants && <span className="text-[10px] font-normal text-gray-400 relative top-[1px]">/ {currentVariant?.name}</span>}
+                {/* Small indicator */}
+                {selectedPlan !== "default" && <span className="text-[10px] font-normal text-gray-400 relative top-[1px]">/ {validityLabel}</span>}
               </span>
             </div>
 
@@ -185,11 +213,13 @@ const ProductCard = ({ product }: { product: IProduct }) => {
 // 2. MAIN COMPONENT: Grid Wrapper
 // ----------------------------------------------------------------------
 const ProductList = ({ products }: { products: IProduct[] }) => {
+  if (!products || products.length === 0) return null;
+
   return (
     <section className="bg-black py-8 md:py-20 text-white min-h-[50vh]">
       <div className="container mx-auto px-4 md:px-6">
         
-        {/* Header (Optional) */}
+        {/* Header */}
         <div className="flex items-end justify-between mb-8">
            <div>
              <h2 className="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-500">

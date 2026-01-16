@@ -70,7 +70,7 @@ export interface IProduct {
   features?: string[];
   
   // Category can be an ID string OR a populated Object
-  category: string | ICategory; 
+  category:  ICategory; 
   tags?: string[];
   
   isAvailable: boolean;
