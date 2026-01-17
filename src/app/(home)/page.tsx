@@ -32,7 +32,7 @@ export default async function Home() {
       <FeaturedCourses products={data.products} />
       {/* Header */}
       <div className="flex items-center justify-between mb-6 md:mb-10">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <div className="h-8 w-1 bg-green-500 rounded-full"></div>
           <h2 className="text-xl md:text-3xl font-bold tracking-wide text-white">
             Popular Courses
