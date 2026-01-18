@@ -22,7 +22,7 @@ export interface IProductDocument extends Document {
   features: string[];
   category: mongoose.Types.ObjectId;
   tags: string[];
-  
+  videoUrl?: string;
   isAvailable: boolean;
   isFeatured: boolean;
   salesCount: number;

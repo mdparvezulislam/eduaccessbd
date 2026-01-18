@@ -110,6 +110,7 @@ export async function POST(req: NextRequest) {
       
       // Standard / Fallback Pricing
       defaultPrice: Number(body.defaultPrice) || 0,
+      videoUrl: body.videoUrl || "",
       salePrice: Number(body.salePrice) || 0,
       regularPrice: Number(body.regularPrice) || 0,
       

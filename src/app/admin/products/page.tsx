@@ -1,15 +1,10 @@
 import ProductListClient from "@/components/admin/products/ProductListClient";
 import { SITE_URL } from "@/types"; // Ensure this is defined in your types file
 
-// Helper for absolute URL in Server Components
-const getBaseUrl = () => {
-  if (SITE_URL) return SITE_URL;
-  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
-  return "http://localhost:3000";
-};
+
 
 export default async function ProductListPage() {
-  const baseUrl = getBaseUrl();
+  const baseUrl = SITE_URL || 'http://localhost:3000';
 
   // 1. Fetch products
   // Using 'no-store' ensures Admin always sees the latest data immediately (Zero Caching)

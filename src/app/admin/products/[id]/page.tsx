@@ -7,9 +7,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   ArrowLeft, Save, LayoutGrid, Loader2, 
   X, Lock, Link as LinkIcon, 
-  Crown, Calendar, Sparkles, Wand2,
-  CheckCircle2, FileText, Tag, Image as ImageIcon,
-  CreditCard, Package
+  Wand2, Sparkles, Crown, Calendar, 
+  Package, Video, Tag, ImageIcon
 } from "lucide-react";
 
 // --- Components ---
@@ -76,12 +75,13 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     shortDescription: "",
     description: "",
     categoryId: "",
+    videoUrl: "",         // ✅ New
     fileType: "Subscription",
     isAvailable: true,
     isFeatured: false,
     defaultPrice: "",      
-    salePrice: "",        
-    regularPrice: "",
+    salePrice: "",        // ✅ New
+    regularPrice: "",     // ✅ New
     // ✅ Standard Delivery
     accessLink: "",
     accessNote: ""
@@ -111,6 +111,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
             shortDescription: p.shortDescription || "",
             description: p.description || "",
             categoryId: (p.category && typeof p.category === 'object') ? p.category._id : (p.category || ""),
+            videoUrl: p.videoUrl || "",
             fileType: p.fileType || "Subscription",
             isAvailable: p.isAvailable ?? true,
             isFeatured: p.isFeatured ?? false,
@@ -173,7 +174,6 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     toast.info("Slug regenerated");
   };
 
-  // ⚡ Update VIP Plan State
   const updatePlan = (plan: "monthly" | "yearly" | "lifetime", field: keyof IPlanState, value: any) => {
     setPricing(prev => ({
       ...prev,
@@ -181,20 +181,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     }));
   };
 
-  // Tags & Features Logic
-  const handleFeatureChange = (index: number, value: string) => {
-    const newFeatures = [...features];
-    newFeatures[index] = value;
-    setFeatures(newFeatures);
-  };
-  
-  const addFeature = () => setFeatures([...features, ""]);
-  
-  const removeFeature = (index: number) => {
-    const newFeatures = features.filter((_, i) => i !== index);
-    setFeatures(newFeatures);
-  };
-
+  // Tags Logic
   const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" || e.key === ",") {
       e.preventDefault();
@@ -207,8 +194,18 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     if (e.key === "Backspace" && tagInput === "" && tags.length > 0) setTags(tags.slice(0, -1));
   };
 
-  const removeTag = (tagToRemove: string) => {
-    setTags(tags.filter(tag => tag !== tagToRemove));
+  // Features Logic
+  const handleFeatureChange = (index: number, value: string) => {
+    const newFeatures = [...features];
+    newFeatures[index] = value;
+    setFeatures(newFeatures);
+  };
+  
+  const addFeature = () => setFeatures([...features, ""]);
+  
+  const removeFeature = (index: number) => {
+    const newFeatures = features.filter((_, i) => i !== index);
+    setFeatures(newFeatures);
   };
 
   // --- Submit ---
@@ -266,10 +263,10 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     const discount = getDiscount(plan.regularPrice, plan.price);
 
     return (
-      <div className="space-y-4 animate-in fade-in zoom-in-95 duration-300">
+      <div className="space-y-3 animate-in fade-in zoom-in-95 duration-300">
         {/* Enable Switch */}
-        <div className="flex items-center justify-between bg-secondary/20 p-3 rounded-lg border border-border/50">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between bg-secondary/30 p-2.5 rounded-lg border border-border/60">
+          <div className="flex items-center gap-2.5">
             <div className={`p-1.5 rounded-full ${plan.isEnabled ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-500"}`}>
                <Icon className="w-4 h-4" />
             </div>
@@ -287,48 +284,46 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         {plan.isEnabled && (
           <>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Selling Price</Label>
+              <div className="space-y-1">
+                <Label className="text-[10px] text-muted-foreground uppercase font-bold">Price</Label>
                 <div className="relative">
-                   <span className="absolute left-3 top-2 font-bold text-gray-500 text-xs">৳</span>
+                   <span className="absolute left-2.5 top-2 font-bold text-gray-500 text-xs">৳</span>
                    <Input 
                       type="number" 
                       value={plan.price} 
                       onChange={(e) => updatePlan(planKey, "price", e.target.value)} 
-                      className="pl-7 h-9 font-bold text-green-600 border-green-200"
+                      className="pl-6 h-8 font-bold text-green-600 border-green-200 focus:ring-green-500 text-xs"
                    />
                 </div>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Regular Price</Label>
+              <div className="space-y-1">
+                <Label className="text-[10px] text-muted-foreground uppercase font-bold">Regular Price</Label>
                 <div className="relative">
-                   <span className="absolute left-3 top-2 font-bold text-gray-400 text-xs">৳</span>
+                   <span className="absolute left-2.5 top-2 font-bold text-gray-400 text-xs">৳</span>
                    <Input 
                       type="number" 
                       value={plan.regularPrice} 
                       onChange={(e) => updatePlan(planKey, "regularPrice", e.target.value)} 
-                      className="pl-7 h-9 text-gray-500"
+                      className="pl-6 h-8 text-gray-500 text-xs"
                    />
                 </div>
-                {discount > 0 && <span className="text-[10px] text-green-600 font-bold flex items-center gap-1"><Sparkles className="w-3 h-3"/> {discount}% OFF</span>}
+                {discount > 0 && <span className="text-[10px] text-green-600 font-bold flex items-center gap-1 absolute right-1 -top-5 bg-green-50 px-1 rounded"><Sparkles className="w-2.5 h-2.5"/> {discount}%</span>}
               </div>
             </div>
 
-            {/* Validity Label */}
-            <div className="space-y-1.5">
-               <Label className="text-xs">Validity Label</Label>
+            <div className="space-y-1">
+               <Label className="text-[10px] text-muted-foreground uppercase font-bold">Validity Label</Label>
                <Input 
                   value={plan.validityLabel} 
                   onChange={(e) => updatePlan(planKey, "validityLabel", e.target.value)}
                   placeholder={`e.g. ${label}`}
-                  className="h-9 text-sm"
+                  className="h-8 text-xs"
                />
             </div>
 
-            {/* ✅ Rich Text Description */}
-            <div className="space-y-1.5">
-                <Label className="text-xs">Plan Description</Label>
-                <div className="border rounded-md overflow-hidden min-h-[120px] bg-white">
+            <div className="space-y-1">
+                <Label className="text-[10px] text-muted-foreground uppercase font-bold">Description</Label>
+                <div className="border rounded-md overflow-hidden min-h-[100px] bg-white">
                   <RichTextEditor 
                     onPickImage={handleImagePick}
                     value={plan.description || ""} 
@@ -337,29 +332,28 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                 </div>
             </div>
 
-            <Separator className="my-2" />
+            <Separator className="my-1" />
 
-            {/* Secure Delivery Section */}
-            <div className="bg-blue-50/50 p-3 rounded-lg border border-blue-100 space-y-3">
-               <h4 className="text-xs font-bold text-blue-800 flex items-center gap-1.5">
-                 <Lock className="w-3.5 h-3.5" /> Secure Delivery ({label})
+            <div className="bg-blue-50/50 p-2.5 rounded-lg border border-blue-100 space-y-2">
+               <h4 className="text-[11px] font-bold text-blue-800 flex items-center gap-1.5">
+                 <Lock className="w-3 h-3" /> Secure Delivery ({label})
                </h4>
-               <div className="space-y-1.5">
+               <div className="space-y-1">
                   <div className="relative">
-                    <LinkIcon className="absolute left-3 top-2.5 w-3.5 h-3.5 text-gray-400" />
+                    <LinkIcon className="absolute left-2.5 top-2.5 w-3 h-3 text-gray-400" />
                     <Input 
                        value={plan.accessLink || ""}
                        onChange={(e) => updatePlan(planKey, "accessLink", e.target.value)}
-                       className="pl-8 bg-white h-9 text-xs"
+                       className="pl-7 bg-white h-8 text-xs"
                        placeholder="Access Link..."
                     />
                   </div>
                </div>
-               <div className="space-y-1.5">
+               <div className="space-y-1">
                   <Textarea 
                      value={plan.accessNote || ""}
                      onChange={(e) => updatePlan(planKey, "accessNote", e.target.value)}
-                     className="bg-white min-h-[60px] text-xs resize-none"
+                     className="bg-white min-h-[50px] text-xs resize-none"
                      placeholder="Notes / Credentials..."
                   />
                </div>
@@ -392,25 +386,25 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
             <p className="text-[10px] text-muted-foreground">Updating: {formData.title}</p>
           </div>
         </div>
-        <Button onClick={handleSubmit} disabled={saving} size="sm" className="bg-green-600 hover:bg-green-700 text-white min-w-[100px]">
-          {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2"/> : <Save className="w-4 h-4 mr-2"/>} Update
+        <Button onClick={handleSubmit} disabled={saving} size="sm" className="bg-green-600 hover:bg-green-700 text-white min-w-[100px] h-8 text-xs">
+          {saving ? <Loader2 className="w-3 h-3 animate-spin mr-2"/> : <Save className="w-3 h-3 mr-2"/>} Update
         </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
         {/* === LEFT COLUMN === */}
-        <div className="lg:col-span-8 space-y-6">
+        <div className="lg:col-span-8 space-y-5">
           
           {/* Core Info */}
-          <Card className="shadow-sm">
-            <CardHeader className="py-4 px-5 border-b bg-secondary/5">
-              <CardTitle className="flex items-center gap-2 text-base"><LayoutGrid className="w-4 h-4"/> Core Info</CardTitle>
+          <Card className="shadow-sm border-t-4 border-t-primary/20">
+            <CardHeader className="py-3 px-5 border-b bg-secondary/5">
+              <CardTitle className="flex items-center gap-2 text-sm font-bold"><LayoutGrid className="w-4 h-4"/> Core Information</CardTitle>
             </CardHeader>
             <CardContent className="p-5 space-y-4">
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold">Product Title</Label>
-                <Input name="title" value={formData.title} onChange={handleChange} className="font-medium"/>
+                <Input name="title" value={formData.title} onChange={handleChange} className="font-medium h-9 text-sm"/>
               </div>
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
@@ -418,26 +412,41 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                   <div className="flex gap-2">
                     <div className="flex-1 flex items-center relative">
                       <span className="absolute left-3 text-muted-foreground text-xs">/</span>
-                      <Input name="slug" value={formData.slug} onChange={(e) => {setSlugManuallyEdited(true); setFormData({...formData, slug: e.target.value})}} className="pl-5 text-sm" />
+                      <Input name="slug" value={formData.slug} onChange={(e) => {setSlugManuallyEdited(true); setFormData({...formData, slug: e.target.value})}} className="pl-5 h-9 text-sm" />
                     </div>
-                    <Button variant="outline" size="icon" onClick={regenerateSlug} className="shrink-0 h-9 w-9"><Wand2 className="w-4 h-4"/></Button>
+                    <Button variant="outline" size="icon" onClick={regenerateSlug} className="shrink-0 h-9 w-9"><Wand2 className="w-3.5 h-3.5"/></Button>
                   </div>
                 </div>
                 <div className="space-y-1.5">
                    <Label className="text-xs font-bold">Category</Label>
                    <Select value={formData.categoryId} onValueChange={(v) => setFormData(prev => ({...prev, categoryId: v}))}>
-                     <SelectTrigger className="text-sm"><SelectValue/></SelectTrigger>
+                     <SelectTrigger className="text-sm h-9"><SelectValue/></SelectTrigger>
                      <SelectContent>
-                       {categories.map(cat => <SelectItem key={cat._id} value={cat._id}>{cat.name}</SelectItem>)}
+                       {categories.map(cat => <SelectItem key={cat._id} value={cat._id} className="text-xs">{cat.name}</SelectItem>)}
                      </SelectContent>
                    </Select>
                 </div>
               </div>
+
+              {/* ✅ Short Description */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold">Short Description</Label>
+                <Textarea 
+                  name="shortDescription"
+                  value={formData.shortDescription}
+                  onChange={handleChange}
+                  className="min-h-[60px] text-xs resize-none bg-slate-50 focus:bg-white transition-colors"
+                  placeholder="Brief summary..."
+                />
+              </div>
               
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold">Description</Label>
-                <div className="border rounded-md overflow-hidden min-h-[250px]">
-                  <RichTextEditor onPickImage={handleImagePick} value={formData.description} onChange={(val) => setFormData(p => ({...p, description: val}))} />
+                <Label className="text-xs font-bold">Full Description</Label>
+                <div className="border rounded-md overflow-hidden min-h-[200px]">
+                  <RichTextEditor 
+                  onPickImage={handleImagePick}
+                  value={formData.description} 
+                  onChange={(val) => setFormData(p => ({...p, description: val}))} />
                 </div>
               </div>
             </CardContent>
@@ -445,15 +454,15 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
 
           {/* ⚡ VIP PRICING MANAGER */}
           <Card className="border-blue-200 bg-blue-50/10 shadow-sm">
-            <CardHeader className="py-3 px-5 bg-blue-100/30 border-b border-blue-100">
+            <CardHeader className="py-2.5 px-5 bg-blue-100/30 border-b border-blue-100">
                <div className="flex items-center gap-2">
                   <Crown className="w-4 h-4 text-blue-600"/>
-                  <h3 className="text-sm font-bold text-blue-900">VIP Pricing Plans</h3>
+                  <h3 className="text-sm font-bold text-blue-900">VIP Pricing & Delivery</h3>
                </div>
             </CardHeader>
-            <CardContent className="p-5">
+            <CardContent className="p-4">
                <Tabs defaultValue="monthly" className="w-full">
-                  <TabsList className="grid w-full grid-cols-3 mb-4 bg-blue-100/50 h-9">
+                  <TabsList className="grid w-full grid-cols-3 mb-4 bg-blue-100/50 h-8">
                     <TabsTrigger value="monthly" className="text-xs font-bold data-[state=active]:bg-white">Monthly</TabsTrigger>
                     <TabsTrigger value="yearly" className="text-xs font-bold data-[state=active]:bg-white">Yearly</TabsTrigger>
                     <TabsTrigger value="lifetime" className="text-xs font-bold data-[state=active]:bg-white">Lifetime</TabsTrigger>
@@ -470,92 +479,133 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         </div>
 
         {/* === RIGHT COLUMN === */}
-        <div className="lg:col-span-4 space-y-6">
-          
-          {/* Org */}
-          <Card className="shadow-sm">
-            <CardHeader className="py-3 px-4 border-b bg-secondary/5"><CardTitle className="text-sm">Organization</CardTitle></CardHeader>
-            <CardContent className="p-4 space-y-4">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs">Available</Label>
-                <Switch checked={formData.isAvailable} onCheckedChange={(c) => setFormData(prev => ({...prev, isAvailable: c}))} className="scale-75"/>
-              </div>
-              <div className="flex items-center justify-between">
-                <Label className="text-xs">Featured</Label>
-                <Switch checked={formData.isFeatured} onCheckedChange={(c) => setFormData(prev => ({...prev, isFeatured: c}))} className="scale-75"/>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="lg:col-span-4 space-y-5">
+           
+           {/* Standard / Normal Product Settings */}
+           <Card className="shadow-sm">
+              <CardHeader className="py-2.5 px-4 border-b bg-secondary/5">
+                <CardTitle className="text-sm flex items-center gap-2 font-bold"><Package className="w-4 h-4"/> Standard Product</CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 space-y-4">
+                 
+                 {/* ✅ Regular & Sale Price */}
+                 <div className="grid grid-cols-2 gap-3">
+                   <div className="space-y-1">
+                      <Label className="text-[10px] text-muted-foreground uppercase font-bold">Regular Price</Label>
+                      <Input 
+                        type="number" 
+                        name="regularPrice" 
+                        value={formData.regularPrice} 
+                        onChange={handleChange} 
+                        placeholder="0" 
+                        className="h-8 text-xs bg-slate-50"
+                      />
+                   </div>
+                   <div className="space-y-1">
+                      <Label className="text-[10px] text-muted-foreground uppercase font-bold">Sale Price</Label>
+                      <Input 
+                        type="number" 
+                        name="salePrice" 
+                        value={formData.salePrice} 
+                        onChange={handleChange} 
+                        placeholder="0" 
+                        className="h-8 text-xs font-bold text-green-600 border-green-200"
+                      />
+                   </div>
+                 </div>
 
-          {/* Standard Product Settings */}
-          <Card className="shadow-sm">
-            <CardHeader className="py-3 px-4 border-b bg-secondary/5">
-              <CardTitle className="text-sm flex items-center gap-2"><Package className="w-4 h-4"/> Standard Product</CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 space-y-4">
-               
-               <div className="space-y-1.5">
-                  <Label className="text-xs">Starting Price</Label>
-                  <Input type="number" value={formData.defaultPrice} onChange={(e) => setFormData(p => ({...p, defaultPrice: e.target.value}))} placeholder="0" className="h-9"/>
-               </div>
+                 <div className="space-y-1">
+                    <Label className="text-[10px] text-muted-foreground uppercase font-bold">Display Price (Starts At)</Label>
+                    <Input type="number" name="defaultPrice" value={formData.defaultPrice} onChange={handleChange} placeholder="0" className="h-8 text-xs"/>
+                    <p className="text-[9px] text-muted-foreground">Main price shown on product lists.</p>
+                 </div>
 
-               {/* ✅ STANDARD DELIVERY FIELDS */}
-               <div className="bg-gray-50 border border-gray-100 rounded-lg p-3 space-y-3">
-                  <div className="flex items-center gap-2 mb-1">
-                     <Lock className="w-3 h-3 text-gray-500"/>
-                     <span className="text-xs font-bold text-gray-600">Standard Delivery</span>
-                  </div>
-                  <Input 
-                     placeholder="Access Link" 
-                     value={formData.accessLink} 
-                     onChange={(e) => setFormData(p => ({...p, accessLink: e.target.value}))}
-                     className="bg-white h-8 text-xs"
-                  />
-                  <Textarea 
-                     placeholder="Notes / Credentials" 
-                     value={formData.accessNote} 
-                     onChange={(e) => setFormData(p => ({...p, accessNote: e.target.value}))}
-                     className="bg-white min-h-[50px] text-xs resize-none"
-                  />
-               </div>
-            </CardContent>
-          </Card>
+                 <Separator />
 
-          {/* Media */}
-          <Card className="shadow-sm">
-            <CardHeader className="py-3 px-4 border-b bg-secondary/5"><CardTitle className="text-sm flex items-center gap-2"><ImageIcon className="w-4 h-4"/> Thumbnail</CardTitle></CardHeader>
+                 {/* ✅ STANDARD DELIVERY FIELDS */}
+                 <div className="bg-gray-50 border border-gray-100 rounded-lg p-3 space-y-3">
+                    <div className="flex items-center gap-2 mb-1">
+                       <Lock className="w-3 h-3 text-gray-500"/>
+                       <span className="text-xs font-bold text-gray-600">Standard Delivery</span>
+                    </div>
+                    <Input 
+                       placeholder="Access Link" 
+                       value={formData.accessLink} 
+                       onChange={(e) => setFormData(p => ({...p, accessLink: e.target.value}))}
+                       className="bg-white h-8 text-xs"
+                    />
+                    <Textarea 
+                       placeholder="Notes / Credentials" 
+                       value={formData.accessNote} 
+                       onChange={(e) => setFormData(p => ({...p, accessNote: e.target.value}))}
+                       className="bg-white min-h-[50px] text-xs resize-none"
+                    />
+                 </div>
+                 
+                 <div className="flex items-center justify-between">
+                    <Label className="text-xs">Is Available?</Label>
+                    <Switch checked={formData.isAvailable} onCheckedChange={c => setFormData(p => ({...p, isAvailable: c}))} className="scale-75" />
+                 </div>
+                 <div className="flex items-center justify-between">
+                    <Label className="text-xs">Featured?</Label>
+                    <Switch checked={formData.isFeatured} onCheckedChange={c => setFormData(p => ({...p, isFeatured: c}))} className="scale-75" />
+                 </div>
+              </CardContent>
+           </Card>
+
+           {/* Media */}
+           <Card className="shadow-sm">
+              <CardHeader className="py-2.5 px-4 border-b bg-secondary/5"><CardTitle className="text-sm font-bold flex items-center gap-2"><ImageIcon className="w-4 h-4"/> Media</CardTitle></CardHeader>
+              <CardContent className="p-4 space-y-3">
+                 <div>
+                    <Label className="text-[10px] text-muted-foreground uppercase font-bold mb-1.5 block">Thumbnail Image</Label>
+                    <FileUpload initialImages={thumbnail ? [thumbnail] : []} onChange={(u) => setThumbnail(u[0] || "")} />
+                 </div>
+                 
+                 {/* ✅ Video URL */}
+                 <div>
+                    <Label className="text-[10px] text-muted-foreground uppercase font-bold mb-1.5 block">Video URL (Optional)</Label>
+                    <div className="relative">
+                      <Video className="absolute left-2.5 top-2 w-3.5 h-3.5 text-gray-400" />
+                      <Input 
+                        name="videoUrl"
+                        value={formData.videoUrl} 
+                        onChange={handleChange}
+                        className="pl-8 h-8 text-xs"
+                        placeholder="Youtube / Vimeo..."
+                      />
+                    </div>
+                 </div>
+              </CardContent>
+           </Card>
+
+           {/* Features */}
+           <Card className="shadow-sm">
+              <CardHeader className="py-2.5 px-4 border-b bg-secondary/5"><CardTitle className="text-sm font-bold">Features</CardTitle></CardHeader>
+              <CardContent className="p-4 space-y-2">
+                 {features.map((f, i) => (
+                    <div key={i} className="flex gap-2">
+                       <Input value={f} onChange={(e) => handleFeatureChange(i, e.target.value)} className="h-8 text-xs" />
+                       <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => removeFeature(i)}><X className="w-3 h-3"/></Button>
+                    </div>
+                 ))}
+                 <Button variant="outline" size="sm" className="w-full h-8 text-xs" onClick={addFeature}>Add Feature</Button>
+              </CardContent>
+           </Card>
+
+           {/* Tags */}
+           <Card className="shadow-sm">
+            <CardHeader className="py-2.5 px-4 border-b bg-secondary/5"><CardTitle className="text-sm font-bold flex items-center gap-2"><Tag className="w-4 h-4"/> Tags</CardTitle></CardHeader>
             <CardContent className="p-4">
-               <FileUpload initialImages={thumbnail ? [thumbnail] : []} onChange={(u) => setThumbnail(u[0] || "")} />
-            </CardContent>
-          </Card>
-
-          {/* Features */}
-          <Card className="shadow-sm">
-            <CardHeader className="py-3 px-4 border-b bg-secondary/5"><CardTitle className="text-sm flex items-center gap-2"><FileText className="w-4 h-4"/> Features</CardTitle></CardHeader>
-            <CardContent className="p-4 space-y-2">
-               {features.map((f, i) => (
-                  <div key={i} className="flex gap-2">
-                     <Input value={f} onChange={(e) => handleFeatureChange(i, e.target.value)} className="h-8 text-xs" />
-                     <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => removeFeature(i)}><X className="w-3 h-3"/></Button>
-                  </div>
-               ))}
-               <Button variant="outline" size="sm" className="w-full h-8 text-xs" onClick={addFeature}>Add Feature</Button>
-            </CardContent>
-          </Card>
-
-          {/* Tags */}
-          <Card className="shadow-sm">
-            <CardHeader className="py-3 px-4 border-b bg-secondary/5"><CardTitle className="text-sm flex items-center gap-2"><Tag className="w-4 h-4"/> Tags</CardTitle></CardHeader>
-            <CardContent className="p-4">
-              <div className="flex flex-wrap gap-2 mb-2 min-h-[36px] border p-2 rounded-md bg-secondary/10">
+              <div className="flex flex-wrap gap-2 mb-1.5 min-h-[36px] border p-2 rounded-md bg-white">
                 {tags.map(tag => (
                   <Badge key={tag} variant="secondary" className="pl-2 pr-1 py-0.5 gap-1 text-[10px] h-5">
-                    {tag} <X className="w-3 h-3 cursor-pointer hover:text-red-500" onClick={() => removeTag(tag)}/>
+                    {tag} <X className="w-3 h-3 cursor-pointer hover:text-red-500" onClick={() => setTags(tags.filter(t => t !== tag))}/>
                   </Badge>
                 ))}
                 <input 
                   className="flex-1 bg-transparent border-none outline-none text-xs min-w-[50px]" 
-                  placeholder={tags.length===0?"Type...":""} 
+                  placeholder={tags.length===0?"Type tags...":""} 
                   value={tagInput} 
                   onChange={(e) => setTagInput(e.target.value)} 
                   onKeyDown={handleTagKeyDown} 

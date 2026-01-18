@@ -75,6 +75,7 @@ export async function PUT(req: NextRequest, { params }: IdParams) {
       ...body,
       
       // Standard Numbers
+      videoUrl: body.videoUrl || "",
       defaultPrice: Number(body.defaultPrice) || 0,
       salePrice: Number(body.salePrice) || 0,
       regularPrice: Number(body.regularPrice) || 0,
@@ -112,13 +113,33 @@ export async function PUT(req: NextRequest, { params }: IdParams) {
 }
 
 // ==================================================================
-// DELETE → Delete Product (Admin Only)
+// DELETE → Delete Product (Super Admin Only)
 // ==================================================================
 export async function DELETE(req: NextRequest, { params }: IdParams) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    
+    // ⚡ CONFIG: Phone numbers allowed to delete
+    const SUPER_ADMINS = ["01857887025", "01608257876"];
+
+    // 1. Check if logged in
+    if (!session || !session.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // 2. Check if Admin
+    if (session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Admins only" }, { status: 403 });
+    }
+
+    // 3. 🔒 SUPER ADMIN CHECK: Check Phone Number
+    // (We cast 'as any' just in case the typescript definition doesn't show phone yet)
+    const userPhone = (session.user as any).phone;
+
+    if (!SUPER_ADMINS.includes(userPhone)) {
+      return NextResponse.json({ 
+        error: "Restricted: Only specific Super Admins can delete products." 
+      }, { status: 403 });
     }
 
     const { id } = await params;

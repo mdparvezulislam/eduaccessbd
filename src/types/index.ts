@@ -33,7 +33,7 @@ export interface ICategory {
   updatedAt?: string;
 }
 
-// export const SITE_URL = "http://localhost:3000";
+// export const SITE_URL = "https://eduaccessbd.store";
 export const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 // ==========================================
 // 3. PRODUCT TYPE
@@ -68,7 +68,7 @@ export interface IProduct {
   description: string;
   shortDescription?: string;
   features?: string[];
-  
+  videoUrl?: string;
   // Category can be an ID string OR a populated Object
   category:  ICategory; 
   tags?: string[];
