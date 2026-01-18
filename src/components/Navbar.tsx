@@ -54,6 +54,10 @@ const navLinks = [
     href: "/community",
     label: "Community",
     icon: <Users className="w-4 h-4 mr-3" />,
+  },  {
+    href: "/dashboard",
+    label: "Dashboard",
+    icon: <User className="w-4 h-4 mr-3" />,
   },
 ];
 
@@ -99,6 +103,7 @@ export default function Navbar() {
                   <span className="text-lg font-bold text-gray-400">
                     Access BD
                   </span>
+               
                 </div>
 
                 {/* Mobile Search */}
@@ -190,7 +195,13 @@ export default function Navbar() {
             </span>
           </Link>
         </div>
-
+        <Link
+                    href="/dashboard"
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#1f1f1f] text-gray-300 hover:text-white transition-colors text-sm"
+                  >
+                    <LayoutDashboard className="w-4 h-4 text-white" />
+                    <span className="font-medium">Dashboard</span>
+                  </Link>
         {/* === CENTER: NAV (desktop only) === */}
         <nav className="hidden md:flex items-center gap-5 lg:gap-7 mx-auto">
           {navLinks.map((link) => (

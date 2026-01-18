@@ -158,18 +158,28 @@ export async function GET(req: NextRequest) {
     await connectToDatabase();
 
     // 1. Filter Logic
-    let query: any = { user: session.user.id };
+    // If Admin: View All. If User: View Only Theirs.
+    let query: any = {};
     
-    // If Admin, show ALL orders
-    if (session.user.role === "ADMIN") {
-      query = {}; 
+    if (session.user.role !== "ADMIN") {
+      query = { user: session.user.id };
     }
 
     // 2. Fetch Data
     const orders = await Order.find(query)
-      .populate("user", "name email phone") // Get Customer Details
-      .populate("products.product", "title thumbnail slug") // Get Product Details
-      .sort({ createdAt: -1 })
+      // ✅ POPULATE USER: Fetch Name, Email, and Phone
+      .populate({
+        path: "user",
+        select: "name email phone", // Ensure 'phone' exists in your User Schema
+        model: User
+      })
+      // ✅ POPULATE PRODUCT: Fetch details for the UI cards
+      .populate({
+        path: "products.product",
+        select: "title thumbnail slug pricing videoUrl",
+        model: Product
+      })
+      .sort({ createdAt: -1 }) // Newest first
       .lean();
 
     return NextResponse.json({ success: true, orders }, { status: 200 });

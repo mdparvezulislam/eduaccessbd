@@ -10,6 +10,7 @@ interface IDeliveredContent {
 
 export interface IOrder extends Document {
   user: mongoose.Types.ObjectId;
+  
   products: {
     product: mongoose.Types.ObjectId;
     quantity: number;

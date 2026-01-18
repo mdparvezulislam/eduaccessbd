@@ -1,6 +1,8 @@
 
+import { authOptions } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/db";
 import { Order } from "@/models/Order";
+import { getServerSession } from "next-auth";
 
 import { NextRequest, NextResponse } from "next/server";
 
@@ -16,12 +18,16 @@ export async function GET(req: NextRequest) {
 
 
     await connectToDatabase();
-
+    const session = await getServerSession(authOptions);
+       
+    //   if (session?.user?.role !== "ADMIN") {
+    //   return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    // }
    
 
     // 3. FETCH DATA
     const orders = await Order.find()
-      .sort({ createdAt: -1 }) // Newest first
+      .sort({ createdAt: -1 }).populate("user", "name email phone") // Populate user details
       .lean();
 
     return NextResponse.json({ success: true, orders }, { status: 200 });

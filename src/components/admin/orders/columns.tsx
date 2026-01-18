@@ -3,7 +3,10 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowUpDown, Copy, CheckCircle2, XCircle, Clock, Package } from "lucide-react";
+import { 
+  ArrowUpDown, Copy, CheckCircle2, XCircle, Clock, 
+  Package, Phone, Mail, User, AlertCircle 
+} from "lucide-react";
 import { OrderActionModal } from "./OrderActionModal"; 
 import { toast } from "sonner";
 import {
@@ -13,23 +16,29 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-// ✅ Updated Type to match your Order Model
+// ✅ Updated Type Definition
 export type OrderColumn = {
   _id: string;
   transactionId: string;
   amount: number;
   status: "pending" | "completed" | "declined" | "cancelled" | "processing";
   createdAt: string;
+  
+  // ✅ User Object with Phone
   user: {
     name: string;
     email: string;
+    phone?: string;
   };
-  // ✅ Products is an Array now
+  
+  // ✅ Products Array
   products: {
     title: string;
     quantity: number;
+    price: number;
     variant?: string;
   }[];
+  
   deliveredContent?: {
     accountEmail?: string;
     accountPassword?: string;
@@ -39,49 +48,73 @@ export type OrderColumn = {
 };
 
 export const columns: ColumnDef<OrderColumn>[] = [
-  // 1. Transaction ID
+  // 1. Transaction ID & Date
   {
     accessorKey: "transactionId",
-    header: "Transaction ID",
+    header: "Order Info",
     cell: ({ row }) => {
       const id = row.getValue("transactionId") as string;
+      const date = new Date(row.original.createdAt).toLocaleDateString("en-GB", {
+        day: 'numeric', month: 'short', year: '2-digit'
+      });
+
       return (
-        <div className="flex items-center gap-2">
-          <span className="font-mono text-xs font-medium text-white bg-[#1a1a1a] px-2 py-1 rounded border border-white/10">
-            {id}
-          </span>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6 text-gray-500 hover:text-white hover:bg-white/10"
-            onClick={() => {
-              navigator.clipboard.writeText(id);
-              toast.success("Copied ID");
-            }}
-          >
-            <Copy className="h-3 w-3" />
-          </Button>
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-xs font-bold text-white bg-[#1a1a1a] px-2 py-0.5 rounded border border-white/10">
+              {id}
+            </span>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(id);
+                toast.success("ID Copied");
+              }}
+              className="text-gray-500 hover:text-white transition-colors"
+            >
+              <Copy className="h-3 w-3" />
+            </button>
+          </div>
+          <span className="text-[10px] text-gray-500 pl-0.5">{date}</span>
         </div>
       );
     },
   },
 
-  // 2. Customer
+  // 2. Customer Details (Rich View)
   {
     accessorKey: "user",
     header: "Customer",
     cell: ({ row }) => {
       const user = row.original.user;
       return (
-        <div className="flex flex-col">
-          <span className="font-medium text-sm text-gray-200">{user?.name || "Guest"}</span>
-          <span className="text-[11px] text-gray-500">{user?.email || "No Email"}</span>
+        <div className="flex flex-col gap-1 min-w-[140px]">
+          <div className="flex items-center gap-1.5">
+            <div className="bg-white/10 p-1 rounded-full shrink-0">
+              <User className="w-3 h-3 text-white" />
+            </div>
+            <span className="font-semibold text-sm text-gray-200 truncate max-w-[120px]" title={user?.name}>
+              {user?.name || "Guest"}
+            </span>
+          </div>
+          
+          <div className="flex flex-col gap-0.5 ml-1">
+            <div className="flex items-center gap-1.5 text-[11px] text-gray-500">
+              <Mail className="w-2.5 h-2.5" />
+              <span className="truncate max-w-[140px]" title={user?.email}>{user?.email || "No Email"}</span>
+            </div>
+            {user?.phone && (
+              <div className="flex items-center gap-1.5 text-[11px] text-blue-400">
+                <Phone className="w-2.5 h-2.5" />
+                <span className="font-mono tracking-wide">{user.phone}</span>
+              </div>
+            )}
+          </div>
         </div>
       );
     },
   },
 
-  // 3. Products (Safe Array Handling)
+  // 3. Products (With Tooltip for variants)
   {
     id: "products",
     header: "Items",
@@ -89,43 +122,52 @@ export const columns: ColumnDef<OrderColumn>[] = [
       const items = row.original.products || [];
       const firstItem = items[0];
 
-      if (!firstItem) return <span className="text-gray-600 text-xs">Empty</span>;
+      if (!firstItem) return <span className="text-gray-600 text-xs italic">Empty Order</span>;
 
       return (
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="flex flex-col cursor-help">
+              <div className="flex flex-col cursor-help group">
                 <div className="flex items-center gap-2">
-                  <Package className="w-3 h-3 text-gray-500" />
-                  <span className="font-medium text-gray-300 text-sm truncate max-w-[150px]">
-                    {firstItem.quantity}x {firstItem.title}
-                  </span>
+                  <div className="bg-gray-800 p-1.5 rounded-md text-gray-400 group-hover:text-white transition-colors">
+                    <Package className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="font-medium text-gray-300 text-xs truncate max-w-[140px]">
+                      {firstItem.title}
+                    </span>
+                    {firstItem.variant && (
+                      <span className="text-[10px] text-green-500/80 font-mono">
+                        {firstItem.variant}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                {/* Badge for extra items */}
                 {items.length > 1 && (
-                  <span className="text-[10px] text-blue-400 font-medium ml-5">
-                    +{items.length - 1} more
-                  </span>
-                )}
-                {/* Variant badge */}
-                {items.length === 1 && firstItem.variant && (
-                  <span className="text-[10px] text-gray-500 ml-5">
-                    {firstItem.variant}
+                  <span className="text-[10px] text-blue-400 font-medium ml-8 mt-0.5">
+                    +{items.length - 1} more items
                   </span>
                 )}
               </div>
             </TooltipTrigger>
-            <TooltipContent className="bg-[#1a1a1a] border-white/10 text-white text-xs p-3">
-              <p className="font-bold mb-1 border-b border-white/10 pb-1">Order Contents:</p>
-              <ul className="space-y-1">
+            
+            {/* Tooltip Content */}
+            <TooltipContent className="bg-[#111] border-white/10 text-white p-0 overflow-hidden shadow-xl rounded-lg">
+              <div className="bg-[#1a1a1a] px-3 py-2 border-b border-white/5 text-[10px] font-bold uppercase text-gray-500 tracking-wider">
+                Order Contents
+              </div>
+              <div className="p-2 space-y-1">
                 {items.map((item, idx) => (
-                  <li key={idx} className="flex justify-between gap-4">
-                    <span>{item.quantity}x {item.title}</span>
-                    <span className="text-gray-400">{item.variant}</span>
-                  </li>
+                  <div key={idx} className="flex justify-between items-center gap-4 text-xs py-1 px-1 rounded hover:bg-white/5">
+                    <div className="flex flex-col">
+                      <span className="text-gray-200">{item.title}</span>
+                      <span className="text-[10px] text-gray-500">{item.variant || "Standard"} x{item.quantity}</span>
+                    </div>
+                    <span className="font-mono text-gray-400">৳{item.price}</span>
+                  </div>
                 ))}
-              </ul>
+              </div>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -133,7 +175,7 @@ export const columns: ColumnDef<OrderColumn>[] = [
     },
   },
 
-  // 4. Amount
+  // 4. Amount Column
   {
     accessorKey: "amount",
     header: ({ column }) => {
@@ -141,9 +183,9 @@ export const columns: ColumnDef<OrderColumn>[] = [
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="text-gray-400 hover:text-white hover:bg-transparent pl-0 text-xs uppercase"
+          className="text-gray-400 hover:text-white hover:bg-transparent pl-0 text-xs uppercase tracking-wider font-bold"
         >
-          Amount
+          Total
           <ArrowUpDown className="ml-2 h-3 w-3" />
         </Button>
       );
@@ -155,36 +197,59 @@ export const columns: ColumnDef<OrderColumn>[] = [
         currency: "BDT",
         minimumFractionDigits: 0,
       }).format(amount);
-      return <div className="font-mono font-bold text-green-400">{formatted}</div>;
+      
+      return (
+        <div className="font-mono font-bold text-sm text-white tracking-tight">
+          {formatted}
+        </div>
+      );
     },
   },
 
-  // 5. Status
+  // 5. Status Column (Badges)
   {
     accessorKey: "status",
     header: "Status",
     cell: ({ row }) => {
       const status = row.getValue("status") as string;
+      
       const styles: Record<string, string> = {
-        pending: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
-        processing: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-        completed: "bg-green-500/10 text-green-400 border-green-500/20",
+        pending: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20 shadow-[0_0_10px_rgba(234,179,8,0.1)]",
+        processing: "bg-blue-500/10 text-blue-400 border-blue-500/20 animate-pulse",
+        completed: "bg-green-500/10 text-green-400 border-green-500/20 shadow-[0_0_10px_rgba(34,197,94,0.1)]",
         declined: "bg-red-500/10 text-red-400 border-red-500/20",
         cancelled: "bg-gray-500/10 text-gray-400 border-gray-500/20",
       };
-      
+
+      const icons: Record<string, React.ReactNode> = {
+        pending: <Clock className="w-3 h-3 mr-1.5" />,
+        processing: <Clock className="w-3 h-3 mr-1.5" />,
+        completed: <CheckCircle2 className="w-3 h-3 mr-1.5" />,
+        declined: <XCircle className="w-3 h-3 mr-1.5" />,
+        cancelled: <AlertCircle className="w-3 h-3 mr-1.5" />,
+      };
+
       return (
-        <Badge className={`${styles[status] || "bg-gray-800"} border px-2 py-0.5 text-[10px] uppercase font-bold`}>
-          {status}
+        <Badge 
+          className={`${styles[status] || "bg-gray-800 text-gray-400"} border px-2.5 py-1 text-[10px] uppercase font-bold tracking-wide transition-all min-w-[90px] justify-center`} 
+          variant="outline"
+        >
+          {icons[status]} {status}
         </Badge>
       );
     },
   },
 
-  // 6. Action Modal
+  // 6. Actions Column
   {
     id: "actions",
-    header: () => <div className="text-right text-xs uppercase text-gray-400">Manage</div>,
-    cell: ({ row }) => <div className="flex justify-end"><OrderActionModal order={row.original} /></div>,
+    header: () => <div className="text-right text-xs uppercase tracking-wider text-gray-500">Action</div>,
+    cell: ({ row }) => {
+      return (
+        <div className="flex justify-end">
+          <OrderActionModal order={row.original} />
+        </div>
+      );
+    },
   },
 ];
