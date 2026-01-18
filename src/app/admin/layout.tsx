@@ -1,7 +1,7 @@
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { MobileSidebar } from "@/components/admin/MobileSidebar"; 
 import { UserNav } from "@/components/admin/UserNav"; 
-import { ScrollArea } from "@/components/ui/scroll-area";
+
 import { authOptions } from "@/lib/auth";
 import { getServerSession } from "next-auth";
 
