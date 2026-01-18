@@ -6,7 +6,8 @@ import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Search, ShoppingBag, Clock, CheckCircle2, XCircle, 
-  ChevronRight, Key, Download, Copy, Loader2, Filter, Zap, Package
+  Key, Download, Copy, Loader2, Filter, Zap, Package, 
+  Calendar as CalendarIcon, ExternalLink
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -64,15 +65,19 @@ export default function OrdersPage() {
 
   // Filter Logic
   const filteredOrders = orders.filter((order) => {
-    // ⚡ Safely get the main product title for search
+    // ⚡ FIX: Safely access product title with optional chaining and fallback
     const firstItem = order.products?.[0];
+    
+    // Check if product exists and is an object (populated)
     const productTitle = firstItem 
-      ? (typeof firstItem.product === 'object' ? (firstItem.product as any).title : firstItem.title) 
-      : "";
+      ? (typeof firstItem.product === 'object' && firstItem.product 
+          ? (firstItem.product as any).title 
+          : firstItem.title || "Unknown Item")
+      : "Unknown Item";
     
     const matchesSearch = 
       productTitle.toLowerCase().includes(search.toLowerCase()) || 
-      order.transactionId.toLowerCase().includes(search.toLowerCase());
+      (order.transactionId || "").toLowerCase().includes(search.toLowerCase());
     
     const matchesStatus = statusFilter === "all" ? true : order.status === statusFilter;
     
@@ -88,7 +93,7 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="space-y-8 text-white min-h-screen py-6 px-4 max-w-6xl mx-auto">
+    <div className="space-y-8 text-white min-h-screen py-6 px-4 max-w-5xl mx-auto">
       
       {/* === HEADER === */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -104,14 +109,14 @@ export default function OrdersPage() {
               placeholder="Search ID or Product..." 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 bg-[#111] border-gray-800 text-white w-full sm:w-64 h-10 placeholder:text-gray-600 focus-visible:ring-green-500/20"
+              className="pl-9 bg-[#111] border-gray-800 text-white w-full sm:w-64 h-10 placeholder:text-gray-600 focus:border-gray-700 focus-visible:ring-green-500/20"
             />
           </div>
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="border-gray-800 bg-[#111] text-gray-300 hover:bg-gray-800 hover:text-white justify-between h-10">
-                <span className="flex items-center"><Filter className="w-4 h-4 mr-2" /> {statusFilter === 'all' ? 'Status' : statusFilter}</span>
+              <Button variant="outline" className="border-gray-800 bg-[#111] text-gray-300 hover:bg-gray-800 hover:text-white justify-between h-10 min-w-[100px]">
+                <span className="flex items-center gap-2"><Filter className="w-3.5 h-3.5" /> {statusFilter === 'all' ? 'Status' : statusFilter}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-[#111] border-gray-800 text-white w-40">
@@ -136,7 +141,7 @@ export default function OrdersPage() {
               <ShoppingBag className="w-8 h-8 text-gray-600" />
             </div>
             <h3 className="text-lg font-bold text-white">No orders found</h3>
-            <p className="text-gray-500 text-sm mt-1">Check back later or adjust filters.</p>
+            <p className="text-gray-500 text-sm mt-1">Your purchase history is empty.</p>
           </motion.div>
         ) : (
           <AnimatePresence>
@@ -158,15 +163,23 @@ export default function OrdersPage() {
 // === SUB-COMPONENT: Order Item ===
 function OrderListItem({ order, index, onCopy }: { order: IOrder, index: number, onCopy: (t: string) => void }) {
   
-  // ⚡ Updated: Correctly access the first item from the array
+  // ⚡ FIX: Safer Access Logic for Product Data
   const firstItem = order.products?.[0];
-  const productData = firstItem && typeof firstItem.product === 'object' ? (firstItem.product as any) : null;
+  const productData = firstItem && typeof firstItem.product === 'object' && firstItem.product !== null 
+    ? (firstItem.product as any) 
+    : null;
   
   const title = productData?.title || firstItem?.title || "Unknown Item";
-  const thumbnail = productData?.thumbnail || "/placeholder.png"; // Make sure you have a placeholder image in public folder or use a URL
+  
+  // Safe Image Logic
+  const thumbnail = productData?.thumbnail && productData.thumbnail.startsWith("http") 
+    ? productData.thumbnail 
+    : "https://placehold.co/100x100/111/333?text=No+Image"; 
+    
   const extraCount = (order.products?.length || 0) - 1;
 
-  const statusConfig = {
+  // Status Style Config
+  const statusConfig: any = {
     pending: { color: "text-yellow-400 bg-yellow-400/10 border-yellow-400/20", icon: Clock },
     processing: { color: "text-blue-400 bg-blue-400/10 border-blue-400/20", icon: Zap },
     completed: { color: "text-green-400 bg-green-400/10 border-green-400/20", icon: CheckCircle2 },
@@ -187,8 +200,8 @@ function OrderListItem({ order, index, onCopy }: { order: IOrder, index: number,
       <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-xl bg-[#111] border border-gray-800 hover:border-gray-700 transition-all group shadow-sm">
         
         {/* Left: Thumbnail */}
-        <div className="relative w-full sm:w-20 h-40 sm:h-20 bg-gray-900 rounded-lg overflow-hidden shrink-0 border border-gray-800">
-          <Image src={thumbnail} alt={title} fill className="object-cover" />
+        <div className="relative w-full sm:w-20 h-32 sm:h-20 bg-gray-900 rounded-lg overflow-hidden shrink-0 border border-gray-800">
+          <img src={thumbnail} alt={title}  className="object-cover transition-transform group-hover:scale-105" />
           {extraCount > 0 && (
             <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-xs font-bold text-white backdrop-blur-[1px]">
               +{extraCount} more
@@ -197,21 +210,22 @@ function OrderListItem({ order, index, onCopy }: { order: IOrder, index: number,
         </div>
 
         {/* Center: Info */}
-        <div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
+        <div className="flex-1 min-w-0 flex flex-col justify-center gap-1.5">
           <div className="flex items-center gap-2">
             <h3 className="font-bold text-white text-base truncate max-w-[200px] sm:max-w-md" title={title}>
               {title}
             </h3>
-            {extraCount > 0 && <span className="text-[10px] text-gray-500 hidden sm:inline-block">and {extraCount} others</span>}
+            {extraCount > 0 && <span className="text-[10px] text-gray-500 bg-white/5 px-1.5 py-0.5 rounded hidden sm:inline-block">+{extraCount} items</span>}
           </div>
           
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-gray-500">
-            <span className="font-mono bg-gray-900 px-1.5 py-0.5 rounded border border-gray-800 text-gray-400">
-              #{order.transactionId?.slice(-6) || "N/A"}
+            <span className="font-mono bg-gray-900 px-1.5 py-0.5 rounded border border-gray-800 text-gray-400 flex items-center gap-1">
+              <span className="text-[10px] text-gray-600">ID:</span> #{order.transactionId?.slice(-6) || "N/A"}
             </span>
             <span className="flex items-center gap-1">
               <CalendarIcon className="w-3 h-3"/> {new Date(order.createdAt).toLocaleDateString()}
             </span>
+            {/* Mobile Status Badge */}
             <Badge className={`${status.color} border px-1.5 py-0 text-[9px] uppercase font-bold sm:hidden`}>
               {order.status}
             </Badge>
@@ -223,14 +237,14 @@ function OrderListItem({ order, index, onCopy }: { order: IOrder, index: number,
           
           {/* Desktop Status */}
           <div className="hidden sm:flex flex-col items-end gap-1">
-             <span className="text-xs text-gray-500">Status</span>
+             <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Status</span>
              <Badge className={`${status.color} border px-2 py-0.5 text-[10px] uppercase font-bold flex items-center gap-1`}>
                <StatusIcon className="w-3 h-3" /> {order.status}
              </Badge>
           </div>
 
           <div className="text-right">
-            <p className="text-[10px] text-gray-500 uppercase font-bold">Total</p>
+            <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Total</p>
             <p className="text-base font-bold text-white">৳{order.amount.toLocaleString()}</p>
           </div>
 
@@ -241,88 +255,100 @@ function OrderListItem({ order, index, onCopy }: { order: IOrder, index: number,
               </Button>
             </DialogTrigger>
             
-            {/* --- MODAL --- */}
-            <DialogContent className="bg-[#111] border-gray-800 text-white sm:max-w-md p-0 overflow-hidden">
+            {/* --- MODAL CONTENT --- */}
+            <DialogContent className="bg-[#111] border-gray-800 text-white sm:max-w-md p-0 overflow-hidden shadow-2xl">
               <DialogHeader className="p-5 border-b border-gray-800 bg-[#161616]">
                 <DialogTitle className="flex justify-between items-center">
-                  <span>Order Details</span>
+                  <span className="text-sm font-bold uppercase tracking-wider">Order Details</span>
                   <Badge className={`${status.color} border px-2 py-0.5 text-[10px]`}>{order.status}</Badge>
                 </DialogTitle>
                 <DialogDescription className="text-gray-500 text-xs font-mono pt-1">
-                  ID: {order.transactionId}
+                  TrxID: {order.transactionId}
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="p-5 space-y-6">
+              <div className="p-5 space-y-6 max-h-[80vh] overflow-y-auto scrollbar-hide">
                 
-                {/* ⚡ Product List in Modal (Show ALL items) */}
-                <div className="space-y-3 max-h-[150px] overflow-y-auto pr-1 scrollbar-hide">
+                {/* Product List */}
+                <div className="space-y-3">
+                   <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">Ordered Items</h4>
                    {order.products?.map((item, i) => (
-                     <div key={i} className="flex justify-between items-center text-sm border-b border-gray-800 pb-2 last:border-0 last:pb-0">
+                     <div key={i} className="flex justify-between items-center text-sm border border-white/5 bg-white/5 p-3 rounded-lg">
                         <div className="flex items-center gap-3">
                            <div className="bg-gray-800 p-2 rounded text-gray-400"><Package className="w-4 h-4"/></div>
                            <div>
-                             <p className="text-gray-200 font-medium truncate max-w-[180px]">{item.title || "Item"}</p>
-                             <p className="text-[10px] text-gray-500">{item.variant || "Standard"} x{item.quantity}</p>
+                             <p className="text-gray-200 font-medium truncate max-w-[160px]">{item.title || "Item"}</p>
+                             <p className="text-[10px] text-gray-500 uppercase font-bold">{item.variant || "Standard"} <span className="mx-1">•</span> Qty: {item.quantity}</p>
                            </div>
                         </div>
-                        <span className="font-mono text-gray-400">৳{item.price * item.quantity}</span>
+                        <span className="font-mono text-gray-400 text-xs">৳{(item.price * item.quantity).toLocaleString()}</span>
                      </div>
                    ))}
                 </div>
 
-                {/* Delivered Content (Vault) */}
-                {order.status === "completed" ? (
-                  <div className="bg-green-500/5 border border-green-500/20 rounded-xl p-4 space-y-4">
-                    <h4 className="font-bold text-green-400 flex items-center gap-2 text-xs uppercase tracking-wider border-b border-green-500/10 pb-2">
-                      <Key className="w-3 h-3" /> Access Credentials
+                {/* Delivered Content (Secure Vault) */}
+                {order.status === "completed" && order.deliveredContent ? (
+                  <div className="bg-green-500/5 border border-green-500/20 rounded-xl p-4 space-y-4 animate-in fade-in zoom-in-95 duration-300">
+                    <h4 className="font-bold text-green-400 flex items-center gap-2 text-xs uppercase tracking-wider border-b border-green-500/10 pb-2 mb-2">
+                      <Key className="w-3.5 h-3.5" /> Access Credentials
                     </h4>
                     
                     <div className="space-y-3">
-                      {/* Email */}
-                      {order.deliveredContent?.accountEmail && (
-                        <div className="bg-black/40 p-2.5 rounded border border-green-500/10 flex justify-between items-center">
-                          <div className="overflow-hidden">
-                            <p className="text-[9px] text-gray-500 uppercase font-bold">Email / Username</p>
-                            <code className="text-xs text-white truncate block">{order.deliveredContent.accountEmail}</code>
+                      {/* Email/User */}
+                      {order.deliveredContent.accountEmail && (
+                        <div>
+                          <p className="text-[9px] text-gray-500 uppercase font-bold mb-1">Username / Email</p>
+                          <div className="bg-black/40 p-2.5 rounded border border-green-500/10 flex justify-between items-center group">
+                            <code className="text-xs text-white truncate block select-all">{order.deliveredContent.accountEmail}</code>
+                            <button onClick={() => onCopy(order.deliveredContent?.accountEmail || "")} className="text-gray-500 hover:text-white transition opacity-50 group-hover:opacity-100"><Copy className="w-3.5 h-3.5" /></button>
                           </div>
-                          <button onClick={() => onCopy(order.deliveredContent?.accountEmail || "")} className="text-gray-500 hover:text-white transition"><Copy className="w-3.5 h-3.5" /></button>
                         </div>
                       )}
                       
                       {/* Password */}
-                      {order.deliveredContent?.accountPassword && (
-                        <div className="bg-black/40 p-2.5 rounded border border-green-500/10 flex justify-between items-center">
-                          <div className="overflow-hidden">
-                            <p className="text-[9px] text-gray-500 uppercase font-bold">Password</p>
-                            <code className="text-xs text-white truncate block">{order.deliveredContent.accountPassword}</code>
+                      {order.deliveredContent.accountPassword && (
+                        <div>
+                          <p className="text-[9px] text-gray-500 uppercase font-bold mb-1">Password</p>
+                          <div className="bg-black/40 p-2.5 rounded border border-green-500/10 flex justify-between items-center group">
+                            <code className="text-xs text-white truncate block select-all">{order.deliveredContent.accountPassword}</code>
+                            <button onClick={() => onCopy(order.deliveredContent?.accountPassword || "")} className="text-gray-500 hover:text-white transition opacity-50 group-hover:opacity-100"><Copy className="w-3.5 h-3.5" /></button>
                           </div>
-                          <button onClick={() => onCopy(order.deliveredContent?.accountPassword || "")} className="text-gray-500 hover:text-white transition"><Copy className="w-3.5 h-3.5" /></button>
                         </div>
                       )}
 
-                      {/* Download Link */}
-                      {order.deliveredContent?.downloadLink && (
-                         <Button asChild className="w-full bg-green-600 hover:bg-green-500 text-white font-bold h-9 text-xs">
-                            <a href={order.deliveredContent.downloadLink} target="_blank">
-                               <Download className="w-3.5 h-3.5 mr-2"/> Download / Access Link
-                            </a>
-                         </Button>
+                      {/* Download/Access Link - Handle Multiple Links */}
+                      {order.deliveredContent.downloadLink && (
+                         <div className="pt-2">
+                            <Button asChild className="w-full bg-green-600 hover:bg-green-500 text-white font-bold h-10 text-xs">
+                               <a href={order.deliveredContent.downloadLink.split('\n')[0].split(': ').pop()} target="_blank" rel="noopener noreferrer">
+                                  <ExternalLink className="w-3.5 h-3.5 mr-2"/> Access Content Now
+                               </a>
+                            </Button>
+                            {/* If raw links are complex, show them in a text area too */}
+                            {order.deliveredContent.downloadLink.includes('\n') && (
+                               <div className="mt-2 text-[10px] text-gray-400 bg-black/20 p-2 rounded border border-white/5 font-mono whitespace-pre-wrap">
+                                 {order.deliveredContent.downloadLink}
+                               </div>
+                            )}
+                         </div>
                       )}
 
                       {/* Notes */}
-                      {order.deliveredContent?.accessNotes && (
-                        <div className="text-[11px] text-green-100/70 bg-green-500/10 p-3 rounded border border-green-500/10 italic leading-relaxed">
-                          "{order.deliveredContent.accessNotes}"
+                      {order.deliveredContent.accessNotes && (
+                        <div className="text-[11px] text-green-100/70 bg-green-500/10 p-3 rounded border border-green-500/10 leading-relaxed whitespace-pre-line">
+                          <span className="font-bold text-green-400 block text-[9px] uppercase mb-1">Instructions:</span>
+                          {order.deliveredContent.accessNotes}
                         </div>
                       )}
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-yellow-500/5 border border-yellow-500/10 rounded-xl p-4 text-center">
-                    <Loader2 className="w-6 h-6 text-yellow-500/50 mx-auto mb-2 animate-spin" />
-                    <p className="text-sm font-medium text-yellow-200">Processing Payment</p>
-                    <p className="text-[11px] text-gray-500 mt-1">Please wait for admin verification.</p>
+                  <div className="bg-yellow-500/5 border border-yellow-500/10 rounded-xl p-6 text-center">
+                    <Loader2 className="w-8 h-8 text-yellow-500/50 mx-auto mb-3 animate-spin" />
+                    <p className="text-sm font-bold text-yellow-200 uppercase tracking-wide">Processing Payment</p>
+                    <p className="text-[11px] text-gray-500 mt-1 max-w-[200px] mx-auto">
+                      Your order is being reviewed by our team. This usually takes 15-30 minutes.
+                    </p>
                   </div>
                 )}
               </div>
@@ -332,9 +358,4 @@ function OrderListItem({ order, index, onCopy }: { order: IOrder, index: number,
       </div>
     </motion.div>
   );
-}
-
-// Simple Icon
-function CalendarIcon({ className }: { className?: string }) {
-  return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>;
 }

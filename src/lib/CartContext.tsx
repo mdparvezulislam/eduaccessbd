@@ -10,25 +10,25 @@ import React, {
   ReactNode,
 } from "react";
 
-// ✅ 1. Define allowed plan types
+// ✅ 1. Define allowed plan types (Matches API)
 export type PlanType = "monthly" | "yearly" | "lifetime";
 
-// ✅ 2. Updated Cart Item Interface
+// ✅ 2. Cart Item Interface
 export interface CartItem {
-  cartId: string;       // Unique ID: "prod123-monthly"
-  productId: string;
+  cartId: string;       // Unique UI ID: "prod123-monthly" (Use this for React keys/updates)
+  productId: string;    // Pure DB ID: "prod123" (Use this for API calls)
   name: string;
   image: string;
   
-  price: number;        // The specific plan price
-  regularPrice?: number;// The specific plan regular price (for discount display)
+  price: number;        // Active price
+  regularPrice?: number;// Crossed-out price
   
   quantity: number;
   category?: string;
 
   // ⚡ VIP Plan Details
-  planType?: PlanType;  // "monthly", "yearly", etc.
-  validity?: string;    // "30 Days", "Lifetime"
+  planType?: PlanType;  // "monthly" (The Key - Sent to API)
+  validity?: string;    // "30 Days" (The Label - Shown in UI)
 }
 
 interface CartContextType {
@@ -38,7 +38,7 @@ interface CartContextType {
   updateQuantity: (cartId: string, quantity: number) => void;
   clearCart: () => void;
   
-  // ⚡ Updated Helper: Now accepts 'planType' instead of generic variant
+  // Helper to create cart items safely
   mapProductToCartItem: (product: IProduct, qty?: number, planType?: PlanType) => CartItem;
   
   totalAmount: number;
@@ -47,7 +47,7 @@ interface CartContextType {
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
-const CART_KEY = "eduaccess-cart-vip"; // New key to prevent conflicts
+const CART_KEY = "eduaccess-cart-v2"; // Changed key to reset old/broken cart data
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -55,16 +55,18 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   // --- Load Cart ---
   useEffect(() => {
-    const stored = localStorage.getItem(CART_KEY);
-    if (stored) {
-      try {
-        setCart(JSON.parse(stored));
-      } catch (e) {
-        console.error("Cart parse error", e);
-        localStorage.removeItem(CART_KEY);
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem(CART_KEY);
+      if (stored) {
+        try {
+          setCart(JSON.parse(stored));
+        } catch (e) {
+          console.error("Cart corrupted, resetting", e);
+          localStorage.removeItem(CART_KEY);
+        }
       }
+      setIsInitialized(true);
     }
-    setIsInitialized(true);
   }, []);
 
   // --- Save Cart ---
@@ -77,12 +79,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   // --- Actions ---
   const addToCart = useCallback((newItem: CartItem) => {
     setCart((prev) => {
-      // Check if this exact product+plan exists
+      // Check if item with same ID AND same Plan exists
       const existing = prev.find((item) => item.cartId === newItem.cartId);
       
       if (existing) {
-        // If it's a subscription, usually quantity stays 1, but we'll allow increment logic
-        // If you want to force max quantity of 1 for subs, handle that here.
         return prev.map((item) =>
           item.cartId === newItem.cartId
             ? { ...item, quantity: item.quantity + newItem.quantity }
@@ -109,31 +109,42 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const clearCart = useCallback(() => setCart([]), []);
 
-  // --- ⚡ CRITICAL: Mapping Logic for VIP Pricing ---
+  // --- ⚡ MAPPING LOGIC (Fixed for API Compatibility) ---
   const mapProductToCartItem = useCallback(
     (product: IProduct, quantity = 1, planType?: PlanType): CartItem => {
       
-      let finalPrice = product.defaultPrice || 0; // Fallback
-      let finalRegularPrice = 0;
+      let finalPrice = product.defaultPrice || 0;
+      let finalRegularPrice = product.regularPrice || 0;
       let validityLabel = "Standard";
+      let selectedPlanType: PlanType | undefined = undefined;
+      
+      // Default Unique ID
       let uniqueCartId = `${product._id}-default`;
 
-      // 🟢 Check if a specific VIP Plan is selected
-      if (planType && product.pricing && product.pricing[planType]) {
+      // 🟢 Logic: If a VIP Plan is selected, override prices
+      if (planType && product.pricing && product.pricing[planType]?.isEnabled) {
         const selectedPlan = product.pricing[planType];
         
-        // 1. Set Prices from the specific plan
         finalPrice = selectedPlan.price;
         finalRegularPrice = selectedPlan.regularPrice || 0;
-        validityLabel = selectedPlan.validityLabel;
+        validityLabel = selectedPlan.validityLabel || "VIP Access";
+        selectedPlanType = planType;
         
-        // 2. Generate Unique ID (e.g., "prod123-monthly")
+        // Unique ID includes plan type so users can add Monthly AND Yearly of same product separately
         uniqueCartId = `${product._id}-${planType}`;
+      } else {
+        // Fallback for Standard Products (Use Sale Price if active)
+        if (product.salePrice > 0) {
+          finalPrice = product.salePrice;
+          finalRegularPrice = product.regularPrice;
+        }
       }
 
       return {
-        cartId: uniqueCartId,
-        productId: String(product._id),
+        // ⚡ CRITICAL FIX: Split IDs correctly
+        cartId: uniqueCartId,           // For React Keys (e.g. "69a...-monthly")
+        productId: String(product._id), // For Database (e.g. "69a...")
+        
         name: product.title,
         image: product.thumbnail,
         
@@ -143,9 +154,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         quantity,
         category: typeof product.category === 'object' ? (product.category as any).name : "Product",
         
-        // ⚡ Store Plan Details
-        planType: planType,
-        validity: validityLabel,
+        // ⚡ Plan Data
+        planType: selectedPlanType, // "monthly" (Matches API expectation)
+        validity: validityLabel,    // "30 Days" (For UI Display)
       };
     },
     []

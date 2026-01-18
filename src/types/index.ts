@@ -107,7 +107,7 @@ export interface IDeliveredContent {
 
 // 2. Interface for a Single Item inside the Order
 export interface IOrderItem {
-  product: IProduct | string; // Can be full Product object or just ID
+  product: IProduct ; // Can be full Product object or just ID
   quantity: number;
   price: number;
   title?: string;   // Snapshot of title
