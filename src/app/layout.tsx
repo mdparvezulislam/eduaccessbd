@@ -4,6 +4,7 @@ import "./globals.css";
 import Providers from "@/components/Providers";
 import { ImageKitProvider } from "@imagekit/next";
 import { Toaster } from "sonner";
+import Footer from "@/components/Footer";
 
 // 1. FONTS
 const geistSans = Geist({
@@ -141,6 +142,7 @@ export default function RootLayout({
           {/* ⚠️ ImageKitProvider should usually wrap the children to provide context */}
           <ImageKitProvider urlEndpoint={urlEndpoint}>
             {children}
+            <Footer />
           </ImageKitProvider>
           
           <Toaster position="top-right" richColors closeButton />

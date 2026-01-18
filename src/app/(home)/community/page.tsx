@@ -2,43 +2,44 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-import { FaDiscord, FaTelegramPlane, FaWhatsapp, FaUsers, FaArrowRight } from "react-icons/fa";
-import { CheckCircle2, Sparkles } from "lucide-react";
+import { FaDiscord, FaTelegramPlane, FaWhatsapp, FaArrowRight, FaUsers } from "react-icons/fa";
+import { Check, Zap, Globe } from "lucide-react";
 import Link from "next/link";
 
 // ---------------------------------------------------------
-// 1. COMMUNITY DATA
+// 1. UPDATED DATA
 // ---------------------------------------------------------
 const communities = [
   {
+    id: "discord",
     name: "Discord Server",
-    description: "Live voice chats, screen sharing, and code debugging sessions with experts.",
-    icon: <FaDiscord className="w-8 h-8" />,
-    url: "https://discord.gg/JDWzSEhY",
-    color: "bg-[#5865F2]", // Discord Brand Color
-    hoverColor: "hover:bg-[#4752C4]",
-    textColor: "text-[#5865F2]",
-    features: ["Live Mentorship", "Dev Hangouts", "Instant Help"],
+    description: "The heart of our developer community. Live voice chats, screen sharing, and code debugging.",
+    icon: <FaDiscord className="w-10 h-10" />,
+    url: "https://discord.gg/nuTnXSjEG3",
+    // Gradients for specific branding
+    gradient: "from-[#5865F2] to-[#4752C4]",
+    shadow: "shadow-[#5865F2]/20",
+    features: ["Live Mentorship", "Voice Hangouts", "24/7 Support"],
   },
   {
-    name: "Telegram Group",
-    description: "Get instant announcements, premium resources, and quick discussions.",
-    icon: <FaTelegramPlane className="w-8 h-8" />,
-    url: "https://t.me/+b43-RFdvWTEwMmE1",
-    color: "bg-[#0088cc]", // Telegram Brand Color
-    hoverColor: "hover:bg-[#0077b5]",
-    textColor: "text-[#0088cc]",
-    features: ["Daily Updates", "PDF Resources", "Polls & Quizzes"],
-  },
-  {
+    id: "whatsapp",
     name: "WhatsApp Channel",
-    description: "Connect directly on your phone. Never miss a critical update or offer.",
-    icon: <FaWhatsapp className="w-8 h-8" />,
-    url: "https://wa.me/qr/TUANFAJEBKJDE1",
-    color: "bg-[#25D366]", // WhatsApp Brand Color
-    hoverColor: "hover:bg-[#128C7E]",
-    textColor: "text-[#25D366]",
-    features: ["Direct Alerts", "Exclusive Deals", "Community News"],
+    description: "Get critical updates directly to your phone. The fastest way to know about offers.",
+    icon: <FaWhatsapp className="w-10 h-10" />,
+    url: "https://whatsapp.com/channel/0029Vb7WwsoDDmFZtSUqp42a",
+    gradient: "from-[#25D366] to-[#128C7E]",
+    shadow: "shadow-[#25D366]/20",
+    features: ["Instant Alerts", "Exclusive Deals", "No Spam"],
+  },
+  {
+    id: "telegram",
+    name: "Telegram Group",
+    description: "A vault of premium resources, PDFs, and quick polls. Join the discussion.",
+    icon: <FaTelegramPlane className="w-10 h-10" />,
+    url: "https://t.me/ProAccessBD",
+    gradient: "from-[#24A1DE] to-[#0088cc]",
+    shadow: "shadow-[#24A1DE]/20",
+    features: ["Daily Resources", "Polls & Quizzes", "File Sharing"],
   },
 ];
 
@@ -46,13 +47,13 @@ const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.2 },
+    transition: { staggerChildren: 0.15 },
   },
 };
 
-const itemVariants = {
-  hidden: { y: 20, opacity: 0 },
-  visible: { y: 0, opacity: 1 },
+const cardVariants:any = {
+  hidden: { y: 30, opacity: 0 },
+  visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 50 } },
 };
 
 // ---------------------------------------------------------
@@ -60,128 +61,143 @@ const itemVariants = {
 // ---------------------------------------------------------
 function CommunityPage() {
   return (
-    <div className="min-h-screen bg-slate-50 font-sans">
+    <div className="min-h-screen bg-black text-white font-sans selection:bg-purple-500/30">
       
-      {/* =====================
-          HERO SECTION
-      ===================== */}
-      <section className="relative py-20 px-4 text-center overflow-hidden bg-white">
-        {/* Decorative Background Blobs */}
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob" />
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-purple-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000" />
+      {/* Background Gradients */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[120px]" />
+        {/* Grid Texture */}
+        <div className="absolute inset-0 opacity-[0.03]" 
+             style={{ backgroundImage: "linear-gradient(#333 1px, transparent 1px), linear-gradient(90deg, #333 1px, transparent 1px)", backgroundSize: "40px 40px" }} 
+        />
+      </div>
 
-        <div className="relative z-10 max-w-3xl mx-auto space-y-6">
+      <div className="relative z-10 max-w-6xl mx-auto px-4 py-16 md:py-24">
+        
+        {/* =====================
+            HERO SECTION
+        ===================== */}
+        <div className="text-center max-w-3xl mx-auto mb-20 space-y-6">
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
+            initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-100 border border-slate-200 text-slate-600 text-sm font-medium"
+            className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm text-xs font-medium text-gray-400"
           >
-            <Sparkles className="w-4 h-4 text-yellow-500" />
-            <span>Join 5,000+ Learners</span>
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+            </span>
+            5,000+ Active Members
           </motion.div>
 
           <motion.h1 
-            initial={{ opacity: 0, scale: 0.95 }}
+            initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="text-4xl md:text-6xl font-extrabold text-slate-900 tracking-tight leading-tight"
+            className="text-4xl md:text-7xl font-black tracking-tight"
           >
-            Join the <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">Edu Access</span> Family
+            Join the <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">Revolution</span>
           </motion.h1>
 
           <motion.p 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="text-lg md:text-xl text-slate-600 leading-relaxed"
+            className="text-lg text-gray-400 leading-relaxed"
           >
-            Connect, learn, and grow with like-minded individuals. Choose your preferred platform and start your journey today.
+            Don't learn alone. Connect with experts, get instant help, and access premium resources across your favorite platforms.
           </motion.p>
         </div>
-      </section>
 
-      {/* =====================
-          CARDS GRID
-      ===================== */}
-      <section className="max-w-6xl mx-auto px-4 pb-24 -mt-8 relative z-20">
+        {/* =====================
+            CARDS GRID
+        ===================== */}
         <motion.div 
           variants={containerVariants}
           initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8"
+          animate="visible"
+          className="grid grid-cols-1 md:grid-cols-3 gap-6"
         >
-          {communities.map((item, index) => (
+          {communities.map((item) => (
             <motion.div
-              key={index}
-              variants={itemVariants}
-              whileHover={{ y: -10 }}
-              className="bg-white rounded-3xl p-6 shadow-xl shadow-slate-200/50 border border-slate-100 flex flex-col h-full relative overflow-hidden group"
+              key={item.id}
+              variants={cardVariants}
+              whileHover={{ y: -8 }}
+              className="relative group h-full"
             >
-              {/* Top Accent Line */}
-              <div className={`absolute top-0 left-0 w-full h-1.5 ${item.color}`} />
-
-              {/* Icon Header */}
-              <div className="flex items-center justify-between mb-6">
-                <div className={`p-4 rounded-2xl bg-slate-50 ${item.textColor} group-hover:scale-110 transition-transform duration-300`}>
-                  {item.icon}
+              {/* Glow Effect behind card */}
+              <div className={`absolute -inset-0.5 bg-gradient-to-b ${item.gradient} rounded-2xl opacity-0 group-hover:opacity-30 blur-xl transition duration-500`} />
+              
+              {/* Card Body */}
+              <div className="relative h-full bg-[#0a0a0a] border border-white/10 rounded-2xl p-6 flex flex-col overflow-hidden hover:border-white/20 transition-colors">
+                
+                {/* Top Icon & Badge */}
+                <div className="flex justify-between items-start mb-6">
+                  <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${item.gradient} flex items-center justify-center text-white shadow-lg ${item.shadow}`}>
+                    {item.icon}
+                  </div>
+                  <div className="bg-white/5 p-2 rounded-full text-gray-500 group-hover:text-white transition-colors">
+                    <FaUsers />
+                  </div>
                 </div>
-                <FaUsers className="text-slate-300 w-6 h-6" />
+
+                {/* Content */}
+                <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-gray-400 transition-all">
+                  {item.name}
+                </h3>
+                <p className="text-gray-400 text-sm mb-6 flex-grow leading-relaxed">
+                  {item.description}
+                </p>
+
+                {/* Features List */}
+                <div className="space-y-3 mb-8 bg-white/5 rounded-xl p-4 border border-white/5">
+                  {item.features.map((feature, i) => (
+                    <div key={i} className="flex items-center gap-3 text-sm text-gray-300">
+                      <div className={`w-1.5 h-1.5 rounded-full bg-gradient-to-r ${item.gradient}`} />
+                      {feature}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Button */}
+                <Link 
+                  href={item.url}
+                  target="_blank"
+                  className={`
+                    w-full py-3.5 rounded-lg font-bold text-sm text-white
+                    bg-gradient-to-r ${item.gradient} 
+                    hover:brightness-110 active:scale-[0.98] transition-all
+                    flex items-center justify-center gap-2 shadow-lg ${item.shadow}
+                  `}
+                >
+                  Join Community <FaArrowRight className="w-3 h-3" />
+                </Link>
+
               </div>
-
-              {/* Content */}
-              <h3 className="text-2xl font-bold text-slate-900 mb-3 group-hover:text-blue-600 transition-colors">
-                {item.name}
-              </h3>
-              <p className="text-slate-500 mb-6 flex-grow leading-relaxed">
-                {item.description}
-              </p>
-
-              {/* Features List */}
-              <ul className="space-y-2 mb-8">
-                {item.features.map((feature, idx) => (
-                  <li key={idx} className="flex items-center gap-2 text-sm text-slate-600 font-medium">
-                    <CheckCircle2 className={`w-4 h-4 ${item.textColor}`} />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-
-              {/* Button */}
-              <Link 
-                href={item.url} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className={`
-                  mt-auto w-full py-3.5 px-6 rounded-xl text-white font-semibold text-center flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-lg
-                  ${item.color} ${item.hoverColor}
-                `}
-              >
-                Join Now <FaArrowRight className="w-4 h-4" />
-              </Link>
             </motion.div>
           ))}
         </motion.div>
-      </section>
 
-      {/* =====================
-          BOTTOM BANNER
-      ===================== */}
-      <section className="bg-slate-900 py-16 px-4 text-center">
-        <div className="max-w-4xl mx-auto space-y-6">
-           <h2 className="text-2xl md:text-3xl font-bold text-white">
-             Still have questions?
-           </h2>
-           <p className="text-slate-400">
-             Our support team is active on all platforms. Drop a message anywhere!
-           </p>
-           <div className="flex justify-center gap-4">
-              <Link href="/contact" className="text-white border border-slate-700 px-6 py-2 rounded-full hover:bg-slate-800 transition">
-                Contact Support
-              </Link>
-           </div>
-        </div>
-      </section>
+        {/* =====================
+            BOTTOM SECTION
+        ===================== */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          className="mt-20 border-t border-white/10 pt-10 text-center"
+        >
+          <div className="inline-block p-4 rounded-full bg-white/5 mb-4">
+            <Zap className="w-6 h-6 text-yellow-400" />
+          </div>
+          <h2 className="text-xl font-bold text-white mb-2">Not sure where to start?</h2>
+          <p className="text-gray-500 mb-6">Our Discord server is the most active place for live help.</p>
+          <Link href="https://discord.gg/nuTnXSjEG3" className="text-sm font-bold text-blue-400 hover:text-blue-300 underline underline-offset-4">
+            Start with Discord &rarr;
+          </Link>
+        </motion.div>
 
+      </div>
     </div>
   );
 }
