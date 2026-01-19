@@ -125,7 +125,9 @@ export default function ProductListClient({ initialData }: ProductListClientProp
                   </TableCell>
                   <TableCell>
                     <div className="font-medium text-gray-200 truncate max-w-[250px]" title={product.title}>
-                      {product.title}
+                     <Link href={`/admin/products/${product._id}`} className="hover:underline">
+                       {product.title}
+                     </Link>
                     </div>
                     <div className="text-xs text-gray-500 hidden sm:block font-mono mt-0.5">
                       /{product.slug}

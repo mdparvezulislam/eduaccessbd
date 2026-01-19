@@ -72,7 +72,14 @@ export interface IProduct {
   // Category can be an ID string OR a populated Object
   category:  ICategory; 
   tags?: string[];
-  
+  accountAccess?: {
+    isEnabled: boolean;
+    price: number;
+    accountEmail?: string;
+    accountPassword?: string;
+    accessLink?: string;
+    accessNote?: string;
+  };
   isAvailable: boolean;
   isFeatured: boolean;
   salesCount: number;

@@ -6,6 +6,114 @@ import { authOptions } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 
 // ==================================================================
+// POST → Create New Product (Admin Only)
+// ==================================================================
+export async function POST(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    
+    // ✅ Security Check
+    if (!session || session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
+    const body = await req.json();
+    await connectToDatabase();
+
+    // 1. Validation
+    if (!body.title) {
+      return NextResponse.json({ error: "Title is required" }, { status: 400 });
+    }
+
+    // 2. Slug Generation
+    let slug = body.slug;
+    if (!slug) {
+      slug = body.title.toLowerCase()
+        .replace(/ /g, "-")
+        .replace(/[^\w-]+/g, "");
+    }
+
+    // 3. Check Duplicate
+    const existingProduct = await Product.findOne({ slug });
+    if (existingProduct) {
+      return NextResponse.json({ error: "Slug already exists" }, { status: 400 });
+    }
+
+    // 4. ⚡ Helper to Clean Plan Data
+    const parsePlan = (plan: any) => ({
+      isEnabled: Boolean(plan?.isEnabled),
+      price: Number(plan?.price) || 0,
+      regularPrice: Number(plan?.regularPrice) || 0,
+      validityLabel: plan?.validityLabel || "",
+      description: plan?.description || "", 
+      accessLink: plan?.accessLink || "",
+      accessNote: plan?.accessNote || ""
+    });
+
+    // 5. ⚡ Helper to Clean Account Access Data (NEW)
+    const parseAccountAccess = (acc: any) => ({
+      isEnabled: Boolean(acc?.isEnabled),
+      price: Number(acc?.price) || 0,
+      accountEmail: acc?.accountEmail || "",       // Private Field
+      accountPassword: acc?.accountPassword || ""  // Private Field
+    });
+
+    // 6. Create Product
+    const newProduct = await Product.create({
+      title: body.title,
+      slug: slug,
+      
+      description: body.description,
+      shortDescription: body.shortDescription || "",
+      
+      // Standard / Fallback Pricing
+      defaultPrice: Number(body.defaultPrice) || 0,
+      videoUrl: body.videoUrl || "",
+      salePrice: Number(body.salePrice) || 0,
+      regularPrice: Number(body.regularPrice) || 0,
+      
+      thumbnail: body.thumbnail,
+      gallery: body.gallery || [],
+      
+      category: body.category,
+      tags: body.tags || [],
+      features: body.features || [],
+      
+      isAvailable: body.isAvailable ?? true,
+      isFeatured: body.isFeatured ?? false,
+      fileType: body.fileType || "Subscription",
+      
+      salesCount: 0,
+
+      // ⚡ VIP Pricing Structure (Parsed)
+      pricing: {
+        monthly: parsePlan(body.pricing?.monthly),
+        yearly: parsePlan(body.pricing?.yearly),
+        lifetime: parsePlan(body.pricing?.lifetime),
+      },
+
+      // ✅ NEW: Account Access Option (Parsed)
+      accountAccess: parseAccountAccess(body.accountAccess),
+
+      // ✅ Standard Product Delivery (Root Level)
+      accessLink: body.accessLink || "", 
+      accessNote: body.accessNote || ""
+    });
+
+    return NextResponse.json(
+      { success: true, message: "Product created successfully", product: newProduct }, 
+      { status: 201 }
+    );
+
+  } catch (error: any) {
+    console.error("Error creating product:", error);
+    return NextResponse.json({ error: error.message || "Server Error" }, { status: 500 });
+  }
+}
+
+
+
+// ==================================================================
 // GET → Fetch All Products (Public Store)
 // ==================================================================
 export async function GET(req: NextRequest) {
@@ -54,98 +162,3 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// ==================================================================
-// POST → Create New Product (Admin Only)
-// ==================================================================
-export async function POST(req: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions);
-    
-    // ✅ Security Check
-    if (!session || session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-    }
-
-    const body = await req.json();
-    await connectToDatabase();
-
-    // 1. Validation
-    if (!body.title) {
-      return NextResponse.json({ error: "Title is required" }, { status: 400 });
-    }
-
-    // 2. Slug Generation
-    let slug = body.slug;
-    if (!slug) {
-      slug = body.title.toLowerCase()
-        .replace(/ /g, "-")
-        .replace(/[^\w-]+/g, "");
-    }
-
-    // 3. Check Duplicate
-    const existingProduct = await Product.findOne({ slug });
-    if (existingProduct) {
-      return NextResponse.json({ error: "Slug already exists" }, { status: 400 });
-    }
-
-    // 4. ⚡ Helper to Clean Plan Data
-    // Ensures numbers are numbers and strings are strings
-    const parsePlan = (plan: any) => ({
-      isEnabled: Boolean(plan?.isEnabled),
-      price: Number(plan?.price) || 0,
-      regularPrice: Number(plan?.regularPrice) || 0,
-      validityLabel: plan?.validityLabel || "",
-      description: plan?.description || "", // ✅ New Description Field
-      accessLink: plan?.accessLink || "",
-      accessNote: plan?.accessNote || ""
-    });
-
-    // 5. Create Product
-    const newProduct = await Product.create({
-      title: body.title,
-      slug: slug,
-      
-      description: body.description,
-      shortDescription: body.shortDescription || "",
-      
-      // Standard / Fallback Pricing
-      defaultPrice: Number(body.defaultPrice) || 0,
-      videoUrl: body.videoUrl || "",
-      salePrice: Number(body.salePrice) || 0,
-      regularPrice: Number(body.regularPrice) || 0,
-      
-      thumbnail: body.thumbnail,
-      gallery: body.gallery || [],
-      
-      category: body.category,
-      tags: body.tags || [],
-      features: body.features || [],
-      
-      isAvailable: body.isAvailable ?? true,
-      isFeatured: body.isFeatured ?? false,
-      fileType: body.fileType || "Subscription",
-      
-      salesCount: 0,
-
-      // ⚡ VIP Pricing Structure (Parsed)
-      pricing: {
-        monthly: parsePlan(body.pricing?.monthly),
-        yearly: parsePlan(body.pricing?.yearly),
-        lifetime: parsePlan(body.pricing?.lifetime),
-      },
-
-      // ✅ Standard Product Delivery (Root Level)
-      accessLink: body.accessLink || "", 
-      accessNote: body.accessNote || ""
-    });
-
-    return NextResponse.json(
-      { success: true, message: "Product created successfully", product: newProduct }, 
-      { status: 201 }
-    );
-
-  } catch (error: any) {
-    console.error("Error creating product:", error);
-    return NextResponse.json({ error: error.message || "Server Error" }, { status: 500 });
-  }
-}

@@ -16,18 +16,18 @@ export interface IOrder extends Document {
     quantity: number;
     price: number;
     title: string;
-    variant?: string; // e.g. "Monthly", "Yearly"
+    variant?: string; // e.g. "Monthly", "Yearly", "Account Access"
   }[];
   
   // Payment Proof (User Inputs)
   transactionId?: string; 
-  senderNumber?: string;  // ✅ Added to Schema below
+  senderNumber?: string;
   paymentMethod: string;  
   
   // Financials
   amount: number;         // Final paid amount
-  discountAmount?: number; // ✅ New: How much was saved
-  couponCode?: string;     // ✅ New: Which code was used
+  discountAmount?: number; // How much was saved
+  couponCode?: string;     // Which code was used
   
   // Statuses
   paymentStatus: "unpaid" | "paid" | "failed"; 
@@ -49,18 +49,18 @@ const orderSchema = new Schema<IOrder>(
       quantity: { type: Number, required: true },
       price: { type: Number, required: true }, // Snapshotted price at time of order
       title: { type: String },
-      variant: { type: String }
+      variant: { type: String } // ✅ Correctly defined to store "Monthly", "Account Access", etc.
     }],
 
     // Payment Details
     transactionId: { type: String, trim: true },
-    senderNumber: { type: String, trim: true }, // ✅ FIXED: Added to Schema
+    senderNumber: { type: String, trim: true },
     paymentMethod: { type: String, default: "Manual" },
     
     // Financials
     amount: { type: Number, required: true },
-    discountAmount: { type: Number, default: 0 }, // ✅ New
-    couponCode: { type: String, trim: true },     // ✅ New
+    discountAmount: { type: Number, default: 0 },
+    couponCode: { type: String, trim: true },
 
     // Statuses
     paymentStatus: {

@@ -10,7 +10,7 @@ import { useCart, PlanType } from "@/lib/CartContext";
 import { 
   ShoppingCart, Heart, CheckCircle2, ShieldCheck, Flame, CreditCard,
   ChevronRight, Minus, Plus, PlayCircle, Crown, Clock, Star, Share2, 
-  X, Video as VideoIcon, Tv
+  X, User, Box 
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -35,44 +35,48 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
   const [qty, setQty] = useState(1);
   const [showVideo, setShowVideo] = useState(false); 
   
-  // ⚡ VIP Plan Logic
+  // ⚡ 1. PREPARE AVAILABLE PLAN KEYS
   const pricing = product.pricing || {};
-  const availablePlans: PlanType[] = [];
-  
-  if (pricing.monthly?.isEnabled) availablePlans.push("monthly");
-  if (pricing.yearly?.isEnabled) availablePlans.push("yearly");
-  if (pricing.lifetime?.isEnabled) availablePlans.push("lifetime");
+  const accountAccess = (product as any).accountAccess;
 
-  // Default to first plan if available, else null
-  const [selectedPlan, setSelectedPlan] = useState<PlanType | null>(
-    availablePlans.length > 0 ? availablePlans[0] : null
-  );
+  // This determines which button is active. Default is "standard".
+  // Options: "standard", "monthly", "yearly", "lifetime", "account_access"
+  const [selectedPlan, setSelectedPlan] = useState<string>("standard");
 
   // --- Derived Data ---
   const allImages = [product.thumbnail, ...(product.gallery || [])];
   const videoId = getYouTubeEmbedId(product.videoUrl);
 
-  // ⚡ Calculate Active Price & Description
+  // ⚡ 2. DYNAMIC PRICE & LABEL LOGIC
   let currentPrice = 0;
-  let referencePrice = 0;
-  let validityLabel = "Lifetime Access"; 
+  let referencePrice = 0; 
+  let validityLabel = "Standard License"; 
   let currentDescription = product.description; 
 
-  if (selectedPlan && pricing[selectedPlan]) {
-    const plan = pricing[selectedPlan];
-    currentPrice = plan.price;
-    referencePrice = plan.regularPrice || 0;
-    validityLabel = plan.validityLabel;
-
-    if (plan.description && plan.description.trim().length > 0) {
-      currentDescription = plan.description;
+  // 🟢 CASE A: Account Access
+  if (selectedPlan === "account_access" && accountAccess) {
+    currentPrice = Number(accountAccess.price);
+    referencePrice = 0; // Hide reference price for account access
+    validityLabel = "Full Account Access";
+  } 
+  // 🟢 CASE B: VIP Plans
+  else if (["monthly", "yearly", "lifetime"].includes(selectedPlan)) {
+    const plan = pricing[selectedPlan as keyof typeof pricing];
+    if (plan) {
+      currentPrice = Number(plan.price);
+      referencePrice = Number(plan.regularPrice) || 0;
+      validityLabel = plan.validityLabel;
+      if (plan.description?.trim()) currentDescription = plan.description;
     }
-  } else {
-    currentPrice = product.salePrice ;
+  } 
+  // 🟢 CASE C: Standard / Total Price (Default)
+  else {
+    currentPrice = product.defaultPrice || product.salePrice || 0;
     referencePrice = product.regularPrice;
     validityLabel = "Standard License";
   }
 
+  // Calculate Discount
   const discount = referencePrice > currentPrice
     ? Math.round(((referencePrice - currentPrice) / referencePrice) * 100)
     : 0;
@@ -83,7 +87,26 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
 
   // --- Handlers ---
   const handleAddToCart = () => {
-    const item = mapProductToCartItem(product, qty, selectedPlan || undefined);
+    // Determine plan type for Cart Context
+    // If standard, undefined. If VIP, plan name. If account, undefined (handled manually).
+    let planArg: any = undefined;
+    if (["monthly", "yearly", "lifetime"].includes(selectedPlan)) {
+      planArg = selectedPlan;
+    }
+
+    const item = mapProductToCartItem(product, qty, planArg);
+
+    // ⚡ OVERRIDE: Manually set price/ID for Account Access & Standard
+    if (selectedPlan === "account_access") {
+      item.price = currentPrice;
+      item.validity = "Account Access";
+      item.cartId = `${product._id}-account_access`;
+    } else if (selectedPlan === "standard") {
+      item.price = currentPrice;
+      item.validity = "Standard";
+      item.cartId = `${product._id}-standard`;
+    }
+
     addToCart(item);
     toast.success(
       <div className="flex flex-col gap-1">
@@ -91,7 +114,7 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
           <CheckCircle2 className="w-4 h-4 text-green-500"/> Added to Cart
         </span>
         <span className="text-xs text-muted-foreground line-clamp-1">
-          {product.title}
+          {product.title} ({validityLabel})
         </span>
       </div>
     );
@@ -105,26 +128,24 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
   return (
     <div className="bg-black text-white min-h-screen pb-4 font-sans selection:bg-green-500/30 selection:text-green-200">
       
-      {/* === BREADCRUMB === */}
+      {/* Breadcrumb */}
       <div className="border-b border-white/10 bg-black/90 backdrop-blur-md sticky top-0 z-30">
-        <div className="container mx-auto px-1 py-3 text-xs md:text-sm text-gray-400 flex items-center gap-2 overflow-hidden whitespace-nowrap">
+        <div className="container mx-auto px-4 py-3 text-xs md:text-sm text-gray-400 flex items-center gap-2 overflow-hidden whitespace-nowrap">
           <Link href="/" className="hover:text-white transition-colors shrink-0">Home</Link> 
           <ChevronRight className="w-3 h-3 shrink-0 text-gray-600" />
-          <Link href={`/products/${product.category?.slug}`} className="hover:text-white transition-colors shrink-0">{categoryName}</Link>
+          <Link href={`/products/${(product.category as any)?.slug || 'all'}`} className="hover:text-white transition-colors shrink-0">{categoryName}</Link>
           <ChevronRight className="w-3 h-3 shrink-0 text-gray-600" />
           <span className="text-white font-medium truncate opacity-80">{product.title}</span>
         </div>
       </div>
 
-      <div className="container mx-auto px-1 py-6 md:py-8">
+      <div className="container mx-auto px-4 py-6 md:py-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10">
           
           {/* =================================
-              LEFT COLUMN: GALLERY (7 Cols) 
+              LEFT: GALLERY
           ================================= */}
           <div className="lg:col-span-7 space-y-3">
-            
-            {/* Main Media Area */}
             <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-white/10 bg-[#111] shadow-2xl group">
               <AnimatePresence mode="wait">
                 {showVideo && videoId ? (
@@ -175,14 +196,13 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
                 </button>
               )}
 
-              {!showVideo && discount > 0 && (
+              {!showVideo && discount > 0 && selectedPlan === 'standard' && (
                 <Badge className="absolute top-3 left-3 bg-yellow-500 hover:bg-yellow-500 text-black text-[10px] md:text-xs px-2 py-0.5 font-bold shadow-lg border-0 rounded-md z-10">
                   -{discount}% OFF
                 </Badge>
               )}
             </div>
 
-            {/* Thumbnails */}
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
               {videoId && (
                 <button 
@@ -211,7 +231,7 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
           </div>
 
           {/* =================================
-              RIGHT COLUMN: INFO (5 Cols) 
+              RIGHT: INFO & ACTIONS
           ================================= */}
           <div className="lg:col-span-5 flex flex-col gap-5">
             
@@ -233,7 +253,6 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
                 <h1 className="text-2xl md:text-3xl font-extrabold text-white leading-tight tracking-tight mb-1.5">
                   {product.title}
                 </h1>
-                
                 {product.shortDescription && (
                   <p className="text-gray-400 text-xs md:text-sm leading-relaxed border-l-2 border-green-500/50 pl-3 line-clamp-3">
                     {product.shortDescription}
@@ -241,7 +260,6 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
                 )}
               </div>
 
-              {/* Ratings */}
               <div className="flex items-center gap-3 text-xs font-medium border-b border-white/5 pb-3">
                  <div className="flex items-center gap-1 text-yellow-400 bg-yellow-400/10 px-1.5 py-0.5 rounded border border-yellow-400/20">
                     <Star className="w-3 h-3 fill-yellow-400" /> 
@@ -252,70 +270,104 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
               </div>
             </div>
 
-            {/* ⚡ 2. VIP PLAN SELECTOR */}
-            {availablePlans.length > 0 && (
-              <div className="space-y-2 bg-[#111] p-3 rounded-lg border border-white/5">
-                <div className="flex justify-between items-center mb-1">
-                   <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Access Plan</p>
-                   <span className="text-[10px] text-green-400 font-bold flex items-center gap-1 bg-green-900/20 px-1.5 py-0.5 rounded">
-                     <Clock className="w-3 h-3" /> {validityLabel}
-                   </span>
-                </div>
-                
-                <div className="grid grid-cols-3 gap-2">
-                  {pricing.monthly?.isEnabled && (
-                    <button
-                      onClick={() => setSelectedPlan("monthly")}
-                      className={`relative p-2 rounded-md border transition-all duration-200 flex flex-col items-center justify-center gap-0.5 ${
-                        selectedPlan === "monthly"
-                          ? "bg-white text-black border-white shadow-lg shadow-white/10"
-                          : "bg-black/40 border-white/10 hover:border-white/30 text-gray-400 hover:text-white"
-                      }`}
-                    >
-                      <span className="font-bold text-[10px] uppercase">Monthly</span>
-                      <span className="text-xs font-black">৳{pricing.monthly.price}</span>
-                      {selectedPlan === "monthly" && <CheckCircle2 className="absolute top-1 right-1 w-2.5 h-2.5 text-green-600" />}
-                    </button>
-                  )}
-
-                  {pricing.yearly?.isEnabled && (
-                    <button
-                      onClick={() => setSelectedPlan("yearly")}
-                      className={`relative p-2 rounded-md border transition-all duration-200 flex flex-col items-center justify-center gap-0.5 ${
-                        selectedPlan === "yearly"
-                          ? "bg-white text-black border-white shadow-lg shadow-white/10"
-                          : "bg-black/40 border-white/10 hover:border-white/30 text-gray-400 hover:text-white"
-                      }`}
-                    >
-                      <span className="font-bold text-[10px] uppercase">Yearly</span>
-                      <span className="text-xs font-black">৳{pricing.yearly.price}</span>
-                      <span className="absolute -top-2 bg-green-600 text-white text-[7px] px-1 py-0 rounded font-bold uppercase tracking-wide border border-black">
-                        Popular
-                      </span>
-                    </button>
-                  )}
-
-                  {pricing.lifetime?.isEnabled && (
-                    <button
-                      onClick={() => setSelectedPlan("lifetime")}
-                      className={`relative p-2 rounded-md border transition-all duration-200 flex flex-col items-center justify-center gap-0.5 ${
-                        selectedPlan === "lifetime"
-                          ? "bg-gradient-to-br from-amber-200 to-amber-500 text-black border-amber-400 shadow-lg shadow-amber-500/20"
-                          : "bg-black/40 border-white/10 hover:border-white/30 text-gray-400 hover:text-white"
-                      }`}
-                    >
-                      <div className="flex items-center gap-1">
-                         <span className="font-bold text-[10px] uppercase">Lifetime</span>
-                         <Crown className="w-2.5 h-2.5" />
-                      </div>
-                      <span className="text-xs font-black">৳{pricing.lifetime.price}</span>
-                    </button>
-                  )}
-                </div>
+            {/* ⚡ PLAN SELECTOR GRID (Includes Standard/Total, VIP, Account) */}
+            <div className="space-y-2 bg-[#111] p-3 rounded-lg border border-white/5">
+              <div className="flex justify-between items-center mb-1">
+                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Select Option</p>
+                  <span className="text-[10px] text-green-400 font-bold flex items-center gap-1 bg-green-900/20 px-1.5 py-0.5 rounded">
+                    <Clock className="w-3 h-3" /> {validityLabel}
+                  </span>
               </div>
-            )}
+              
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                
+                {/* 1. ✅ STANDARD / TOTAL PRICE (Always First) */}
+                <button
+                  onClick={() => setSelectedPlan("standard")}
+                  className={`relative p-2 rounded-md border transition-all duration-200 flex flex-col items-center justify-center gap-0.5 ${
+                    selectedPlan === "standard"
+                      ? "bg-white text-black border-white shadow-lg shadow-white/10"
+                      : "bg-black/40 border-white/10 hover:border-white/30 text-gray-400 hover:text-white"
+                  }`}
+                >
+                  <div className="flex items-center gap-1">
+                      <Box className="w-3 h-3" />
+                      <span className="font-bold text-[10px] uppercase">Standard</span>
+                  </div>
+                  <span className="text-xs font-black">
+                    ৳{product.defaultPrice}
+                  </span>
+                  {selectedPlan === "standard" && <CheckCircle2 className="absolute top-1 right-1 w-2.5 h-2.5 text-green-600" />}
+                </button>
 
-            {/* 3. Pricing & Actions */}
+                {/* 2. ✅ VIP PLANS */}
+                {pricing.monthly?.isEnabled && (
+                  <button
+                    onClick={() => setSelectedPlan("monthly")}
+                    className={`relative p-2 rounded-md border transition-all duration-200 flex flex-col items-center justify-center gap-0.5 ${
+                      selectedPlan === "monthly"
+                        ? "bg-white text-black border-white shadow-lg shadow-white/10"
+                        : "bg-black/40 border-white/10 hover:border-white/30 text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    <span className="font-bold text-[10px] uppercase">Monthly</span>
+                    <span className="text-xs font-black">৳{pricing.monthly.price}</span>
+                  </button>
+                )}
+
+                {pricing.yearly?.isEnabled && (
+                  <button
+                    onClick={() => setSelectedPlan("yearly")}
+                    className={`relative p-2 rounded-md border transition-all duration-200 flex flex-col items-center justify-center gap-0.5 ${
+                      selectedPlan === "yearly"
+                        ? "bg-white text-black border-white shadow-lg shadow-white/10"
+                        : "bg-black/40 border-white/10 hover:border-white/30 text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    <span className="font-bold text-[10px] uppercase">Yearly</span>
+                    <span className="text-xs font-black">৳{pricing.yearly.price}</span>
+                  </button>
+                )}
+
+                {pricing.lifetime?.isEnabled && (
+                  <button
+                    onClick={() => setSelectedPlan("lifetime")}
+                    className={`relative p-2 rounded-md border transition-all duration-200 flex flex-col items-center justify-center gap-0.5 ${
+                      selectedPlan === "lifetime"
+                        ? "bg-gradient-to-br from-amber-200 to-amber-500 text-black border-amber-400 shadow-lg shadow-amber-500/20"
+                        : "bg-black/40 border-white/10 hover:border-white/30 text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    <div className="flex items-center gap-1">
+                        <span className="font-bold text-[10px] uppercase">Lifetime</span>
+                        <Crown className="w-2.5 h-2.5" />
+                    </div>
+                    <span className="text-xs font-black">৳{pricing.lifetime.price}</span>
+                  </button>
+                )}
+
+                {/* 3. ✅ ACCOUNT ACCESS (New Field) */}
+                {accountAccess?.isEnabled && (
+                  <button
+                    onClick={() => setSelectedPlan("account_access")}
+                    className={`relative p-2 rounded-md border transition-all duration-200 flex flex-col items-center justify-center gap-0.5 ${
+                      selectedPlan === "account_access"
+                        ? "bg-gradient-to-br from-purple-400 to-purple-600 text-white border-purple-400 shadow-lg shadow-purple-500/30"
+                        : "bg-black/40 border-white/10 hover:border-white/30 text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    <div className="flex items-center gap-1">
+                        <span className="font-bold text-[10px] uppercase">Account</span>
+                        <User className="w-2.5 h-2.5" />
+                    </div>
+                    <span className="text-xs font-black">৳{accountAccess.price}</span>
+                  </button>
+                )}
+
+              </div>
+            </div>
+
+            {/* 4. Price & Actions */}
             <div className="bg-[#161616] border border-white/10 p-3 md:p-5 rounded-xl relative overflow-hidden shadow-2xl">
               <div className="absolute top-[-50%] right-[-50%] w-[100%] h-[100%] bg-green-500/10 blur-[60px] rounded-full pointer-events-none" />
 
@@ -328,7 +380,9 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
                     <span className="text-3xl font-black text-white tracking-tighter">
                       ৳{currentPrice.toLocaleString()}
                     </span>
-                    {referencePrice > currentPrice && (
+                    
+                    {/* Show Crossed Price Only if Standard or VIP (Account usually doesn't have regular price) */}
+                    {referencePrice > currentPrice && selectedPlan !== 'account_access' && (
                       <div className="flex flex-col mb-1">
                         <span className="text-xs text-gray-500 line-through font-medium">
                           ৳{referencePrice.toLocaleString()}
@@ -338,7 +392,6 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
                   </div>
                 </div>
 
-                {/* Buttons Row */}
                 <div className="grid grid-cols-[80px_1fr] gap-2 h-10 md:h-11">
                   <div className="flex items-center bg-black border border-white/10 rounded-lg overflow-hidden">
                     <button onClick={() => setQty(q => Math.max(1, q - 1))} className="w-8 h-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition" disabled={qty <= 1}>
@@ -370,7 +423,7 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
               </div>
             </div>
 
-            {/* Features List */}
+            {/* Features */}
             <div className="pt-2">
                {product.features && product.features.length > 0 && (
                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-1.5 gap-x-3">
@@ -396,9 +449,7 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
           </div>
         </div>
 
-        {/* =================================
-            BOTTOM SECTION: TABS & DESC
-        ================================= */}
+        {/* BOTTOM: DESC & REVIEWS */}
         <div className="mt-10 md:mt-16 max-w-5xl mx-auto">
           <Tabs defaultValue="description" className="w-full">
             <TabsList className="flex w-full md:w-auto border-b border-white/10 bg-transparent p-0 mb-6 gap-6 overflow-x-auto scrollbar-hide">
@@ -406,7 +457,7 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
                 value="description" 
                 className="rounded-none border-b-2 border-transparent data-[state=active]:border-green-500 data-[state=active]:bg-transparent data-[state=active]:text-white text-gray-500 text-sm font-bold px-0 pb-3 transition-colors shrink-0"
               >
-                Description {selectedPlan && <span className="ml-1.5 text-[9px] text-green-400 bg-green-900/20 px-1 py-0.5 rounded border border-green-500/20 uppercase tracking-wide hidden sm:inline-block">for {validityLabel}</span>}
+                Description {selectedPlan && selectedPlan !== 'standard' && <span className="ml-1.5 text-[9px] text-green-400 bg-green-900/20 px-1 py-0.5 rounded border border-green-500/20 uppercase tracking-wide hidden sm:inline-block">for {validityLabel}</span>}
               </TabsTrigger>
               <TabsTrigger 
                 value="reviews" 
@@ -420,7 +471,7 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
               <div className="bg-[#111] border text-gray-300 border-white/5 rounded-2xl p-5 md:p-8 leading-relaxed shadow-lg">
                 <AnimatePresence mode="wait">
                   <motion.div 
-                    key={validityLabel} // ⚡ Animation trigger
+                    key={validityLabel} 
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -5 }}

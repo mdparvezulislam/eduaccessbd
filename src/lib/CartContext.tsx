@@ -10,25 +10,25 @@ import React, {
   ReactNode,
 } from "react";
 
-// ✅ 1. Define allowed plan types (Matches API)
-export type PlanType = "monthly" | "yearly" | "lifetime";
+// ✅ 1. Updated Plan Types (Added "account_access")
+export type PlanType = "monthly" | "yearly" | "lifetime" | "account_access";
 
 // ✅ 2. Cart Item Interface
 export interface CartItem {
-  cartId: string;       // Unique UI ID: "prod123-monthly" (Use this for React keys/updates)
-  productId: string;    // Pure DB ID: "prod123" (Use this for API calls)
+  cartId: string;       // Unique ID: "prod123-monthly" or "prod123-account_access"
+  productId: string;    // DB ID
   name: string;
   image: string;
   
   price: number;        // Active price
-  regularPrice?: number;// Crossed-out price
+  regularPrice?: number;
   
   quantity: number;
   category?: string;
 
-  // ⚡ VIP Plan Details
-  planType?: PlanType;  // "monthly" (The Key - Sent to API)
-  validity?: string;    // "30 Days" (The Label - Shown in UI)
+  // Plan Details
+  planType?: PlanType; 
+  validity?: string;    
 }
 
 interface CartContextType {
@@ -38,7 +38,6 @@ interface CartContextType {
   updateQuantity: (cartId: string, quantity: number) => void;
   clearCart: () => void;
   
-  // Helper to create cart items safely
   mapProductToCartItem: (product: IProduct, qty?: number, planType?: PlanType) => CartItem;
   
   totalAmount: number;
@@ -47,7 +46,7 @@ interface CartContextType {
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
-const CART_KEY = "eduaccess-cart-v2"; // Changed key to reset old/broken cart data
+const CART_KEY = "eduaccess-cart-v3"; // Bumped version to v3 to ensure clean state
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -79,7 +78,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   // --- Actions ---
   const addToCart = useCallback((newItem: CartItem) => {
     setCart((prev) => {
-      // Check if item with same ID AND same Plan exists
+      // Check for existing item with SAME unique cartId (includes plan variant)
       const existing = prev.find((item) => item.cartId === newItem.cartId);
       
       if (existing) {
@@ -109,7 +108,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const clearCart = useCallback(() => setCart([]), []);
 
-  // --- ⚡ MAPPING LOGIC (Fixed for API Compatibility) ---
+  // --- ⚡ MAPPING LOGIC (Updated for Account Access) ---
   const mapProductToCartItem = useCallback(
     (product: IProduct, quantity = 1, planType?: PlanType): CartItem => {
       
@@ -121,8 +120,22 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       // Default Unique ID
       let uniqueCartId = `${product._id}-default`;
 
-      // 🟢 Logic: If a VIP Plan is selected, override prices
-      if (planType && product.pricing && product.pricing[planType]?.isEnabled) {
+      // 🟢 CASE A: Account Access
+      if (planType === "account_access") {
+        // Safe access to new field using 'any' casting if type isn't globally updated yet
+        const accInfo = (product as any).accountAccess;
+        
+        finalPrice = Number(accInfo?.price || 0);
+        finalRegularPrice = 0; // Account access usually has no "regular" price
+        validityLabel = "Full Account Access";
+        selectedPlanType = "account_access";
+        
+        // ⚡ Unique ID for Account Access
+        uniqueCartId = `${product._id}-account_access`;
+      } 
+      
+      // 🟢 CASE B: VIP Subscription Plans (Monthly/Yearly/Lifetime)
+      else if (planType && product.pricing && product.pricing[planType]?.isEnabled) {
         const selectedPlan = product.pricing[planType];
         
         finalPrice = selectedPlan.price;
@@ -130,10 +143,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         validityLabel = selectedPlan.validityLabel || "VIP Access";
         selectedPlanType = planType;
         
-        // Unique ID includes plan type so users can add Monthly AND Yearly of same product separately
         uniqueCartId = `${product._id}-${planType}`;
-      } else {
-        // Fallback for Standard Products (Use Sale Price if active)
+      } 
+      
+      // 🟢 CASE C: Standard Product (Fallback)
+      else {
         if (product.salePrice > 0) {
           finalPrice = product.salePrice;
           finalRegularPrice = product.regularPrice;
@@ -141,9 +155,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       }
 
       return {
-        // ⚡ CRITICAL FIX: Split IDs correctly
-        cartId: uniqueCartId,           // For React Keys (e.g. "69a...-monthly")
-        productId: String(product._id), // For Database (e.g. "69a...")
+        cartId: uniqueCartId,           
+        productId: String(product._id), 
         
         name: product.title,
         image: product.thumbnail,
@@ -154,9 +167,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         quantity,
         category: typeof product.category === 'object' ? (product.category as any).name : "Product",
         
-        // ⚡ Plan Data
-        planType: selectedPlanType, // "monthly" (Matches API expectation)
-        validity: validityLabel,    // "30 Days" (For UI Display)
+        planType: selectedPlanType, 
+        validity: validityLabel,    
       };
     },
     []

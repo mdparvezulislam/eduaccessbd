@@ -21,6 +21,14 @@ interface IVipPlan {
   accessNote?: string;
 }
 
+// ✅ NEW: Account Access Interface
+interface IAccountAccess {
+  isEnabled: boolean;
+  price: number;
+  accountEmail?: string;
+  accountPassword?: string;
+}
+
 interface IProductDocument {
   _id: string;
   title: string;
@@ -33,16 +41,20 @@ interface IProductDocument {
     yearly: IVipPlan;
     lifetime: IVipPlan;
   };
+  // ✅ Added Account Access Field
+  accountAccess?: IAccountAccess;
 }
 
 interface ICartItem {
   productId: string;
   quantity: number;
+  // This field comes from frontend as 'variant' or 'validity'
+  variant?: string; 
   validity?: string;
 }
 
-// Type Guard Helper to ensure validity is a known plan type
-function isPlanType(key: string | undefined): key is PlanType {
+// Type Guard Helper to ensure validity is a known VIP plan type
+function isVipPlan(key: string | undefined): key is PlanType {
   return ["monthly", "yearly", "lifetime"].includes(key as string);
 }
 
@@ -67,6 +79,7 @@ export async function POST(req: NextRequest) {
     let subTotal = 0;
     const orderProducts = [];
     
+    // For auto-delivery if free
     let combinedDownloadLinks = "";
     let combinedAccessNotes = "";
 
@@ -76,42 +89,53 @@ export async function POST(req: NextRequest) {
       // If frontend sends "696d...-monthly", we strip it to "696d..."
       const cleanId = String(item.productId).split("-")[0];
 
+      // Fetch Product (including hidden accountAccess price/enabled status)
       const dbProduct = (await Product.findById(cleanId)
-        .select("+accessLink +accessNote +pricing")
+        .select("+accessLink +accessNote +pricing +accountAccess")
         .lean()) as unknown as IProductDocument | null;
       
       if (dbProduct) {
         let price = dbProduct.defaultPrice;
-        let deliveryLink = "";
-        let deliveryNote = "";
         let variantLabel = "Standard";
+        
+        // Use 'variant' from payload (which maps to validity/plan label)
+        // Normalize checking by lowercasing
+        const requestedVariant = (item.variant || item.validity || "Standard").trim(); 
+        const variantKey = requestedVariant.toLowerCase();
 
-        // Determine Price & Content based on Plan
-        if (isPlanType(item.validity) && dbProduct.pricing && dbProduct.pricing[item.validity]?.isEnabled) {
-          const plan = dbProduct.pricing[item.validity];
+        // 🟢 LOGIC 1: Account Access
+        if (variantKey.includes("account") && dbProduct.accountAccess?.isEnabled) {
+           price = dbProduct.accountAccess.price;
+           variantLabel = "Account Access";
+           // Note: Credentials are usually NOT delivered in the response or auto-note here for security,
+           // unless it's a 0 cost item. We handle delivery in the PUT route or below for free items.
+        }
+        // 🟢 LOGIC 2: VIP Plans (Monthly/Yearly/Lifetime)
+        else if (isVipPlan(variantKey) && dbProduct.pricing && dbProduct.pricing[variantKey as PlanType]?.isEnabled) {
+          const plan = dbProduct.pricing[variantKey as PlanType];
           price = plan.price;
-          deliveryLink = plan.accessLink || "";
-          deliveryNote = plan.accessNote || "";
-          variantLabel = item.validity;
-        } else {
-          // Standard Product Logic
+          variantLabel = requestedVariant; // Keep original casing (e.g. "Monthly")
+          
+          if (plan.accessLink) combinedDownloadLinks += `[${dbProduct.title}]: ${plan.accessLink}\n`;
+          if (plan.accessNote) combinedAccessNotes += `[${dbProduct.title}]: ${plan.accessNote}\n`;
+        } 
+        // 🟢 LOGIC 3: Standard Product
+        else {
           price = dbProduct.salePrice > 0 ? dbProduct.salePrice : dbProduct.defaultPrice;
-          deliveryLink = dbProduct.accessLink || "";
-          deliveryNote = dbProduct.accessNote || "";
+          
+          if (dbProduct.accessLink) combinedDownloadLinks += `[${dbProduct.title}]: ${dbProduct.accessLink}\n`;
+          if (dbProduct.accessNote) combinedAccessNotes += `[${dbProduct.title}]: ${dbProduct.accessNote}\n`;
         }
         
+        // Calculate Line Total
         subTotal += price * item.quantity;
-
-        // Collect Delivery Info (Only used if Auto-Approved)
-        if (deliveryLink) combinedDownloadLinks += `[${dbProduct.title} - ${variantLabel}]: ${deliveryLink}\n`;
-        if (deliveryNote) combinedAccessNotes += `[${dbProduct.title} - ${variantLabel}]: ${deliveryNote}\n\n`;
 
         orderProducts.push({
           product: dbProduct._id,
           quantity: item.quantity,
-          price: price, 
+          price: price, // Server-verified price
           title: dbProduct.title,
-          variant: variantLabel
+          variant: variantLabel // ✅ Saved to DB so Admin knows what to deliver
         });
       }
     }
@@ -149,9 +173,10 @@ export async function POST(req: NextRequest) {
     // 4. PAYMENT VALIDATION (If Not Free)
     // ---------------------------------------------------------
     if (finalAmount > 0) {
-      if (!payment?.transactionId || !payment?.senderNumber) {
-        return NextResponse.json({ error: "Payment details missing" }, { status: 400 });
+      if (!payment?.transactionId) {
+        return NextResponse.json({ error: "Transaction ID missing" }, { status: 400 });
       }
+      // Note: We relaxed senderNumber check as it might be N/A or optional in new flow
     }
 
     // ---------------------------------------------------------
@@ -186,7 +211,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ---------------------------------------------------------
-    // 6. FINALIZE STATUS (Auto-Approve Logic)
+    // 6. FINALIZE STATUS (Auto-Approve Logic for Free Orders)
     // ---------------------------------------------------------
     let orderStatus = "pending";
     let paymentStatus = "unpaid";
@@ -196,7 +221,7 @@ export async function POST(req: NextRequest) {
       orderStatus = "completed";
       paymentStatus = "paid";
       deliveredContent = {
-        accountEmail: contact.email,
+        accountEmail: contact.email, // Or specific account info if logic permits
         accountPassword: "See Access Notes",
         downloadLink: combinedDownloadLinks.trim(),
         accessNotes: combinedAccessNotes.trim() || "Free Access Granted."
@@ -212,7 +237,7 @@ export async function POST(req: NextRequest) {
       
       paymentMethod: finalAmount === 0 ? "Free / Coupon" : payment.method,
       transactionId: finalAmount === 0 ? `FREE-${Date.now()}` : payment.transactionId,
-      senderNumber: finalAmount === 0 ? "" : payment.senderNumber,
+      senderNumber: finalAmount === 0 ? "" : (payment.senderNumber || "N/A"),
       
       amount: finalAmount,
       discountAmount: discount,

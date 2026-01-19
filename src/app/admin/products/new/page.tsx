@@ -8,7 +8,7 @@ import {
   ArrowLeft, Save, LayoutGrid, Loader2, 
   X, Lock, Link as LinkIcon, 
   Wand2, Sparkles, Crown, Calendar, 
-  Package, Video, Tag, ImageIcon
+  Package, Video, Tag, ImageIcon, User // ✅ Added User Icon
 } from "lucide-react";
 
 // --- Components ---
@@ -53,7 +53,7 @@ export default function CreateProduct() {
   const [gallery, setGallery] = useState<string[]>([]);
   const [features, setFeatures] = useState<string[]>([""]); 
   const [tags, setTags] = useState<string[]>([]);
-  const [tagInput, setTagInput] = useState(""); // For tag input handling
+  const [tagInput, setTagInput] = useState(""); 
 
   // ⚡ VIP PRICING STATE
   const [pricing, setPricing] = useState<{
@@ -66,21 +66,29 @@ export default function CreateProduct() {
     lifetime: { isEnabled: false, price: "", regularPrice: "", validityLabel: "Lifetime", description: "", accessLink: "", accessNote: "" },
   });
 
+  // ✅ NEW: Account Access State
+  const [accountAccess, setAccountAccess] = useState({
+    isEnabled: false,
+    price: "",
+    accountEmail: "",
+    accountPassword: ""
+  });
+
   // Basic Info
   const [formData, setFormData] = useState({
     title: "",
     slug: "",
-    shortDescription: "", // ✅ New
+    shortDescription: "", 
     description: "",
     categoryId: "",
-    videoUrl: "",         // ✅ New
+    videoUrl: "",         
     fileType: "Subscription",
     isAvailable: true,
     isFeatured: false,
     defaultPrice: "",     
-    salePrice: "",        // ✅ New
-    regularPrice: "",     // ✅ New
-    // ✅ Standard Delivery Fields
+    salePrice: "",        
+    regularPrice: "",     
+    // Standard Delivery Fields
     accessLink: "",
     accessNote: ""
   });
@@ -138,6 +146,11 @@ export default function CreateProduct() {
     }));
   };
 
+  // ✅ NEW: Update Account Access Helper
+  const updateAccountAccess = (field: string, value: any) => {
+    setAccountAccess(prev => ({ ...prev, [field]: value }));
+  };
+
   // Tag Handling
   const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" || e.key === ",") {
@@ -168,14 +181,22 @@ export default function CreateProduct() {
         features: features.filter(f => f.trim() !== ""),
         category: formData.categoryId,
         
-        // ⚡ VIP Pricing Object
+        // VIP Pricing Object
         pricing: {
           monthly: { ...pricing.monthly, price: Number(pricing.monthly.price), regularPrice: Number(pricing.monthly.regularPrice) },
           yearly: { ...pricing.yearly, price: Number(pricing.yearly.price), regularPrice: Number(pricing.yearly.regularPrice) },
           lifetime: { ...pricing.lifetime, price: Number(pricing.lifetime.price), regularPrice: Number(pricing.lifetime.regularPrice) },
         },
 
-        // ✅ Standard Delivery Fields
+        // ✅ NEW: Account Access Payload
+        accountAccess: {
+          isEnabled: accountAccess.isEnabled,
+          price: Number(accountAccess.price),
+          accountEmail: accountAccess.accountEmail,
+          accountPassword: accountAccess.accountPassword
+        },
+
+        // Standard Delivery Fields
         accessLink: formData.accessLink,
         accessNote: formData.accessNote,
       };
@@ -362,7 +383,7 @@ export default function CreateProduct() {
                 </div>
               </div>
 
-              {/* ✅ Short Description */}
+              {/* Short Description */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold">Short Description</Label>
                 <Textarea 
@@ -422,7 +443,7 @@ export default function CreateProduct() {
               </CardHeader>
               <CardContent className="p-4 space-y-4">
                  
-                 {/* ✅ Regular & Sale Price */}
+                 {/* Regular & Sale Price */}
                  <div className="grid grid-cols-2 gap-3">
                    <div className="space-y-1">
                       <Label className="text-[10px] text-muted-foreground uppercase font-bold">Regular Price</Label>
@@ -463,7 +484,7 @@ export default function CreateProduct() {
 
                  <Separator />
 
-                 {/* ✅ STANDARD DELIVERY FIELDS */}
+                 {/* STANDARD DELIVERY FIELDS */}
                  <div className="bg-gray-50 border border-gray-100 rounded-lg p-3 space-y-3">
                     <div className="flex items-center gap-2 mb-1">
                        <Lock className="w-3 h-3 text-gray-500"/>
@@ -494,6 +515,57 @@ export default function CreateProduct() {
               </CardContent>
            </Card>
 
+           {/* ✅ NEW: Account Access Card */}
+           <Card className="shadow-sm border-purple-200 bg-purple-50/20">
+              <CardHeader className="py-2.5 px-4 border-b border-purple-100 bg-purple-100/30">
+                <CardTitle className="text-sm font-bold flex items-center justify-between text-purple-900">
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4"/> Account Access
+                  </div>
+                  <Switch 
+                    checked={accountAccess.isEnabled} 
+                    onCheckedChange={(c) => updateAccountAccess("isEnabled", c)}
+                    className="data-[state=checked]:bg-purple-600 scale-75"
+                  />
+                </CardTitle>
+              </CardHeader>
+              {accountAccess.isEnabled && (
+                <CardContent className="p-4 space-y-3 animate-in fade-in slide-in-from-top-2">
+                   <div className="space-y-1">
+                      <Label className="text-[10px] text-purple-800 uppercase font-bold">Price</Label>
+                      <div className="relative">
+                         <span className="absolute left-2.5 top-2 font-bold text-gray-500 text-xs">৳</span>
+                         <Input 
+                            type="number" 
+                            value={accountAccess.price} 
+                            onChange={(e) => updateAccountAccess("price", e.target.value)} 
+                            placeholder="0"
+                            className="pl-6 h-8 text-xs border-purple-200 focus:ring-purple-500 bg-white"
+                         />
+                      </div>
+                   </div>
+                   <div className="space-y-1">
+                      <Label className="text-[10px] text-purple-800 uppercase font-bold">Account Email</Label>
+                      <Input 
+                         value={accountAccess.accountEmail} 
+                         onChange={(e) => updateAccountAccess("accountEmail", e.target.value)}
+                         placeholder="email@example.com"
+                         className="h-8 text-xs bg-white"
+                      />
+                   </div>
+                   <div className="space-y-1">
+                      <Label className="text-[10px] text-purple-800 uppercase font-bold">Account Password</Label>
+                      <Input 
+                         value={accountAccess.accountPassword} 
+                         onChange={(e) => updateAccountAccess("accountPassword", e.target.value)}
+                         placeholder="Secret123"
+                         className="h-8 text-xs bg-white"
+                      />
+                   </div>
+                </CardContent>
+              )}
+           </Card>
+
            {/* Media */}
            <Card className="shadow-sm">
               <CardHeader className="py-2.5 px-4 border-b bg-secondary/5"><CardTitle className="text-sm font-bold flex items-center gap-2"><ImageIcon className="w-4 h-4"/> Media</CardTitle></CardHeader>
@@ -503,7 +575,7 @@ export default function CreateProduct() {
                     <FileUpload initialImages={thumbnail ? [thumbnail] : []} onChange={(u) => setThumbnail(u[0] || "")} />
                  </div>
                  
-                 {/* ✅ Video URL */}
+                 {/* Video URL */}
                  <div>
                     <Label className="text-[10px] text-muted-foreground uppercase font-bold mb-1.5 block">Video URL (Optional)</Label>
                     <div className="relative">

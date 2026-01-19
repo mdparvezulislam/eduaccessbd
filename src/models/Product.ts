@@ -11,7 +11,15 @@ interface IVipPlan {
   accessNote?: string;
 }
 
-// 2. Main Product Interface
+// 2. Interface for Account Access (New)
+interface IAccountAccess {
+  isEnabled: boolean;
+  accountEmail?: string;
+  accountPassword?: string;
+  price: number;
+}
+
+// 3. Main Product Interface
 export interface IProductDocument extends Document {
   title: string;
   slug: string;
@@ -35,17 +43,23 @@ export interface IProductDocument extends Document {
     lifetime: IVipPlan;
   };
 
+  // ✅ NEW: Account Access Option
+  accountAccess: IAccountAccess;
+
   // Standard Pricing (For Normal Products)
   defaultPrice: number;
   salePrice: number;
   regularPrice: number;
 
-  // ✅ STANDARD DELIVERY FIELDS (For Normal Products)
+  // Standard Delivery Fields
   accessLink?: string;
   accessNote?: string;
+  
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-// 3. Schema Definition
+// 4. Schema Definitions
 const planSchema = new Schema(
   {
     isEnabled: { type: Boolean, default: false },
@@ -55,6 +69,17 @@ const planSchema = new Schema(
     description: { type: String, default: "" },
     accessLink: { type: String, select: false }, // Private
     accessNote: { type: String, select: false }, // Private
+  },
+  { _id: false }
+);
+
+// ✅ Schema for Account Access
+const accountAccessSchema = new Schema(
+  {
+    isEnabled: { type: Boolean, default: false },
+    accountEmail: { type: String, select: false },    // Private credential
+    accountPassword: { type: String, select: false }, // Private credential
+    price: { type: Number, default: 0 },
   },
   { _id: false }
 );
@@ -70,6 +95,7 @@ const productSchema = new Schema<IProductDocument>(
     features: [{ type: String }],
     category: { type: Schema.Types.ObjectId, ref: "Category", required: true },
     tags: [{ type: String }],
+    videoUrl: { type: String },
     isAvailable: { type: Boolean, default: true },
     isFeatured: { type: Boolean, default: false },
     salesCount: { type: Number, default: 0 },
@@ -82,12 +108,18 @@ const productSchema = new Schema<IProductDocument>(
       lifetime: { type: planSchema, default: () => ({ isEnabled: false }) },
     },
 
+    // ✅ NEW: Account Access Field
+    accountAccess: { 
+      type: accountAccessSchema, 
+      default: () => ({ isEnabled: false, price: 0 }) 
+    },
+
     // Standard Pricing
     defaultPrice: { type: Number, default: 0 },
     salePrice: { type: Number, default: 0 },
     regularPrice: { type: Number, default: 0 },
 
-    // ✅ STANDARD DELIVERY DATA (Hidden by default)
+    // Standard Delivery Data (Hidden by default)
     accessLink: { type: String, select: false },
     accessNote: { type: String, select: false },
   },

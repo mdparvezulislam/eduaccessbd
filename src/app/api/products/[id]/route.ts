@@ -65,9 +65,17 @@ export async function PUT(req: NextRequest, { params }: IdParams) {
       price: Number(plan?.price) || 0,
       regularPrice: Number(plan?.regularPrice) || 0,
       validityLabel: plan?.validityLabel || "",
-      description: plan?.description || "", // ✅ Updates Description
+      description: plan?.description || "", // Updates Description
       accessLink: plan?.accessLink || "",
       accessNote: plan?.accessNote || ""
+    });
+
+    // ⚡ Helper: Clean Account Access Data (NEW)
+    const parseAccountAccess = (acc: any) => ({
+      isEnabled: Boolean(acc?.isEnabled),
+      price: Number(acc?.price) || 0,
+      accountEmail: acc?.accountEmail || "",       // Private Field
+      accountPassword: acc?.accountPassword || ""  // Private Field
     });
 
     // ⚡ Prep Payload: Explicitly parse structure to prevent data corruption
@@ -86,6 +94,9 @@ export async function PUT(req: NextRequest, { params }: IdParams) {
         yearly: parsePlan(body.pricing?.yearly),
         lifetime: parsePlan(body.pricing?.lifetime),
       },
+
+      // ✅ NEW: Account Access Option (Parsed)
+      accountAccess: parseAccountAccess(body.accountAccess),
 
       // Standard Delivery
       accessLink: body.accessLink || "",
@@ -111,7 +122,6 @@ export async function PUT(req: NextRequest, { params }: IdParams) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
-
 // ==================================================================
 // DELETE → Delete Product (Super Admin Only)
 // ==================================================================

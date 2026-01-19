@@ -5,9 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { 
   ArrowUpDown, Copy, CheckCircle2, XCircle, Clock, 
-  Package, Phone, Mail, User, AlertCircle 
+  Package, Phone, Mail, User, AlertCircle, Eye
 } from "lucide-react";
-import { OrderActionModal } from "./OrderActionModal"; 
+import { OrderActionModal } from "./OrderActionModal"; // Ensure this path matches your project
 import { toast } from "sonner";
 import {
   Tooltip,
@@ -24,7 +24,7 @@ export type OrderColumn = {
   status: "pending" | "completed" | "declined" | "cancelled" | "processing";
   createdAt: string;
   
-  // ✅ User Object with Phone
+  // ✅ User Object
   user: {
     name: string;
     email: string;
@@ -36,9 +36,10 @@ export type OrderColumn = {
     title: string;
     quantity: number;
     price: number;
-    variant?: string;
+    variant?: string; // e.g. "Account Access", "Monthly"
   }[];
   
+  // Delivery Info (Optional, but good to have in type)
   deliveredContent?: {
     accountEmail?: string;
     accountPassword?: string;
@@ -55,13 +56,13 @@ export const columns: ColumnDef<OrderColumn>[] = [
     cell: ({ row }) => {
       const id = row.getValue("transactionId") as string;
       const date = new Date(row.original.createdAt).toLocaleDateString("en-GB", {
-        day: 'numeric', month: 'short', year: '2-digit'
+        day: 'numeric', month: 'short', year: '2-digit', hour: '2-digit', minute:'2-digit'
       });
 
       return (
         <div className="flex flex-col gap-1.5">
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-xs font-bold text-white bg-[#1a1a1a] px-2 py-0.5 rounded border border-white/10">
+          <div className="flex items-center gap-2 group">
+            <span className="font-mono text-xs font-bold text-white bg-[#1a1a1a] px-2 py-0.5 rounded border border-white/10 group-hover:border-blue-500/30 transition-colors">
               {id}
             </span>
             <button
@@ -69,7 +70,7 @@ export const columns: ColumnDef<OrderColumn>[] = [
                 navigator.clipboard.writeText(id);
                 toast.success("ID Copied");
               }}
-              className="text-gray-500 hover:text-white transition-colors"
+              className="text-gray-600 hover:text-white transition-colors opacity-0 group-hover:opacity-100"
             >
               <Copy className="h-3 w-3" />
             </button>
@@ -80,7 +81,7 @@ export const columns: ColumnDef<OrderColumn>[] = [
     },
   },
 
-  // 2. Customer Details (Rich View)
+  // 2. Customer Details
   {
     accessorKey: "user",
     header: "Customer",
@@ -89,8 +90,8 @@ export const columns: ColumnDef<OrderColumn>[] = [
       return (
         <div className="flex flex-col gap-1 min-w-[140px]">
           <div className="flex items-center gap-1.5">
-            <div className="bg-white/10 p-1 rounded-full shrink-0">
-              <User className="w-3 h-3 text-white" />
+            <div className="bg-white/5 p-1 rounded-full shrink-0 border border-white/5">
+              <User className="w-3 h-3 text-gray-300" />
             </div>
             <span className="font-semibold text-sm text-gray-200 truncate max-w-[120px]" title={user?.name}>
               {user?.name || "Guest"}
@@ -114,7 +115,7 @@ export const columns: ColumnDef<OrderColumn>[] = [
     },
   },
 
-  // 3. Products (With Tooltip for variants)
+  // 3. Products (With Variant Visible)
   {
     id: "products",
     header: "Items",
@@ -124,47 +125,55 @@ export const columns: ColumnDef<OrderColumn>[] = [
 
       if (!firstItem) return <span className="text-gray-600 text-xs italic">Empty Order</span>;
 
+      // Check if it's Account Access to style it differently
+      const isAccount = firstItem.variant?.toLowerCase().includes("account");
+
       return (
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="flex flex-col cursor-help group">
-                <div className="flex items-center gap-2">
-                  <div className="bg-gray-800 p-1.5 rounded-md text-gray-400 group-hover:text-white transition-colors">
+              <div className="flex flex-col cursor-help group max-w-[180px]">
+                <div className="flex items-start gap-2.5">
+                  <div className={`p-1.5 rounded-md text-gray-400 group-hover:text-white transition-colors mt-0.5 ${isAccount ? "bg-purple-900/20 text-purple-400" : "bg-gray-800"}`}>
                     <Package className="w-3.5 h-3.5" />
                   </div>
-                  <div className="flex flex-col">
-                    <span className="font-medium text-gray-300 text-xs truncate max-w-[140px]">
+                  <div className="flex flex-col min-w-0">
+                    <span className="font-medium text-gray-300 text-xs truncate w-full" title={firstItem.title}>
                       {firstItem.title}
                     </span>
-                    {firstItem.variant && (
-                      <span className="text-[10px] text-green-500/80 font-mono">
-                        {firstItem.variant}
-                      </span>
-                    )}
+                    
+                    {/* ✅ DISPLAY VARIANT PROMINENTLY */}
+                    <span className={`text-[10px] font-mono mt-0.5 inline-flex items-center px-1.5 rounded ${
+                        isAccount 
+                          ? "bg-purple-500/10 text-purple-400 border border-purple-500/20" 
+                          : "bg-green-500/10 text-green-400 border border-green-500/20"
+                      }`}
+                    >
+                      {firstItem.variant || "Standard"}
+                    </span>
                   </div>
                 </div>
                 {items.length > 1 && (
-                  <span className="text-[10px] text-blue-400 font-medium ml-8 mt-0.5">
-                    +{items.length - 1} more items
+                  <span className="text-[10px] text-blue-400 font-medium ml-9 mt-1 flex items-center gap-1">
+                    <Eye className="w-2.5 h-2.5"/> +{items.length - 1} more
                   </span>
                 )}
               </div>
             </TooltipTrigger>
             
             {/* Tooltip Content */}
-            <TooltipContent className="bg-[#111] border-white/10 text-white p-0 overflow-hidden shadow-xl rounded-lg">
+            <TooltipContent className="bg-[#111] border-white/10 text-white p-0 overflow-hidden shadow-2xl rounded-lg z-50">
               <div className="bg-[#1a1a1a] px-3 py-2 border-b border-white/5 text-[10px] font-bold uppercase text-gray-500 tracking-wider">
-                Order Contents
+                Full Order Contents
               </div>
-              <div className="p-2 space-y-1">
+              <div className="p-2 space-y-1 min-w-[200px]">
                 {items.map((item, idx) => (
-                  <div key={idx} className="flex justify-between items-center gap-4 text-xs py-1 px-1 rounded hover:bg-white/5">
+                  <div key={idx} className="flex justify-between items-center gap-4 text-xs py-1.5 px-2 rounded hover:bg-white/5 transition-colors">
                     <div className="flex flex-col">
-                      <span className="text-gray-200">{item.title}</span>
-                      <span className="text-[10px] text-gray-500">{item.variant || "Standard"} x{item.quantity}</span>
+                      <span className="text-gray-200 font-medium">{item.title}</span>
+                      <span className="text-[10px] text-gray-500">{item.variant || "Standard"} • x{item.quantity}</span>
                     </div>
-                    <span className="font-mono text-gray-400">৳{item.price}</span>
+                    <span className="font-mono text-gray-400 text-[11px]">৳{item.price}</span>
                   </div>
                 ))}
               </div>
@@ -231,7 +240,7 @@ export const columns: ColumnDef<OrderColumn>[] = [
 
       return (
         <Badge 
-          className={`${styles[status] || "bg-gray-800 text-gray-400"} border px-2.5 py-1 text-[10px] uppercase font-bold tracking-wide transition-all min-w-[90px] justify-center`} 
+          className={`${styles[status] || "bg-gray-800 text-gray-400"} border px-2.5 py-1 text-[10px] uppercase font-bold tracking-wide transition-all min-w-[95px] justify-center h-7`} 
           variant="outline"
         >
           {icons[status]} {status}
@@ -243,10 +252,11 @@ export const columns: ColumnDef<OrderColumn>[] = [
   // 6. Actions Column
   {
     id: "actions",
-    header: () => <div className="text-right text-xs uppercase tracking-wider text-gray-500">Action</div>,
+    header: () => <div className="text-right text-xs uppercase tracking-wider text-gray-500 pr-2">Action</div>,
     cell: ({ row }) => {
       return (
-        <div className="flex justify-end">
+        <div className="flex justify-end pr-2">
+          {/* This modal handles manual delivery override */}
           <OrderActionModal order={row.original} />
         </div>
       );
