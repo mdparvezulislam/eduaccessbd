@@ -33,7 +33,7 @@ export default function ProductListClient({ initialData }: ProductListClientProp
   
   // ⚡ Pagination State
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 27;
 
   // ⚡ Filter Logic
   const filteredData = data.filter((item) =>

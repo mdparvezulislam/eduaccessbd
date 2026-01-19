@@ -42,7 +42,7 @@ export function OrdersClient({ data }: OrdersClientProps) {
   // ✅ 1. Add Pagination State
   const [pagination, setPagination] = React.useState({
     pageIndex: 0,
-    pageSize: 27,
+    pageSize: 20,
   });
 
   // --- DELETE HANDLER ---
