@@ -130,7 +130,7 @@ export default function Footer() {
             </p>
             
             {/* Developer Credit */}
-            <div className="flex items-center gap-1.5 text-[10px] text-gray-600 bg-white/5 px-2 py-0.5 rounded-full border border-white/5 transition-colors hover:border-white/10 hover:bg-white/10">
+            {/* <div className="flex items-center gap-1.5 text-[10px] text-gray-600 bg-white/5 px-2 py-0.5 rounded-full border border-white/5 transition-colors hover:border-white/10 hover:bg-white/10">
               <FaCode className="w-2.5 h-2.5 text-blue-500" />
               <span>Dev by</span>
               <Link 
@@ -140,7 +140,7 @@ export default function Footer() {
               >
                 Projukti Labs
               </Link>
-            </div>
+            </div> */}
           </div>
           
           {/* Payment Icons */}
