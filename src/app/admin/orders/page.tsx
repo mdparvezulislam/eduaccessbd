@@ -7,7 +7,8 @@ export default async function OrdersPage() {
   try {
     // 1. Fetch Orders from your API
     const res = await fetch(`${SITE_URL}/api/admin/orders`, {
-      cache: "no-store",
+       cache: "no-store",
+        next: { revalidate: 100 },
     });
 
     if (!res.ok) {

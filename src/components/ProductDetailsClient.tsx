@@ -30,18 +30,31 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
   const router = useRouter();
   const { addToCart, mapProductToCartItem } = useCart();
 
+  // ⚡ 1. PREPARE DATA FOR DEFAULT SELECTION LOGIC
+  const pricing = product.pricing || {};
+  const accountAccess = (product as any).accountAccess;
+  
+  // Calculate Standard Price
+  const standardPrice = product.salePrice > 0 ? product.salePrice : product.defaultPrice;
+  const isStandardValid = standardPrice !== 1;
+
+  // Determine available alternative plans
+  const availablePlans: string[] = [];
+  if (pricing.monthly?.isEnabled) availablePlans.push("monthly");
+  if (pricing.yearly?.isEnabled) availablePlans.push("yearly");
+  if (pricing.lifetime?.isEnabled) availablePlans.push("lifetime");
+  if (accountAccess?.isEnabled) availablePlans.push("account_access");
+
   // --- States ---
   const [mainImage, setMainImage] = useState(product.thumbnail);
   const [qty, setQty] = useState(1);
   const [showVideo, setShowVideo] = useState(false); 
-  
-  // ⚡ 1. PREPARE AVAILABLE PLAN KEYS
-  const pricing = product.pricing || {};
-  const accountAccess = (product as any).accountAccess;
 
-  // This determines which button is active. Default is "standard".
-  // Options: "standard", "monthly", "yearly", "lifetime", "account_access"
-  const [selectedPlan, setSelectedPlan] = useState<string>("standard");
+  // ✅ AUTO-SELECT LOGIC: 
+  // If Standard Price is 1, pick the first available plan. Otherwise, default to "standard".
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(
+    isStandardValid ? "standard" : (availablePlans.length > 0 ? availablePlans[0] : null)
+  );
 
   // --- Derived Data ---
   const allImages = [product.thumbnail, ...(product.gallery || [])];
@@ -56,11 +69,11 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
   // 🟢 CASE A: Account Access
   if (selectedPlan === "account_access" && accountAccess) {
     currentPrice = Number(accountAccess.price);
-    referencePrice = 0; // Hide reference price for account access
+    referencePrice = 0; 
     validityLabel = "Full Account Access";
   } 
   // 🟢 CASE B: VIP Plans
-  else if (["monthly", "yearly", "lifetime"].includes(selectedPlan)) {
+  else if (selectedPlan && ["monthly", "yearly", "lifetime"].includes(selectedPlan)) {
     const plan = pricing[selectedPlan as keyof typeof pricing];
     if (plan) {
       currentPrice = Number(plan.price);
@@ -71,7 +84,7 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
   } 
   // 🟢 CASE C: Standard / Total Price (Default)
   else {
-    currentPrice = product.defaultPrice || product.salePrice || 0;
+    currentPrice =  standardPrice || product.defaultPrice || 0;
     referencePrice = product.regularPrice;
     validityLabel = "Standard License";
   }
@@ -87,8 +100,9 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
 
   // --- Handlers ---
   const handleAddToCart = () => {
+    if (!selectedPlan) return toast.error("Please select a plan");
+
     // Determine plan type for Cart Context
-    // If standard, undefined. If VIP, plan name. If account, undefined (handled manually).
     let planArg: any = undefined;
     if (["monthly", "yearly", "lifetime"].includes(selectedPlan)) {
       planArg = selectedPlan;
@@ -196,6 +210,7 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
                 </button>
               )}
 
+              {/* Show Discount Badge if Applicable */}
               {!showVideo && discount > 0 && selectedPlan === 'standard' && (
                 <Badge className="absolute top-3 left-3 bg-yellow-500 hover:bg-yellow-500 text-black text-[10px] md:text-xs px-2 py-0.5 font-bold shadow-lg border-0 rounded-md z-10">
                   -{discount}% OFF
@@ -204,16 +219,6 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
             </div>
 
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-              {videoId && (
-                <button 
-                  onClick={() => setShowVideo(true)}
-                  className={`relative w-20 h-14 md:w-24 md:h-16 flex-shrink-0 rounded-lg overflow-hidden border-2 transition-all bg-gray-900 flex items-center justify-center ${showVideo ? "border-red-500 ring-2 ring-red-500/20" : "border-white/10 hover:border-white/30"}`}
-                >
-                  <div className="absolute inset-0 opacity-50"><Image src={`https://img.youtube.com/vi/${videoId}/default.jpg`} alt="yt" fill className="object-cover"/></div>
-                  <PlayCircle className="w-5 h-5 md:w-6 md:h-6 text-white relative z-10" />
-                </button>
-              )}
-
               {allImages.map((img, idx) => (
                 <button 
                   key={idx}
@@ -253,6 +258,7 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
                 <h1 className="text-2xl md:text-3xl font-extrabold text-white leading-tight tracking-tight mb-1.5">
                   {product.title}
                 </h1>
+                
                 {product.shortDescription && (
                   <p className="text-gray-400 text-xs md:text-sm leading-relaxed border-l-2 border-green-500/50 pl-3 line-clamp-3">
                     {product.shortDescription}
@@ -270,7 +276,7 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
               </div>
             </div>
 
-            {/* ⚡ PLAN SELECTOR GRID (Includes Standard/Total, VIP, Account) */}
+            {/* ⚡ PLAN SELECTOR GRID */}
             <div className="space-y-2 bg-[#111] p-3 rounded-lg border border-white/5">
               <div className="flex justify-between items-center mb-1">
                   <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Select Option</p>
@@ -281,24 +287,26 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
               
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 
-                {/* 1. ✅ STANDARD / TOTAL PRICE (Always First) */}
-                <button
-                  onClick={() => setSelectedPlan("standard")}
-                  className={`relative p-2 rounded-md border transition-all duration-200 flex flex-col items-center justify-center gap-0.5 ${
-                    selectedPlan === "standard"
-                      ? "bg-white text-black border-white shadow-lg shadow-white/10"
-                      : "bg-black/40 border-white/10 hover:border-white/30 text-gray-400 hover:text-white"
-                  }`}
-                >
-                  <div className="flex items-center gap-1">
-                      <Box className="w-3 h-3" />
-                      <span className="font-bold text-[10px] uppercase">Standard</span>
-                  </div>
-                  <span className="text-xs font-black">
-                    ৳{product.defaultPrice}
-                  </span>
-                  {selectedPlan === "standard" && <CheckCircle2 className="absolute top-1 right-1 w-2.5 h-2.5 text-green-600" />}
-                </button>
+                {/* 1. ✅ STANDARD / TOTAL PRICE (Hidden if Price is 1) */}
+                {(isStandardValid) && (
+                  <button
+                    onClick={() => setSelectedPlan("standard")}
+                    className={`relative p-2 rounded-md border transition-all duration-200 flex flex-col items-center justify-center gap-0.5 ${
+                      selectedPlan === "standard"
+                        ? "bg-white text-black border-white shadow-lg shadow-white/10"
+                        : "bg-black/40 border-white/10 hover:border-white/30 text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    <div className="flex items-center gap-1">
+                        <Box className="w-3 h-3" />
+                        <span className="font-bold text-[10px] uppercase">Standard</span>
+                    </div>
+                    <span className="text-xs font-black">
+                      ৳{ standardPrice }
+                    </span>
+                    {selectedPlan === "standard" && <CheckCircle2 className="absolute top-1 right-1 w-2.5 h-2.5 text-green-600" />}
+                  </button>
+                )}
 
                 {/* 2. ✅ VIP PLANS */}
                 {pricing.monthly?.isEnabled && (
@@ -373,15 +381,16 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
 
               <div className="relative z-10 flex flex-col gap-4">
                 
-                {/* Price Display */}
+                {/* ⚡ Price Display */}
                 <div className="flex flex-col">
                   <span className="text-[10px] text-gray-500 font-bold uppercase mb-0.5">Total Price</span>
                   <div className="flex items-end gap-2">
-                    <span className="text-3xl font-black text-white tracking-tighter">
-                      ৳{currentPrice.toLocaleString()}
+                    <span className="text-3xl font-black text-white tracking-tighter h-9">
+                      {/* Hide Price if 1 */}
+                      {currentPrice === 1 ? "" : `৳${currentPrice.toLocaleString()}`}
                     </span>
                     
-                    {/* Show Crossed Price Only if Standard or VIP (Account usually doesn't have regular price) */}
+                    {/* Show Crossed Price */}
                     {referencePrice > currentPrice && selectedPlan !== 'account_access' && (
                       <div className="flex flex-col mb-1">
                         <span className="text-xs text-gray-500 line-through font-medium">

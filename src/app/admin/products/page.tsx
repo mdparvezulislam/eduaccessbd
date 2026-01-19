@@ -10,7 +10,7 @@ export default async function ProductListPage() {
   // Using 'no-store' ensures Admin always sees the latest data immediately (Zero Caching)
   const res = await fetch(`${baseUrl}/api/products`, {
     cache: "force-cache",next:{
-      revalidate: 60
+      revalidate: 100
     } 
   });
 
