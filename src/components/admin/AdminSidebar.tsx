@@ -9,13 +9,15 @@ import {
   Users,
   Settings,
   Layers,
-  ShieldCheck
+  ShieldCheck,
+  Megaphone
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { label: "Orders", href: "/admin/orders", icon: ShoppingBag },
+  { label: "Announcement", href: "/admin/announcement", icon: Megaphone },
   { label: "Products", href: "/admin/products", icon: Package },
   { label: "Coupons", href: "/admin/coupons", icon: ShoppingBag },
   { label: "Categories", href: "/admin/categories", icon: Layers },

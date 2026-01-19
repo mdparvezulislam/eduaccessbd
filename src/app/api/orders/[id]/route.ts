@@ -38,76 +38,99 @@ export async function PUT(req: NextRequest, { params }: IdParams) {
     if (body.status === "completed") {
       updateFields.paymentStatus = "paid";
 
-      // A. Fetch current order to see what product & variant was bought
+      // A. Fetch current order to see what products & variants were bought
       const currentOrder = await Order.findById(id);
       
       if (currentOrder && currentOrder.products && currentOrder.products.length > 0) {
         
-        // Assume we are delivering the first product
-        const item = currentOrder.products[0]; 
+        // Variables to accumulate data
+        let combinedLinks = "";
+        
+        // We capture the FIRST valid data found for these fields
+        // (We do NOT combine notes anymore, per request)
+        let primaryEmail = "";
+        let primaryPassword = "";
+        let primaryNote = "";
 
-        // B. Fetch the Product with ALL SECURE fields revealed
-        // We use 'any' cast on the result to avoid TypeScript errors with dynamic select fields
-        const productData = await Product.findById(item.product)
-          .select("+accessLink +accessNote +pricing.monthly.accessLink +pricing.monthly.accessNote +pricing.yearly.accessLink +pricing.yearly.accessNote +pricing.lifetime.accessLink +pricing.lifetime.accessNote +accountAccess.accountEmail +accountAccess.accountPassword")
-          .lean() as any; 
-
-        if (productData) {
-          let finalLink = "";
-          let finalNote = "";
-          let finalEmail = "";    // ✅ For Account Access
-          let finalPassword = ""; // ✅ For Account Access
+        // B. Loop through ALL products in the order
+        await Promise.all(currentOrder.products.map(async (item: any) => {
           
-          // Normalize variant string (e.g., "Full Account Access" -> "account")
+          // Fetch Product with SECURE fields
+          const productData = await Product.findById(item.product)
+            .select("+accessLink +accessNote +pricing.monthly.accessLink +pricing.monthly.accessNote +pricing.yearly.accessLink +pricing.yearly.accessNote +pricing.lifetime.accessLink +pricing.lifetime.accessNote +accountAccess.accountEmail +accountAccess.accountPassword")
+            .lean() as any;
+
+          if (!productData) return;
+
+          let itemLink = "";
+          let itemNote = "";
+          let itemEmail = "";
+          let itemPass = "";
+          
+          // Normalize variant string
           const variantKey = (item.variant || "standard").toLowerCase();
 
-          // C. Determine Delivery Data based on Variant
-          
-          // 🟢 CASE 1: Account Access
-          // Matches "Account Access", "Full Account Access", etc.
+          // --- LOGIC: Determine Content based on Variant ---
+
+          // 1. Account Access
           if (variantKey.includes("account")) {
-             finalEmail = productData.accountAccess?.accountEmail || "";
-             finalPassword = productData.accountAccess?.accountPassword || "";
-             
-             // Fallback link if admin set one in "Standard Delivery" as a backup
-             finalLink = productData.accessLink || ""; 
-             
-             // Set a default note if none exists
-             finalNote = productData.accessNote || "Your account credentials have been securely delivered.";
+             itemEmail = productData.accountAccess?.accountEmail || "";
+             itemPass = productData.accountAccess?.accountPassword || "";
+             itemLink = productData.accessLink || ""; 
+             itemNote = productData.accessNote || "";
           }
-          // 🟢 CASE 2: VIP Monthly
+          // 2. VIP Monthly
           else if (variantKey.includes("monthly") && productData.pricing?.monthly?.isEnabled) {
-            finalLink = productData.pricing.monthly.accessLink || "";
-            finalNote = productData.pricing.monthly.accessNote || "";
+            itemLink = productData.pricing.monthly.accessLink || "";
+            itemNote = productData.pricing.monthly.accessNote || "";
           } 
-          // 🟢 CASE 3: VIP Yearly
+          // 3. VIP Yearly
           else if (variantKey.includes("yearly") && productData.pricing?.yearly?.isEnabled) {
-            finalLink = productData.pricing.yearly.accessLink || "";
-            finalNote = productData.pricing.yearly.accessNote || "";
+            itemLink = productData.pricing.yearly.accessLink || "";
+            itemNote = productData.pricing.yearly.accessNote || "";
           } 
-          // 🟢 CASE 4: VIP Lifetime
+          // 4. VIP Lifetime
           else if (variantKey.includes("lifetime") && productData.pricing?.lifetime?.isEnabled) {
-            finalLink = productData.pricing.lifetime.accessLink || "";
-            finalNote = productData.pricing.lifetime.accessNote || "";
+            itemLink = productData.pricing.lifetime.accessLink || "";
+            itemNote = productData.pricing.lifetime.accessNote || "";
           } 
-          // 🟢 CASE 5: Standard / Fallback
+          // 5. Standard / Fallback
           else {
-            finalLink = productData.accessLink || "";
-            finalNote = productData.accessNote || "";
+            itemLink = productData.accessLink || "";
+            itemNote = productData.accessNote || "";
           }
 
-          // D. Inject into Order
-          // We prioritize the Auto-Fetched data, but keep body values if Admin manually overrides them in the UI
-          updateFields.deliveredContent = {
-            // ✅ Auto-Fill Credentials
-            accountEmail: finalEmail || body.deliveredContent?.accountEmail || "",
-            accountPassword: finalPassword || body.deliveredContent?.accountPassword || "",
-            
-            // ✅ Auto-Fill Link/Notes
-            downloadLink: finalLink || body.deliveredContent?.downloadLink || "",
-            accessNotes: finalNote || body.deliveredContent?.accessNotes || "",
-          };
-        }
+          // --- FORMATTING ---
+          
+          // 1. Combine Links (with Title for clarity)
+          if (itemLink) {
+            combinedLinks += `[${productData.title}]: ${itemLink}\n`;
+          }
+
+          // 2. Set Primary Credentials (only if not already set)
+          if (!primaryEmail && itemEmail) {
+            primaryEmail = itemEmail;
+            primaryPassword = itemPass;
+          }
+
+          // 3. Set Primary Note (only if not already set)
+          if (!primaryNote && itemNote) {
+            primaryNote = itemNote;
+          }
+        }));
+
+        // D. Inject into Order
+        updateFields.deliveredContent = {
+          // Dedicated Credentials (First found)
+          accountEmail: primaryEmail || body.deliveredContent?.accountEmail || "",
+          accountPassword: primaryPassword || body.deliveredContent?.accountPassword || "",
+          
+          // Combined Links (All products)
+          downloadLink: combinedLinks.trim() || body.deliveredContent?.downloadLink || "",
+          
+          // Single Note (First found - Not combined)
+          accessNotes: primaryNote || body.deliveredContent?.accessNotes || "",
+        };
       }
     } 
     else if (body.status === "declined" || body.status === "cancelled") {
@@ -124,7 +147,7 @@ export async function PUT(req: NextRequest, { params }: IdParams) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    // 5. Revalidate Paths to update UI immediately
+    // 5. Revalidate Paths
     revalidatePath("/admin/orders");
     revalidatePath("/dashboard");
 
@@ -141,7 +164,6 @@ export async function PUT(req: NextRequest, { params }: IdParams) {
     );
   }
 }
-
 // ==========================
 // DELETE → Admin Deletes Order
 // ==========================
