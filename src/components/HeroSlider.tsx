@@ -161,7 +161,9 @@ export default function HeroSection() {
             </Link>
             
             <Button variant="outline" className="hidden sm:flex h-11 md:h-12 px-6 rounded-full text-sm md:text-base font-bold bg-transparent border-white/20 text-white hover:bg-white/10">
-              <PlayCircle className="mr-2 w-4 h-4" /> Watch Demo
+              <PlayCircle className="mr-2 w-4 h-4" /> 
+              {/*  add telegram link */}
+              <Link href="https://t.me/ProAccessBD" target="_blank" rel="noopener noreferrer">Join Telegram</Link>
             </Button>
           </motion.div>
 
