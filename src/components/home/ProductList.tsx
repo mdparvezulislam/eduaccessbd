@@ -216,17 +216,12 @@ const ProductList = ({ products }: { products: IProduct[] }) => {
   if (!products || products.length === 0) return null;
 
   return (
-    <section className="bg-black py-8 md:py-20 text-white min-h-[50vh]">
-      <div className="container mx-auto px-4 md:px-6">
+    <section className="bg-black py-2 md:py-4 text-white min-h-[50vh]">
+      <div className="container mx-auto px-1 md:px-6">
         
         {/* Header */}
         <div className="flex items-end justify-between mb-8">
-           <div>
-             <h2 className="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-500">
-               Featured Courses
-             </h2>
-             <p className="text-gray-400 text-sm mt-1">Unlock premium skills instantly</p>
-           </div>
+       
            <Link href="/shop" className="hidden md:flex text-sm text-blue-400 hover:text-blue-300 items-center gap-1 transition-colors">
               View All <ArrowRight className="w-4 h-4" />
            </Link>

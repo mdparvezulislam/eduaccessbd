@@ -4,162 +4,111 @@ import { ICategory } from "@/types";
 import Image from "next/image";
 import Link from "next/link";
 
-// 🎨 1. Define Unique Art Themes
-// Each theme has a background gradient, a text color, and a specific decoration style.
+// ----------------------------------------------------------------------
+// 1. CONFIGURATION (Moved outside component for performance)
+// ----------------------------------------------------------------------
+
+// 🎨 Clean Gradient Themes
 const THEMES = [
   {
-    id: "cyber",
-    bg: "bg-yellow-400",
-    gradient: "bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-yellow-200 via-yellow-400 to-yellow-600",
-    text: "text-black",
-    accentColor: "bg-black/10",
-    decoration: "grid", // Diagonal lines pattern
+    gradient: "bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400",
+    text: "text-white", // Changed to white for better consistency
+    badge: "bg-black/20 text-white", // Consistent badge
   },
   {
-    id: "emerald",
-    bg: "bg-emerald-500",
-    gradient: "bg-[conic-gradient(at_top_left,_var(--tw-gradient-stops))] from-teal-200 via-emerald-500 to-green-800",
+    gradient: "bg-gradient-to-br from-emerald-400 to-cyan-500",
     text: "text-white",
-    accentColor: "bg-white/20",
-    decoration: "circle", // Big circle
+    badge: "bg-white/20 text-white",
   },
   {
-    id: "royal",
-    bg: "bg-purple-600",
-    gradient: "bg-[radial-gradient(circle_at_bottom,_var(--tw-gradient-stops))] from-purple-200 via-purple-600 to-indigo-900",
+    gradient: "bg-gradient-to-bl from-purple-500 via-indigo-500 to-blue-600",
     text: "text-white",
-    accentColor: "bg-white/15",
-    decoration: "glow", // Soft glow
+    badge: "bg-white/20 text-white",
   },
   {
-    id: "ocean",
-    bg: "bg-blue-500",
-    gradient: "bg-gradient-to-br from-cyan-300 via-blue-500 to-blue-900",
+    gradient: "bg-gradient-to-r from-blue-400 to-teal-400",
     text: "text-white",
-    accentColor: "bg-white/20",
-    decoration: "wave", // Wavy svg
+    badge: "bg-white/20 text-white",
   },
   {
-    id: "sunset",
-    bg: "bg-orange-500",
-    gradient: "bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-orange-200 via-orange-500 to-red-600",
+    gradient: "bg-gradient-to-tr from-pink-500 to-rose-500",
     text: "text-white",
-    accentColor: "bg-black/10",
-    decoration: "dots", // Dotted pattern
+    badge: "bg-white/20 text-white",
   },
   {
-    id: "candy",
-    bg: "bg-pink-500",
-    gradient: "bg-gradient-to-tl from-rose-300 via-pink-500 to-fuchsia-700",
+    gradient: "bg-gradient-to-r from-orange-400 to-pink-500",
     text: "text-white",
-    accentColor: "bg-white/25",
-    decoration: "ring", // Abstract rings
+    badge: "bg-black/10 text-white",
   },
 ];
 
-// 🪄 2. Decoration Component (Renders abstract shapes based on theme)
-const CardDecoration = ({ type }: { type: string }) => {
-  switch (type) {
-    case "grid":
-      return (
-        <div className="absolute inset-0 opacity-20" 
-          style={{ backgroundImage: "repeating-linear-gradient(45deg, #000 0, #000 1px, transparent 0, transparent 50%)", backgroundSize: "10px 10px" }} 
-        />
-      );
-    case "circle":
-      return (
-        <div className="absolute -right-4 -top-8 w-24 h-24 rounded-full border-[6px] border-white/20 blur-[1px]" />
-      );
-    case "glow":
-      return (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 bg-white/30 blur-2xl rounded-full" />
-      );
-    case "dots":
-      return (
-        <div className="absolute inset-0 opacity-20"
-          style={{ backgroundImage: "radial-gradient(#000 1px, transparent 1px)", backgroundSize: "8px 8px" }}
-        />
-      );
-    case "ring":
-      return (
-        <>
-          <div className="absolute -bottom-4 -left-4 w-20 h-20 border-4 border-white/20 rounded-full" />
-          <div className="absolute top-2 right-10 w-4 h-4 bg-white/40 rounded-full" />
-        </>
-      );
-    case "wave":
-    default:
-      return (
-        <svg className="absolute bottom-0 left-0 w-full h-12 opacity-20" viewBox="0 0 1440 320" preserveAspectRatio="none">
-          <path fill="#fff" d="M0,224L48,213.3C96,203,192,181,288,181.3C384,181,480,203,576,224C672,245,768,267,864,261.3C960,256,1056,224,1152,197.3C1248,171,1344,149,1392,138.7L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
-        </svg>
-      );
-  }
-};
-
+// ----------------------------------------------------------------------
+// 2. SUB-COMPONENT: CATEGORY CARD
+// ----------------------------------------------------------------------
 function CategoryCard({ category, index }: { category: ICategory; index: number }) {
   // Select theme based on index
   const theme = THEMES[index % THEMES.length];
   
+  // Safe truncation for subtitle
   const displaySubtitle = category.description 
-    ? category.description.slice(0, 25) 
-    : "Explore Collection";
+    ? category.description.slice(0, 30) 
+    : "Edu Access Bd";
 
   return (
-    <Link href={`/products/${category.slug}`} className="block h-full group relative">
-      <div className="h-full overflow-hidden rounded-2xl bg-[#111] border border-white/5 transition-all duration-500 hover:shadow-2xl hover:shadow-white/5 hover:-translate-y-1.5">
+    <Link 
+      href={`/products/${category.slug}`} 
+      className="block h-full group relative focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-2xl"
+      aria-label={`Browse ${category.name}`}
+    >
+      <div className="h-full overflow-hidden rounded-2xl bg-[#111] border border-white/5 transition-all duration-500 hover:shadow-2xl hover:shadow-white/5 hover:-translate-y-1.5 flex flex-col">
         
-        {/* === TOP SECTION: DYNAMIC ART === */}
-        <div className={`relative h-[120px] sm:h-[140px] overflow-hidden ${theme.gradient} p-4 flex flex-col justify-between`}>
+        {/* === TOP SECTION: GRADIENT + IMAGE === */}
+        <div className={`relative h-[110px] sm:h-[130px] ${theme.gradient} p-4 flex justify-between items-center overflow-hidden shrink-0`}>
           
-          {/* 1. Grain Texture Overlay (Adds realism) */}
-          <div className="absolute inset-0 opacity-20 pointer-events-none mix-blend-overlay"
-             style={{ filter: 'contrast(120%) brightness(100%)', backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noiseFilter\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.65\' numOctaves=\'3\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noiseFilter)\'/%3E%3C/svg%3E")' }}
-          />
-
-          {/* 2. Abstract Decoration */}
-          <CardDecoration type={theme.decoration} />
-
-          {/* 3. Header Content (Name) */}
-          <div className="relative z-10">
-            <span className={`inline-flex items-center justify-center rounded-full ${theme.accentColor} backdrop-blur-md px-2.5 py-1 text-[10px] sm:text-xs font-black uppercase tracking-wider ${theme.text} shadow-sm border border-white/10`}>
-              {category.name}
-            </span>
-          </div>
-
-          {/* 4. Bottom Content (Image + Subtitle) */}
-          <div className="relative z-10 flex items-end justify-between mt-2">
-            <p className={`text-[10px] sm:text-xs font-bold leading-tight ${theme.text} opacity-90 max-w-[60%]`}>
+          {/* Left: Text Content */}
+          <div className="relative z-10 flex flex-col justify-center h-full max-w-[60%]">
+            <div>
+              <span className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] sm:text-xs font-black uppercase tracking-wider backdrop-blur-sm ${theme.badge}`}>
+                {category.name}
+              </span>
+            </div>
+            <p className={`mt-2 text-[10px] sm:text-xs font-bold leading-tight ${theme.text} opacity-90 line-clamp-2`}>
               {displaySubtitle}
             </p>
-
-            {/* Floating Image with 3D Effect */}
-            <div className="relative w-12 h-12 sm:w-16 sm:h-16 transform transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3 drop-shadow-2xl">
-              {category.image ? (
-                <Image
-                  src={category.image}
-                  alt={category.name}
-                  fill
-                  className="object-contain"
-                />
-              ) : (
-                <div className={`w-full h-full rounded-xl flex items-center justify-center text-xl font-bold ${theme.accentColor} ${theme.text} backdrop-blur-md`}>
-                  {category.name.charAt(0)}
-                </div>
-              )}
-            </div>
           </div>
+
+          {/* Right: The Category Image (Optimized Size) */}
+          <div className="relative z-10 w-20 h-20 sm:w-28 sm:h-28 shrink-0 transform transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-6 drop-shadow-2xl">
+            {category.image ? (
+              <Image
+                src={category.image}
+                alt={category.name}
+                fill
+                // ⚡ Priority loading for the first 4 items (Above the fold)
+                priority={index < 4}
+                className="object-contain drop-shadow-md"
+                // ⚡ Optimized sizes for 2-col (mobile) and 4-col (desktop)
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+              />
+            ) : (
+              // Fallback if image is missing
+              <div className="w-full h-full bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center text-3xl font-bold text-white/50">
+                {category.name.charAt(0)}
+              </div>
+            )}
+          </div>
+
         </div>
 
-        {/* === BOTTOM SECTION: MINIMALIST DARK === */}
-        <div className="bg-[#0a0a0a] py-3 px-4 flex items-center justify-between group-hover:bg-[#151515] transition-colors">
+        {/* === BOTTOM SECTION: DARK BAR === */}
+        <div className="bg-[#0a0a0a] py-3 px-4 flex items-center justify-between mt-auto group-hover:bg-[#151515] transition-colors border-t border-white/5">
           <div className="flex items-center gap-2">
-            <div className={`w-1.5 h-1.5 rounded-full ${theme.bg}`}></div>
+            {/* Small dot matching the gradient */}
+            <div className={`w-1.5 h-1.5 rounded-full ${theme.gradient}`}></div>
             <span className="text-[10px] sm:text-xs font-medium text-gray-400 uppercase tracking-widest group-hover:text-white transition-colors">
               Browse
             </span>
           </div>
-          {/* Arrow Icon */}
           <svg className="w-3 h-3 text-gray-500 transform group-hover:translate-x-1 group-hover:text-white transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
           </svg>
@@ -170,12 +119,15 @@ function CategoryCard({ category, index }: { category: ICategory; index: number 
   );
 }
 
+// ----------------------------------------------------------------------
+// 3. MAIN COMPONENT
+// ----------------------------------------------------------------------
 export default function CategorySection({ categories }: { categories: ICategory[] }) {
   if (!categories || categories.length === 0) return null;
 
   return (
-    <section className="bg-black py-10 md:py-16">
-      <div className="container mx-auto px-4 md:px-6">
+    <section className="bg-black py-2 md:py-12 font-sans">
+      <div className="container mx-auto px-2 md:px-4">
 
         {/* Section Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
@@ -186,9 +138,9 @@ export default function CategorySection({ categories }: { categories: ICategory[
              </h2>
            </div>
            
-           <Link href="/products" className="hidden sm:flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-white transition-colors">
+           <Link href="/products" className="hidden sm:flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-white transition-colors group">
              VIEW ALL
-             <div className="w-6 h-6 rounded-full border border-gray-700 flex items-center justify-center">
+             <div className="w-6 h-6 rounded-full border border-gray-700 flex items-center justify-center group-hover:border-white transition-colors">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
              </div>
            </Link>
@@ -207,7 +159,7 @@ export default function CategorySection({ categories }: { categories: ICategory[
 
         {/* Mobile View All Button */}
         <div className="mt-8 text-center sm:hidden">
-           <Link href="/products" className="inline-flex items-center justify-center w-full py-3 rounded-lg border border-white/10 bg-white/5 text-xs font-bold text-white hover:bg-white/10 uppercase tracking-wider">
+           <Link href="/products" className="inline-flex items-center justify-center w-full py-3.5 rounded-lg border border-white/10 bg-white/5 text-xs font-bold text-white hover:bg-white/10 uppercase tracking-wider transition-all active:scale-[0.98]">
              View All Categories
            </Link>
         </div>

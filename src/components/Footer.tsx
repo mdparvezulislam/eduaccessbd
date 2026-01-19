@@ -1,12 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { 
-  FaFacebook, FaDiscord, FaTelegramPlane, FaWhatsapp, 
-  FaYoutube, FaLinkedin, FaCode 
+  FaFacebook, FaDiscord, FaTelegramPlane, FaYoutube, FaCode 
 } from "react-icons/fa";
-import { Mail, MapPin, Phone, ArrowRight, Send } from "lucide-react";
+import { Mail, MapPin, Phone, ArrowRight } from "lucide-react";
 
 export default function Footer() {
   
@@ -17,25 +15,32 @@ export default function Footer() {
       
       {/* === BACKGROUND AMBIENCE === */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute -top-24 -left-24 w-96 h-96 bg-blue-900/20 rounded-full blur-[100px] opacity-50" />
-        <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-purple-900/20 rounded-full blur-[100px] opacity-50" />
+        <div className="absolute -top-24 -left-24 w-80 h-80 bg-blue-900/20 rounded-full blur-[80px] opacity-40" />
+        <div className="absolute -bottom-24 -right-24 w-80 h-80 bg-purple-900/20 rounded-full blur-[80px] opacity-40" />
       </div>
 
-      <div className="relative z-10 container mx-auto px-4 md:px-6 pt-16 pb-8">
+      <div className="relative z-10 container mx-auto px-4 md:px-6 pt-10 pb-6">
         
-   
-        {/* === MAIN GRID === */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-16 mb-16">
+        {/* === MAIN GRID (Compact Mobile Layout) === */}
+        {/* Mobile: 2 Columns. 
+           - Brand takes 2 cols (Full width)
+           - Links takes 1 col
+           - Legal takes 1 col (Sits next to Links)
+           - Contact takes 2 cols (Full width)
+           
+           Desktop: 4 Columns standard.
+        */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-8 mb-10">
           
-          {/* Col 1: Brand */}
-          <div className="space-y-6">
+          {/* Col 1: Brand (Full width on Mobile) */}
+          <div className="col-span-2 lg:col-span-1 space-y-4">
             <Link href="/" className="block">
-              <h2 className="text-2xl font-black uppercase tracking-tighter">
+              <h2 className="text-xl font-black uppercase tracking-tighter">
                 Edu <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">Access</span> BD
               </h2>
             </Link>
-            <p className="text-gray-400 text-sm leading-relaxed">
-              Empowering developers and learners with premium resources, courses, and tools at an affordable price.
+            <p className="text-gray-400 text-xs leading-relaxed max-w-xs">
+              Empowering developers with premium resources at an affordable price.
             </p>
             <div className="flex gap-3">
               {[
@@ -48,27 +53,27 @@ export default function Footer() {
                   key={i} 
                   href={social.url} 
                   target="_blank" 
-                  className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:bg-white hover:text-black transition-all duration-300"
+                  className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:bg-white hover:text-black transition-all duration-300"
                 >
-                  <social.icon className="w-4 h-4" />
+                  <social.icon className="w-3.5 h-3.5" />
                 </a>
               ))}
             </div>
           </div>
 
-          {/* Col 2: Links */}
-          <div>
-            <h4 className="font-bold text-white mb-6">Quick Links</h4>
-            <ul className="space-y-3">
+          {/* Col 2: Links (Half width on Mobile) */}
+          <div className="col-span-1">
+            <h4 className="font-bold text-white text-sm mb-4 uppercase tracking-wider">Links</h4>
+            <ul className="space-y-2">
               {[
-                { name: "All Products", link: "/products" },
-                { name: "My Dashboard", link: "/dashboard" },
+                { name: "Products", link: "/products" },
+                { name: "Dashboard", link: "/dashboard" },
                 { name: "Community", link: "/community" },
                 { name: "Contact", link: "/contact" },
               ].map((item, i) => (
                 <li key={i}>
-                  <Link href={item.link} className="text-sm text-gray-400 hover:text-white hover:pl-1 transition-all flex items-center gap-1">
-                    <ArrowRight className="w-3 h-3 opacity-0 hover:opacity-100 transition-opacity" />
+                  <Link href={item.link} className="text-xs text-gray-400 hover:text-white hover:pl-1 transition-all flex items-center gap-1">
+                    <ArrowRight className="w-2.5 h-2.5 opacity-0 hover:opacity-100 transition-opacity" />
                     {item.name}
                   </Link>
                 </li>
@@ -76,18 +81,18 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Col 3: Legal */}
-          <div>
-            <h4 className="font-bold text-white mb-6">Support & Legal</h4>
-            <ul className="space-y-3">
+          {/* Col 3: Legal (Half width on Mobile) */}
+          <div className="col-span-1">
+            <h4 className="font-bold text-white text-sm mb-4 uppercase tracking-wider">Support</h4>
+            <ul className="space-y-2">
               {[
-                { name: "Contact Support", link: "/contact" },
-                { name: "Dashboard", link: "/dashboard" },
-                { name: "Community", link: "/community" },
+                { name: "Get Help", link: "/contact" },
+                { name: "My Account", link: "/dashboard" },
+                { name: "Discord", link: "/community" },
                 { name: "Courses", link: "/products" },
               ].map((item, i) => (
                 <li key={i}>
-                  <Link href={item.link} className="text-sm text-gray-400 hover:text-white transition-colors">
+                  <Link href={item.link} className="text-xs text-gray-400 hover:text-white transition-colors">
                     {item.name}
                   </Link>
                 </li>
@@ -95,20 +100,20 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Col 4: Contact */}
-          <div>
-            <h4 className="font-bold text-white mb-6">Contact Us</h4>
-            <ul className="space-y-4">
-              <li className="flex items-start gap-3 text-sm text-gray-400">
-                <MapPin className="w-5 h-5 text-purple-500 shrink-0" />
+          {/* Col 4: Contact (Full width on Mobile) */}
+          <div className="col-span-2 lg:col-span-1">
+            <h4 className="font-bold text-white text-sm mb-4 uppercase tracking-wider">Contact</h4>
+            <ul className="space-y-3">
+              <li className="flex items-start gap-3 text-xs text-gray-400">
+                <MapPin className="w-4 h-4 text-purple-500 shrink-0" />
                 <span>Dhaka, Bangladesh</span>
               </li>
-              <li className="flex items-center gap-3 text-sm text-gray-400">
-                <Mail className="w-5 h-5 text-blue-500 shrink-0" />
+              <li className="flex items-center gap-3 text-xs text-gray-400">
+                <Mail className="w-4 h-4 text-blue-500 shrink-0" />
                 <a href="mailto:support@eduaccessbd.com" className="hover:text-white transition-colors">support@eduaccessbd.store</a>
               </li>
-              <li className="flex items-center gap-3 text-sm text-gray-400">
-                <Phone className="w-5 h-5 text-green-500 shrink-0" />
+              <li className="flex items-center gap-3 text-xs text-gray-400">
+                <Phone className="w-4 h-4 text-green-500 shrink-0" />
                 <span className="hover:text-white transition-colors">01858957312</span>
               </li>
             </ul>
@@ -117,34 +122,32 @@ export default function Footer() {
         </div>
 
         {/* === BOTTOM BAR === */}
-        <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="border-t border-white/10 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
           
-          {/* Left: Copyright & Developer Credit */}
-          <div className="flex flex-col items-center md:items-start gap-2">
-            <p className="text-xs text-gray-500 text-center md:text-left">
-              © {currentYear} Edu Access BD. All rights reserved.
+          <div className="flex flex-col md:flex-row items-center gap-2 md:gap-4">
+            <p className="text-[10px] text-gray-500">
+              © {currentYear} Edu Access BD.
             </p>
             
-            {/* ⚡ Developer Credit */}
-            <div className="flex items-center gap-1.5 text-[10px] text-gray-600 bg-white/5 px-3 py-1 rounded-full border border-white/5 transition-colors hover:border-white/10 hover:bg-white/10">
-              <FaCode className="w-3 h-3 text-blue-500" />
-              <span>Developed by</span>
+            {/* Developer Credit */}
+            <div className="flex items-center gap-1.5 text-[10px] text-gray-600 bg-white/5 px-2 py-0.5 rounded-full border border-white/5 transition-colors hover:border-white/10 hover:bg-white/10">
+              <FaCode className="w-2.5 h-2.5 text-blue-500" />
+              <span>Dev by</span>
               <Link 
-                href="http://projuktilabs.site/" // Update this link to the correct URL
+                href="http://projuktilabs.site/" 
                 target="_blank" 
-                className="text-blue-400 hover:text-blue-300 font-bold transition-colors tracking-wide"
+                className="text-blue-400 hover:text-blue-300 font-bold transition-colors"
               >
                 Projukti Labs
               </Link>
             </div>
           </div>
           
-          {/* Right: Payment Icons */}
-          <div className="flex items-center gap-4">
-            <span className="text-[10px] uppercase font-bold text-gray-600 tracking-wider">We Accept:</span>
-            <div className="flex gap-2 opacity-70 grayscale hover:grayscale-0 transition-all duration-300">
-               <div className="bg-pink-600/20 border border-pink-600/50 px-2 py-1 rounded text-[10px] font-bold text-pink-500">bKash</div>
-               <div className="bg-orange-600/20 border border-orange-600/50 px-2 py-1 rounded text-[10px] font-bold text-orange-500">Nagad</div>
+          {/* Payment Icons */}
+          <div className="flex items-center gap-3">
+            <div className="flex gap-2 opacity-80 grayscale hover:grayscale-0 transition-all duration-300">
+               <div className="bg-pink-600/10 border border-pink-600/30 px-1.5 py-0.5 rounded text-[9px] font-bold text-pink-500">bKash</div>
+               <div className="bg-orange-600/10 border border-orange-600/30 px-1.5 py-0.5 rounded text-[9px] font-bold text-orange-500">Nagad</div>
             </div>
           </div>
         </div>
