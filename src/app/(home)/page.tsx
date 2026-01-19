@@ -2,7 +2,7 @@ import CategorySection from "@/components/CategorySLider";
 import HeroSection from "@/components/HeroSlider";
 import FeaturedCourses from "@/components/home/FeaturedCourses";
 import ProductList from "@/components/home/ProductList";
-import { SITE_URL } from "@/types";
+import { IProduct, SITE_URL } from "@/types";
 import { ArrowRight, Link } from "lucide-react";
 
 export default async function Home() {
@@ -24,12 +24,14 @@ export default async function Home() {
   }
 
   const data = await response.json();
-
+//  filter featured products
+ const featuredProducts = data.products.filter((product: IProduct) => product.isFeatured === true);
+ 
   return (
     <div>
       <HeroSection />
       <CategorySection categories={categories} />
-      <FeaturedCourses products={data.products} />
+      <FeaturedCourses products={featuredProducts} />
       {/* Header */}
       <div className="flex items-center justify-between mb-6 md:mb-10">
         <div className="flex items-center gap-2">

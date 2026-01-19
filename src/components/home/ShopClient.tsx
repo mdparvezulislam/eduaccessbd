@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { IProduct, ICategory } from "@/types";
@@ -12,7 +12,9 @@ import {
   Filter, 
   ArrowUpDown, 
   X,
-  ChevronDown
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
@@ -43,6 +45,10 @@ export default function ShopClient({ products, categories }: ShopClientProps) {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [sortOption, setSortOption] = useState("newest");
+  
+  // ⚡ Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 24; // 12 looks good on 2, 3, and 4 column layouts
 
   // --- Filtering Logic ---
   const filteredProducts = useMemo(() => {
@@ -52,7 +58,6 @@ export default function ShopClient({ products, categories }: ShopClientProps) {
         const matchSearch = product.title.toLowerCase().includes(search.toLowerCase());
         
         // 2. Category Filter
-        // Handle both populated object and string ID scenarios safely
         const productCatSlug = typeof product.category === 'object' && product.category 
             ? product.category.slug 
             : ''; 
@@ -67,6 +72,16 @@ export default function ShopClient({ products, categories }: ShopClientProps) {
       });
   }, [products, search, selectedCategory, sortOption]);
 
+  // ⚡ Reset Pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, selectedCategory, sortOption]);
+
+  // ⚡ Calculate Pagination Slices
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedProducts = filteredProducts.slice(startIndex, startIndex + itemsPerPage);
+
   // --- Handlers ---
   const handleAddToCart = (e: React.MouseEvent, product: IProduct) => {
     e.preventDefault();
@@ -74,6 +89,12 @@ export default function ShopClient({ products, categories }: ShopClientProps) {
     const item = mapProductToCartItem(product, 1);
     addToCart(item);
     toast.success("Added to cart!");
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    // Smooth scroll to top of grid
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const formatPrice = (price: number) =>
@@ -84,10 +105,10 @@ export default function ShopClient({ products, categories }: ShopClientProps) {
     }).format(price);
 
   return (
-    <div className=" mx-auto px-0 md:px-6 py-4 md:py-12">
+    <div className="mx-auto px-0 md:px-6 py-4 md:py-12 min-h-screen">
       
       {/* === HEADER & CONTROLS === */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div>
           <h1 className="text-2xl md:text-4xl font-bold tracking-tight text-white mb-1">All Courses</h1>
           <p className="text-gray-400 text-sm">
@@ -173,7 +194,7 @@ export default function ShopClient({ products, categories }: ShopClientProps) {
 
       {/* === PRODUCT GRID === */}
       {filteredProducts.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 text-center border border-dashed border-gray-800 rounded-xl bg-[#111]">
+        <div className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-gray-800 rounded-xl bg-[#111]">
           <div className="bg-gray-800/50 p-4 rounded-full mb-3">
             <Search className="w-8 h-8 text-gray-500" />
           </div>
@@ -188,75 +209,122 @@ export default function ShopClient({ products, categories }: ShopClientProps) {
           </Button>
         </div>
       ) : (
-        // 👉 THE GRID: 2 Cols on Mobile, 3 on MD, 4 on XL
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6">
-          {filteredProducts.map((product) => {
-            const discount = product.regularPrice > product.salePrice
-              ? Math.round(((product.regularPrice - product.salePrice) / product.regularPrice) * 100)
-              : 0;
+        <>
+          {/* 👉 THE GRID */}
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6 mb-12">
+            {paginatedProducts.map((product) => {
+              const discount = product.regularPrice > product.salePrice
+                ? Math.round(((product.regularPrice - product.salePrice) / product.regularPrice) * 100)
+                : 0;
 
-            return (
-              <div
-                key={product._id}
-                className="group relative flex flex-col h-full bg-[#111] border border-gray-800 rounded-xl overflow-hidden hover:border-gray-600 transition-all duration-300 hover:shadow-lg hover:shadow-green-900/10"
-              >
-                <Link href={`/product/${product.slug}`} className="flex h-full flex-col">
-                  
-                  {/* Image */}
-                  <div className="relative aspect-video w-full overflow-hidden bg-gray-900">
-                    <Image
-                      src={product.thumbnail}
-                      alt={product.title}
-                      fill
-                      className="object-cover transition-transform duration-500 group-hover:scale-105"
-                      loading="lazy"
-                    />
-                    {discount > 0 && (
-                      <span className="absolute top-2 left-2 bg-yellow-500 text-black text-[10px] md:text-xs font-bold px-1.5 py-0.5 rounded shadow-sm">
-                        {discount}% OFF
-                      </span>
-                    )}
-                    {product.isFeatured && (
-                      <span className="absolute top-2 right-2 bg-green-600 text-white text-[10px] md:text-xs font-bold px-1.5 py-0.5 rounded uppercase tracking-wider shadow-sm">
-                        HOT
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex flex-1 flex-col p-3 md:p-4">
-                    <h3
-                      className="text-xs sm:text-sm md:text-base font-bold text-gray-100 line-clamp-2 leading-snug mb-2 group-hover:text-green-400 transition-colors min-h-[2.5rem]"
-                      title={product.title}
-                    >
-                      {product.title}
-                    </h3>
-
-                    <div className="mt-auto pt-3 border-t border-gray-800 flex items-center justify-between">
-                      <div className="flex flex-col">
-                        {product.regularPrice > product.salePrice && (
-                          <span className="text-[10px] md:text-xs text-gray-500 line-through">
-                            {formatPrice(product.regularPrice)}
-                          </span>
-                        )}
-                        <span className="text-sm md:text-lg font-extrabold text-white tracking-tight">
-                          {formatPrice(product.salePrice)}
+              return (
+                <div
+                  key={product._id}
+                  className="group relative flex flex-col h-full bg-[#111] border border-gray-800 rounded-xl overflow-hidden hover:border-gray-600 transition-all duration-300 hover:shadow-lg hover:shadow-green-900/10"
+                >
+                  <Link href={`/product/${product.slug}`} className="flex h-full flex-col">
+                    
+                    {/* Image */}
+                    <div className="relative aspect-video w-full overflow-hidden bg-gray-900">
+                      <Image
+                        src={product.thumbnail}
+                        alt={product.title}
+                        fill
+                        className="object-cover transition-transform duration-500 group-hover:scale-105"
+                        loading="lazy"
+                      />
+                      {discount > 0 && (
+                        <span className="absolute top-2 left-2 bg-yellow-500 text-black text-[10px] md:text-xs font-bold px-1.5 py-0.5 rounded shadow-sm">
+                          {discount}% OFF
                         </span>
-                      </div>
-
-                      <button
-                        onClick={(e) => handleAddToCart(e, product)}
-                        className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/10 flex items-center justify-center text-gray-300 hover:bg-white hover:text-black transition-all active:scale-95 group/btn"
-                      >
-                        <ShoppingCart className="w-4 h-4 md:w-5 md:h-5 group-hover/btn:fill-black" />
-                      </button>
+                      )}
+                      {product.isFeatured && (
+                        <span className="absolute top-2 right-2 bg-green-600 text-white text-[10px] md:text-xs font-bold px-1.5 py-0.5 rounded uppercase tracking-wider shadow-sm">
+                          HOT
+                        </span>
+                      )}
                     </div>
-                  </div>
-                </Link>
+
+                    {/* Content */}
+                    <div className="flex flex-1 flex-col p-3 md:p-4">
+                      <h3
+                        className="text-xs sm:text-sm md:text-base font-bold text-gray-100 line-clamp-2 leading-snug mb-2 group-hover:text-green-400 transition-colors min-h-[2.5rem]"
+                        title={product.title}
+                      >
+                        {product.title}
+                      </h3>
+
+                      <div className="mt-auto pt-3 border-t border-gray-800 flex items-center justify-between">
+                        <div className="flex flex-col">
+                          {product.regularPrice > product.salePrice && (
+                            <span className="text-[10px] md:text-xs text-gray-500 line-through">
+                              {formatPrice(product.regularPrice)}
+                            </span>
+                          )}
+                          <span className="text-sm md:text-lg font-extrabold text-white tracking-tight">
+                            {formatPrice(product.salePrice)}
+                          </span>
+                        </div>
+
+                        <button
+                          onClick={(e) => handleAddToCart(e, product)}
+                          className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/10 flex items-center justify-center text-gray-300 hover:bg-white hover:text-black transition-all active:scale-95 group/btn"
+                        >
+                          <ShoppingCart className="w-4 h-4 md:w-5 md:h-5 group-hover/btn:fill-black" />
+                        </button>
+                      </div>
+                    </div>
+                  </Link>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* 👉 PAGINATION CONTROLS */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-2 mt-8 pb-8">
+              {/* Previous Button */}
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="bg-[#111] border-gray-800 text-white hover:bg-gray-800 hover:text-white disabled:opacity-30"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+
+              {/* Page Numbers */}
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <Button
+                    key={page}
+                    variant={currentPage === page ? "default" : "outline"}
+                    onClick={() => handlePageChange(page)}
+                    className={`w-9 h-9 p-0 font-bold ${
+                      currentPage === page
+                        ? "bg-white text-black hover:bg-gray-200"
+                        : "bg-[#111] border-gray-800 text-gray-400 hover:bg-gray-800 hover:text-white"
+                    }`}
+                  >
+                    {page}
+                  </Button>
+                ))}
               </div>
-            );
-          })}
-        </div>
+
+              {/* Next Button */}
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="bg-[#111] border-gray-800 text-white hover:bg-gray-800 hover:text-white disabled:opacity-30"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

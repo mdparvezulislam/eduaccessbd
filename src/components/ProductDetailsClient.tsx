@@ -110,7 +110,7 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
         <div className="container mx-auto px-1 py-3 text-xs md:text-sm text-gray-400 flex items-center gap-2 overflow-hidden whitespace-nowrap">
           <Link href="/" className="hover:text-white transition-colors shrink-0">Home</Link> 
           <ChevronRight className="w-3 h-3 shrink-0 text-gray-600" />
-          <Link href="/shop" className="hover:text-white transition-colors shrink-0">{categoryName}</Link>
+          <Link href={`/products/${product.category?.slug}`} className="hover:text-white transition-colors shrink-0">{categoryName}</Link>
           <ChevronRight className="w-3 h-3 shrink-0 text-gray-600" />
           <span className="text-white font-medium truncate opacity-80">{product.title}</span>
         </div>

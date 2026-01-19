@@ -2,7 +2,8 @@
 
 import { useSession, signOut } from "next-auth/react";
 import { 
-  LayoutDashboard, BookOpen, CreditCard, User, LogOut, Menu 
+  LayoutDashboard, BookOpen, CreditCard, User, LogOut, Menu, 
+  Home
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -11,6 +12,9 @@ import Link from "next/link";
 const NavItems = () => (
   <nav className="flex-1 p-4 space-y-2">
     <Button variant="ghost" className="w-full justify-start text-green-400 bg-green-900/10 hover:bg-green-900/20">
+      <Home className="mr-3 h-4 w-4" /> <Link href="/">Home</Link>
+    </Button>  
+     <Button variant="ghost" className="w-full justify-start text-green-400 bg-green-900/10 hover:bg-green-900/20">
       <LayoutDashboard className="mr-3 h-4 w-4" /> <Link href="/dashboard">Dashboard</Link>
     </Button>
     <Button variant="ghost" className="w-full justify-start text-gray-400 hover:bg-gray-800 hover:text-white">
@@ -38,7 +42,12 @@ export default function DashboardSidebar() {
     <>
       {/* Mobile Header */}
       <div className="lg:hidden flex items-center justify-between p-4 border-b border-gray-800 sticky top-0 bg-black/80 backdrop-blur-md z-50">
-        <span className="font-bold text-lg">Student Portal</span>
+        {/*  Back Home */}
+        <Link href="/" className="text-white text-lg font-bold">
+          Student Portal
+        </Link>
+
+        {/*  Mobile Menu */}
         <Sheet>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon">
@@ -58,7 +67,7 @@ export default function DashboardSidebar() {
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex w-64 flex-col border-r border-gray-800 bg-[#0a0a0a] fixed h-full inset-y-0 left-0 z-50">
         <div className="p-6 border-b border-gray-800">
-          <h2 className="text-xl font-bold tracking-tight text-white">Student Portal</h2>
+          <Link href="/" className="text-xl font-bold tracking-tight text-white">Student Portal</Link>
         </div>
         <NavItems />
         <SignOutButton />

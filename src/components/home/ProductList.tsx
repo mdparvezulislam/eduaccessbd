@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { IProduct } from "@/types";
-import { ShoppingCart, Star, Check, Zap, ArrowRight, Clock, Crown } from "lucide-react";
+import { ShoppingCart, Star, Check, Zap, ArrowRight, Clock, Crown, ChevronLeft, ChevronRight } from "lucide-react";
 import { useCart, PlanType } from "@/lib/CartContext"; 
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -210,32 +210,90 @@ const ProductCard = ({ product }: { product: IProduct }) => {
 };
 
 // ----------------------------------------------------------------------
-// 2. MAIN COMPONENT: Grid Wrapper
+// 2. MAIN COMPONENT: Grid Wrapper with Pagination
 // ----------------------------------------------------------------------
 const ProductList = ({ products }: { products: IProduct[] }) => {
+  // ⚡ Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 16; // Number of products per page
+
   if (!products || products.length === 0) return null;
 
+  // ⚡ Pagination Calculation
+  const totalPages = Math.ceil(products.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const currentProducts = products.slice(startIndex, startIndex + itemsPerPage);
+
+  // Scroll to top of section on page change (optional but recommended)
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    const section = document.getElementById("product-list-section");
+    if (section) {
+      section.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
   return (
-    <section className="bg-black py-2 md:py-4 text-white min-h-[50vh]">
+    <section id="product-list-section" className="bg-black py-2 md:py-4 text-white min-h-[50vh]">
       <div className="container mx-auto px-1 md:px-6">
         
         {/* Header */}
-        <div className="flex items-end justify-between mb-8">
-       
+        <div className="flex items-end justify-between mb-4">
            <Link href="/shop" className="hidden md:flex text-sm text-blue-400 hover:text-blue-300 items-center gap-1 transition-colors">
               View All <ArrowRight className="w-4 h-4" />
            </Link>
         </div>
 
-        {/* Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-8">
-          {products.map((product) => (
+        {/* Grid (Showing only currentProducts) */}
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-8 mb-4">
+          {currentProducts.map((product) => (
             <ProductCard key={product._id} product={product} />
           ))}
         </div>
 
+        {/* ⚡ Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center gap-2 mb-8">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="h-9 w-9 border-white/10 bg-transparent text-white hover:bg-white/10 disabled:opacity-30"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <button
+                  key={page}
+                  onClick={() => handlePageChange(page)}
+                  className={`h-9 w-9 rounded-md text-sm font-medium transition-all ${
+                    currentPage === page
+                      ? "bg-white text-black font-bold"
+                      : "text-gray-400 hover:bg-white/10 hover:text-white"
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="h-9 w-9 border-white/10 bg-transparent text-white hover:bg-white/10 disabled:opacity-30"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
+
         {/* Mobile View All */}
-        <div className="mt-10 flex justify-center md:hidden">
+        <div className="mt-4 flex justify-center md:hidden">
           <Link href="/shop" className="w-full">
             <Button
               variant="outline"
