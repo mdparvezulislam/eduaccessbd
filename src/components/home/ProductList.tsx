@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { IProduct } from "@/types";
-import { ShoppingCart, Star, Check, Zap, ArrowRight, Clock, Crown, ChevronLeft, ChevronRight } from "lucide-react";
+import { ShoppingCart, Star, Zap, ArrowRight, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { useCart, PlanType } from "@/lib/CartContext"; 
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,9 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 
+// ✅ Helper Type: Restrict plans to only those present in product.pricing
+type VipPlanKey = "monthly" | "yearly" | "lifetime";
+
 // ----------------------------------------------------------------------
 // 1. SUB-COMPONENT: Individual Product Card (Handles its own state)
 // ----------------------------------------------------------------------
@@ -24,16 +27,18 @@ const ProductCard = ({ product }: { product: IProduct }) => {
   const { addToCart, mapProductToCartItem } = useCart();
   
   // ⚡ VIP Plan Logic
-  // Detect available plans
   const pricing = product.pricing || {};
-  const availablePlans: PlanType[] = [];
+  
+  // We explicitly type this to prevent "account_access" from being added here
+  // since it doesn't exist inside the 'pricing' object structure.
+  const availablePlans: VipPlanKey[] = [];
   
   if (pricing.monthly?.isEnabled) availablePlans.push("monthly");
   if (pricing.yearly?.isEnabled) availablePlans.push("yearly");
   if (pricing.lifetime?.isEnabled) availablePlans.push("lifetime");
 
-  // Default to first plan found, or null if simple product
-  const [selectedPlan, setSelectedPlan] = useState<PlanType | "default">(
+  // Default to first plan found, or "default"
+  const [selectedPlan, setSelectedPlan] = useState<VipPlanKey | "default">(
     availablePlans.length > 0 ? availablePlans[0] : "default"
   );
 
@@ -42,16 +47,17 @@ const ProductCard = ({ product }: { product: IProduct }) => {
   let regularPrice = product.regularPrice || 0;
   let validityLabel = "Standard";
 
-  if (selectedPlan !== "default" && pricing[selectedPlan as PlanType]) {
-    const plan = pricing[selectedPlan as PlanType];
+  // ✅ LOGIC FIX: TypeScript now knows selectedPlan is strictly a valid key of pricing
+  if (selectedPlan !== "default" && pricing[selectedPlan]) {
+    const plan = pricing[selectedPlan];
     if (plan) {
       displayPrice = plan.price;
       regularPrice = plan.regularPrice || 0;
       validityLabel = plan.validityLabel;
     }
   } else {
-    // Fallback logic for simple products
-    displayPrice = product.salePrice;
+    // Fallback logic for simple products or "default" selection
+    displayPrice = product.salePrice || product.defaultPrice || 0;
     regularPrice = product.regularPrice;
   }
   
@@ -65,12 +71,11 @@ const ProductCard = ({ product }: { product: IProduct }) => {
     e.preventDefault(); 
     e.stopPropagation();
 
-    // Map cart item using the NEW Plan logic
-    const cartItem = mapProductToCartItem(
-      product, 
-      1, 
-      selectedPlan !== "default" ? (selectedPlan as PlanType) : undefined
-    );
+    // Map cart item
+    // We cast selectedPlan to PlanType because CartContext handles the wider type
+    const planArg = selectedPlan !== "default" ? (selectedPlan as PlanType) : undefined;
+
+    const cartItem = mapProductToCartItem(product, 1, planArg);
     
     addToCart(cartItem);
     toast.success(`Added ${product.title} to cart`);
@@ -91,19 +96,25 @@ const ProductCard = ({ product }: { product: IProduct }) => {
         
         {/* === IMAGE AREA === */}
         <div className="relative aspect-video w-full bg-gray-900 overflow-hidden">
-          <Image
-            src={product.thumbnail}
-            alt={product.title}
-            fill
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            className="object-cover transition-transform duration-700 group-hover:scale-110"
-          />
+          {product.thumbnail ? (
+            <Image
+              src={product.thumbnail}
+              alt={product.title}
+              fill
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+              className="object-cover transition-transform duration-700 group-hover:scale-110"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-[#151515] text-gray-700 font-bold">
+              NO IMAGE
+            </div>
+          )}
 
           {/* Dark Gradient Overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-[#0f0f11] via-transparent to-transparent opacity-80" />
 
           {/* Badges */}
-          <div className="absolute top-2 left-2 flex flex-col gap-1.5">
+          <div className="absolute top-2 left-2 flex flex-col gap-1.5 z-10">
              {discount > 0 && (
               <Badge className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold text-[10px] px-2 shadow-lg backdrop-blur-md border-0">
                 -{discount}% OFF
@@ -120,7 +131,7 @@ const ProductCard = ({ product }: { product: IProduct }) => {
           </div>
 
           {product.isFeatured && (
-            <div className="absolute top-2 right-2">
+            <div className="absolute top-2 right-2 z-10">
                <span className="flex items-center gap-1 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg animate-pulse">
                  <Zap className="w-3 h-3 fill-white" /> HOT
                </span>
@@ -147,7 +158,7 @@ const ProductCard = ({ product }: { product: IProduct }) => {
             >
               <Select 
                 value={selectedPlan} 
-                onValueChange={(v) => setSelectedPlan(v as PlanType)}
+                onValueChange={(v) => setSelectedPlan(v as VipPlanKey)}
               >
                 <SelectTrigger className="h-8 text-xs bg-white/5 border-white/10 text-gray-300 focus:ring-0 focus:ring-offset-0">
                   <SelectValue placeholder="Select Plan" />
@@ -174,7 +185,7 @@ const ProductCard = ({ product }: { product: IProduct }) => {
                <div className="flex text-yellow-500">
                  <Star className="w-3 h-3 fill-current" />
                </div>
-               <span className="text-xs text-gray-500 font-medium pt-0.5">4.9 (120+ Sold)</span>
+               <span className="text-xs text-gray-500 font-medium pt-0.5">4.9</span>
              </div>
           )}
 
@@ -215,7 +226,7 @@ const ProductCard = ({ product }: { product: IProduct }) => {
 const ProductList = ({ products }: { products: IProduct[] }) => {
   // ⚡ Pagination State
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 16; // Number of products per page
+  const itemsPerPage = 16; 
 
   if (!products || products.length === 0) return null;
 
@@ -224,7 +235,7 @@ const ProductList = ({ products }: { products: IProduct[] }) => {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentProducts = products.slice(startIndex, startIndex + itemsPerPage);
 
-  // Scroll to top of section on page change (optional but recommended)
+  // Scroll to top of section on page change
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
     const section = document.getElementById("product-list-section");
@@ -235,7 +246,7 @@ const ProductList = ({ products }: { products: IProduct[] }) => {
 
   return (
     <section id="product-list-section" className="bg-black py-2 md:py-4 text-white min-h-[50vh]">
-      <div className="container mx-auto px-1 md:px-6">
+      <div className="container mx-auto px-4 md:px-6">
         
         {/* Header */}
         <div className="flex items-end justify-between mb-4">

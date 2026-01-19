@@ -17,6 +17,9 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 
+// ✅ Helper Type: Only allow keys that actually exist inside product.pricing
+type VipPlanKey = "monthly" | "yearly" | "lifetime";
+
 interface ProductCardProps {
   product: IProduct;
 }
@@ -24,33 +27,37 @@ interface ProductCardProps {
 export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { addToCart, mapProductToCartItem } = useCart();
   
-  // ⚡ VIP Plan Logic: Detect available plans
+  // ⚡ 1. PREPARE AVAILABLE PLANS
   const pricing = product.pricing || {};
-  const availablePlans: PlanType[] = [];
+  
+  // We explicitly type this array as VipPlanKey[] to prevent "account_access" from getting in here
+  // because "account_access" doesn't exist inside the 'pricing' object.
+  const availablePlans: VipPlanKey[] = [];
   
   if (pricing.monthly?.isEnabled) availablePlans.push("monthly");
   if (pricing.yearly?.isEnabled) availablePlans.push("yearly");
   if (pricing.lifetime?.isEnabled) availablePlans.push("lifetime");
 
-  // Default to first available plan, or "default" if simple product
-  const [selectedPlan, setSelectedPlan] = useState<PlanType | "default">(
+  // Default to first available plan, or "default"
+  const [selectedPlan, setSelectedPlan] = useState<VipPlanKey | "default">(
     availablePlans.length > 0 ? availablePlans[0] : "default"
   );
 
-  // ⚡ Calculate Display Price based on selection
+  // ⚡ 2. CALCULATE DISPLAY PRICE
   let displayPrice = product.defaultPrice || product.salePrice || 0;
   let regularPrice = product.regularPrice || 0;
   let validityLabel = "Standard";
 
-  if (selectedPlan !== "default" && pricing[selectedPlan as PlanType]) {
-    const plan = pricing[selectedPlan as PlanType];
+  // ✅ LOGIC FIX: TypeScript now knows selectedPlan is strictly a valid key of pricing (or "default")
+  if (selectedPlan !== "default" && pricing[selectedPlan]) {
+    const plan = pricing[selectedPlan];
     if (plan) {
       displayPrice = plan.price;
       regularPrice = plan.regularPrice || 0;
       validityLabel = plan.validityLabel || "VIP";
     }
   } else {
-    // Fallback logic for simple products
+    // Fallback logic
     displayPrice = product.salePrice || product.defaultPrice || 0;
   }
   
@@ -73,11 +80,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     e.stopPropagation();
 
     // Map cart item using the selected Plan logic
-    const cartItem = mapProductToCartItem(
-      product, 
-      1, 
-      selectedPlan !== "default" ? (selectedPlan as PlanType) : undefined
-    );
+    // We cast to PlanType here because CartContext accepts the wider type
+    const planArg = selectedPlan !== "default" ? (selectedPlan as PlanType) : undefined;
+
+    const cartItem = mapProductToCartItem(product, 1, planArg);
     
     addToCart(cartItem);
     toast.success(`Added ${product.title} to cart`);
@@ -153,7 +159,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             >
               <Select 
                 value={selectedPlan} 
-                onValueChange={(v) => setSelectedPlan(v as PlanType)}
+                onValueChange={(v) => setSelectedPlan(v as VipPlanKey)}
               >
                 <SelectTrigger className="h-8 text-xs bg-white/5 border-white/10 text-gray-300 focus:ring-0 focus:ring-offset-0">
                   <SelectValue placeholder="Select Plan" />
@@ -161,7 +167,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                 <SelectContent className="bg-[#1a1a1d] border-white/10 text-gray-300">
                   {availablePlans.map((planKey) => {
                     const pInfo = pricing[planKey];
-                    // Capitalize first letter
                     const label = planKey.charAt(0).toUpperCase() + planKey.slice(1);
                     return (
                       <SelectItem key={planKey} value={planKey} className="text-xs focus:bg-white/10 focus:text-white">
