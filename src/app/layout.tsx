@@ -4,6 +4,7 @@ import "./globals.css";
 import Providers from "@/components/Providers";
 import { ImageKitProvider } from "@imagekit/next";
 import { Toaster } from "sonner";
+import { GoogleTagManager } from "@next/third-parties/google";
 
 
 // 1. FONTS
@@ -148,6 +149,8 @@ export default function RootLayout({
           <Toaster position="top-right" richColors closeButton />
         </Providers>
       </body>
+        {/* GTM - Google Analytics & Ads */}
+      <GoogleTagManager gtmId="GTM-MC37TP75" />
     </html>
   );
 }

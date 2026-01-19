@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { 
   Loader2, ArrowRight, Lock, User, Wallet, ShieldCheck, 
   Tag, Gift, AlertTriangle, CheckCircle2,
-  Copy
+  Copy, Coins
 } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,7 @@ const PAYMENT_METHODS = {
     id: "bkash",
     name: "Bkash Personal",
     number: "01858957312",
+    type: "number",
     color: "text-pink-500",
     border: "peer-data-[state=checked]:border-pink-500",
     bg: "peer-data-[state=checked]:bg-pink-950/30"
@@ -31,9 +32,20 @@ const PAYMENT_METHODS = {
     id: "nagad",
     name: "Nagad Personal",
     number: "01857887025",
+    type: "number",
     color: "text-orange-500",
     border: "peer-data-[state=checked]:border-orange-500",
     bg: "peer-data-[state=checked]:bg-orange-950/30"
+  },
+  // ✅ NEW: USDT Option
+  binance: {
+    id: "binance",
+    name: "Binance Pay / USDT",
+    number: "892612368", // Replace with your actual Binance Pay ID or Wallet Address
+    type: "crypto",
+    color: "text-yellow-400",
+    border: "peer-data-[state=checked]:border-yellow-500",
+    bg: "peer-data-[state=checked]:bg-yellow-950/30"
   }
 };
 
@@ -65,6 +77,10 @@ export default function CheckoutPage() {
   const finalTotal = Math.max(0, totalAmount - discount);
   const isFree = finalTotal === 0;
 
+  // ⚡ USDT Conversion Logic
+  const usdtRate = 125;
+  const usdtAmount = (finalTotal / usdtRate).toFixed(2);
+
   // Auto-Fill User Info
   useEffect(() => {
     if (session?.user) {
@@ -83,7 +99,7 @@ export default function CheckoutPage() {
 
   const copyNumber = (number: string) => {
     navigator.clipboard.writeText(number);
-    toast.success("Number copied!", { position: "top-center", duration: 2000 });
+    toast.success("Copied to clipboard!", { position: "top-center", duration: 2000 });
   };
 
   // ⚡ COUPON HANDLER
@@ -133,7 +149,7 @@ export default function CheckoutPage() {
     // Validation
     if (!formData.name || !formData.phone || !formData.email) return toast.error("Please fill all contact details");
     
-    // If NOT free, require TrxID (Sender number removed as requested)
+    // If NOT free, require Payment Info
     if (!isFree) {
       if (!formData.transactionId) return toast.error("Transaction ID is required");
     }
@@ -145,12 +161,12 @@ export default function CheckoutPage() {
         contact: { name: formData.name, phone: formData.phone, email: formData.email },
         payment: {
           method: isFree ? "Free Checkout" : PAYMENT_METHODS[paymentMethod].name,
-          senderNumber: "N/A", // Default value since field is removed
+          senderNumber: "N/A", 
           transactionId: isFree ? "FREE" : formData.transactionId,
           amount: finalTotal
         },
         items: cart.map(item => ({
-          productId: item.cartId || item.productId, // Fallback for ID
+          productId: item.cartId || item.productId, 
           quantity: item.quantity,
           validity: item.validity, 
           price: item.price
@@ -175,7 +191,6 @@ export default function CheckoutPage() {
         throw new Error(data.error || "Order failed");
       }
 
-      // Auto login new users
       if (data.isNewUser) {
         await signIn("credentials", { redirect: false, email: formData.email, password: formData.email });
       }
@@ -269,33 +284,54 @@ export default function CheckoutPage() {
                     className="grid grid-cols-2 gap-3"
                   >
                     {Object.values(PAYMENT_METHODS).map((method) => (
-                      <div key={method.id}>
+                      <div key={method.id} className={method.id === "binance" ? "col-span-2" : ""}>
                         <RadioGroupItem value={method.id} id={method.id} className="peer sr-only" />
                         <Label htmlFor={method.id} className={`flex flex-col items-center justify-center gap-1 h-16 rounded-lg border border-white/10 bg-[#111] hover:bg-white/5 cursor-pointer transition-all ${method.border} ${method.bg}`}>
                           <span className={`font-bold text-sm ${method.id === paymentMethod ? method.color : "text-gray-300"}`}>{method.name}</span>
-                          <span className="text-[9px] text-gray-500 uppercase tracking-wider">Send Money</span>
+                          <span className="text-[9px] text-gray-500 uppercase tracking-wider">
+                            {method.type === 'crypto' ? "Pay via ID" : "Send Money"}
+                          </span>
                         </Label>
                       </div>
                     ))}
                   </RadioGroup>
 
-                  {/* Number Display */}
-                  <div className="bg-[#111] border border-white/10 p-3 rounded-lg flex items-center justify-between gap-2">
-                     <div className="min-w-0">
-                        <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest mb-0.5">Send Money To (Personal)</p>
-                        <p className={`text-lg sm:text-xl font-mono font-bold tracking-wider truncate ${activePay.color}`}>
-                          {activePay.number}
-                        </p>
+                  {/* ⚡ DISPLAY: Payment Details */}
+                  <div className={`bg-[#111] border border-white/10 p-4 rounded-xl flex flex-col gap-3 transition-all ${activePay.id === 'binance' ? 'border-yellow-500/30' : ''}`}>
+                     
+                     <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                           <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest mb-0.5">
+                             {activePay.type === 'crypto' ? "Binance Pay ID / Wallet" : "Send Money To (Personal)"}
+                           </p>
+                           <p className={`text-lg sm:text-xl font-mono font-bold tracking-wider truncate ${activePay.color}`}>
+                             {activePay.number}
+                           </p>
+                        </div>
+                        <Button type="button" size="sm" variant="secondary" onClick={() => copyNumber(activePay.number)} className="h-8 px-3 text-[10px] font-bold bg-white text-black hover:bg-gray-200 border-0 uppercase tracking-wide">
+                           <Copy className="w-3 h-3 mr-1.5" /> Copy
+                        </Button>
                      </div>
-                     <Button type="button" size="sm" variant="secondary" onClick={() => copyNumber(activePay.number)} className="h-8 px-3 text-[10px] font-bold bg-white text-black hover:bg-gray-200 border-0 uppercase tracking-wide">
-                        <Copy className="w-3 h-3 mr-1.5" /> Copy
-                     </Button>
+
+                     {/* ⚡ USDT Conversion Display */}
+                     {paymentMethod === "binance" && (
+                       <div className="pt-3 border-t border-white/10 animate-in fade-in slide-in-from-top-1">
+                         <div className="flex items-center gap-2 mb-1.5 text-yellow-400">
+                           <Coins className="w-4 h-4" />
+                           <span className="text-xs font-bold uppercase">Conversion Rate: 1 Dollar = {usdtRate} Tk</span>
+                         </div>
+                         <div className="flex justify-between items-center bg-yellow-900/10 p-2.5 rounded border border-yellow-500/20">
+                           <span className="text-xs text-yellow-200/80">You need to send:</span>
+                           <span className="text-lg font-bold text-yellow-400 font-mono">${usdtAmount} USDT</span>
+                         </div>
+                       </div>
+                     )}
                   </div>
 
-                  {/* TrxID Input (Sender Number REMOVED) */}
+                  {/* TrxID Input */}
                   <div className="space-y-1.5">
                      <Label className="text-white text-[11px] font-bold uppercase flex justify-between items-center">
-                       Transaction ID (TrxID) <span className="text-red-500 text-[9px] lowercase">*required</span>
+                       Transaction ID (TrxID) Or Binanace Id <span className="text-red-500 text-[9px] lowercase">*required</span>
                      </Label>
                      <Input 
                        name="transactionId" 
@@ -379,7 +415,14 @@ export default function CheckoutPage() {
                     )}
                     <div className="flex justify-between items-end pt-3 border-t border-white/10 mt-3">
                        <span className="text-sm text-white font-bold uppercase">Total Payable</span>
-                       <span className="text-xl font-bold text-green-400 font-mono">৳{finalTotal.toLocaleString()}</span>
+                       <div className="text-right">
+                         <span className="text-xl font-bold text-green-400 font-mono block">৳{finalTotal.toLocaleString()}</span>
+                         {paymentMethod === "binance" && (
+                           <span className="text-[10px] text-yellow-400 font-mono">
+                             ≈ ${usdtAmount} USDT
+                           </span>
+                         )}
+                       </div>
                     </div>
                   </div>
 
