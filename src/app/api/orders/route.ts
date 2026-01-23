@@ -264,30 +264,75 @@ export async function POST(req: NextRequest) {
 }
 
 // ==============================================================================
-// GET: Fetch Orders (Secure & Role-Based)
+// GET: Fetch Orders (Secure, Role-Based & Paginated)
 // ==============================================================================
 export async function GET(req: NextRequest) {
   try {
+    // 1. Auth Check
     const session = await getServerSession(authOptions);
-       
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     await connectToDatabase();
 
+    // 2. Parse Pagination Params
+    // Default to Page 1, 10 items per page if not specified
+    const { searchParams } = new URL(req.url);
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
+    const limit = Math.max(1, Math.min(50, parseInt(searchParams.get("limit") || "10"))); // Max limit 50 for safety
+    const skip = (page - 1) * limit;
+
+    // 3. Search Query (Optional: Filter by transaction ID if passed)
+    const search = searchParams.get("search") || "";
+
+    // 4. Build Database Query
     let query: any = {};
+
+    // Role Security: Admins see all, Users see their own
     if (session.user.role !== "ADMIN") {
-      query = { user: session.user.id };
+      query.user = session.user.id;
     }
 
-    const orders = await Order.find(query)
-      .populate({ path: "user", select: "name email phone", model: User })
-      .populate({ path: "products.product", select: "title thumbnail slug pricing videoUrl", model: Product })
-      .sort({ createdAt: -1 })
-      .lean();
+    // Add Search Logic (If search term exists)
+    if (search) {
+      query.$or = [
+        { transactionId: { $regex: search, $options: "i" } },
+        { "deliveredContent.accountEmail": { $regex: search, $options: "i" } } // Search by delivered email too
+      ];
+    }
 
-    return NextResponse.json({ success: true, orders }, { status: 200 });
+    // 5. Execute Queries in Parallel (Faster)
+    // We need 'total' for the UI pagination numbers, and 'orders' for the table
+    const [orders, totalOrders] = await Promise.all([
+      Order.find(query)
+        .populate({ path: "user", select: "name email phone", model: User })
+        .populate({ path: "products.product", select: "title thumbnail slug pricing", model: Product })
+        .sort({ createdAt: -1 }) // Newest first
+        .skip(skip)              // Skip previous pages
+        .limit(limit)            // Fetch only this page size
+        .lean(),                 // Convert to plain JS object (Performance)
+      
+      Order.countDocuments(query) // Get total count for pagination math
+    ]);
+
+    // 6. Calculate Metadata
+    const totalPages = Math.ceil(totalOrders / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
+
+    return NextResponse.json({ 
+      success: true, 
+      orders,
+      pagination: {
+        totalOrders,
+        totalPages,
+        currentPage: page,
+        pageSize: limit,
+        hasNextPage,
+        hasPrevPage
+      }
+    }, { status: 200 });
 
   } catch (error: any) {
     console.error("Fetch Orders Error:", error);

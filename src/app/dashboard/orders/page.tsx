@@ -1,13 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Search, ShoppingBag, Clock, CheckCircle2, XCircle, 
-  Key, Download, Copy, Loader2, Filter, Zap, Package, 
-  Calendar as CalendarIcon, ExternalLink
+  Key, Copy, Loader2, Filter, Zap, Package, 
+  Calendar as CalendarIcon, ExternalLink, ChevronLeft, ChevronRight
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -35,9 +34,13 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<IOrder[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // Filters
+  // Filters & Search
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+
+  // ⚡ Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 18; // Number of orders per page
 
   // Fetch Data
   useEffect(() => {
@@ -63,12 +66,11 @@ export default function OrdersPage() {
     toast.success("Copied to clipboard!");
   };
 
-  // Filter Logic
+  // ⚡ Filter Logic
   const filteredOrders = orders.filter((order) => {
-    // ⚡ FIX: Safely access product title with optional chaining and fallback
     const firstItem = order.products?.[0];
     
-    // Check if product exists and is an object (populated)
+    // Safely get title
     const productTitle = firstItem 
       ? (typeof firstItem.product === 'object' && firstItem.product 
           ? (firstItem.product as any).title 
@@ -84,6 +86,16 @@ export default function OrdersPage() {
     return matchesSearch && matchesStatus;
   });
 
+  // ⚡ Pagination Logic
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const currentOrders = filteredOrders.slice(startIndex, startIndex + itemsPerPage);
+
+  // Reset to page 1 if filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, statusFilter]);
+
   if (loading) {
     return (
       <div className="h-[70vh] flex items-center justify-center bg-black">
@@ -96,30 +108,30 @@ export default function OrdersPage() {
     <div className="space-y-8 text-white min-h-screen py-6 px-4 max-w-5xl mx-auto">
       
       {/* === HEADER === */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#111] p-6 rounded-2xl border border-white/5 shadow-sm">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-white">My Orders</h1>
-          <p className="text-sm text-gray-400">Track purchase history and access your items</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">My Orders</h1>
+          <p className="text-sm text-gray-400 mt-1">Track purchase history and access your items</p>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative">
+        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+          <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
             <Input 
               placeholder="Search ID or Product..." 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 bg-[#111] border-gray-800 text-white w-full sm:w-64 h-10 placeholder:text-gray-600 focus:border-gray-700 focus-visible:ring-green-500/20"
+              className="pl-9 bg-[#0a0a0a] border-white/10 text-white w-full h-10 placeholder:text-gray-600 focus:border-white/20 focus-visible:ring-1 focus-visible:ring-green-500/50 transition-all"
             />
           </div>
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="border-gray-800 bg-[#111] text-gray-300 hover:bg-gray-800 hover:text-white justify-between h-10 min-w-[100px]">
-                <span className="flex items-center gap-2"><Filter className="w-3.5 h-3.5" /> {statusFilter === 'all' ? 'Status' : statusFilter}</span>
+              <Button variant="outline" className="border-white/10 bg-[#0a0a0a] text-gray-300 hover:bg-white/5 hover:text-white justify-between h-10 min-w-[110px]">
+                <span className="flex items-center gap-2"><Filter className="w-3.5 h-3.5" /> <span className="capitalize">{statusFilter}</span></span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-[#111] border-gray-800 text-white w-40">
+            <DropdownMenuContent align="end" className="bg-[#1a1a1a] border-white/10 text-white w-40">
               <DropdownMenuItem onClick={() => setStatusFilter("all")} className="cursor-pointer hover:bg-white/10">All</DropdownMenuItem>
               <DropdownMenuItem onClick={() => setStatusFilter("completed")} className="cursor-pointer text-green-400 hover:bg-white/10">Completed</DropdownMenuItem>
               <DropdownMenuItem onClick={() => setStatusFilter("pending")} className="cursor-pointer text-yellow-400 hover:bg-white/10">Pending</DropdownMenuItem>
@@ -135,17 +147,17 @@ export default function OrdersPage() {
           <motion.div 
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }} 
-            className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-gray-800 rounded-xl bg-[#0a0a0a]"
+            className="flex flex-col items-center justify-center py-24 text-center border border-dashed border-white/10 rounded-2xl bg-[#0a0a0a]"
           >
-            <div className="bg-gray-900 p-4 rounded-full mb-3">
-              <ShoppingBag className="w-8 h-8 text-gray-600" />
+            <div className="bg-white/5 p-5 rounded-full mb-4">
+              <ShoppingBag className="w-10 h-10 text-gray-600" />
             </div>
-            <h3 className="text-lg font-bold text-white">No orders found</h3>
-            <p className="text-gray-500 text-sm mt-1">Your purchase history is empty.</p>
+            <h3 className="text-xl font-bold text-white mb-1">No orders found</h3>
+            <p className="text-gray-500 text-sm max-w-xs mx-auto">Try adjusting your search or filters to find what you are looking for.</p>
           </motion.div>
         ) : (
-          <AnimatePresence>
-            {filteredOrders.map((order, index) => (
+          <AnimatePresence mode="popLayout">
+            {currentOrders.map((order, index) => (
               <OrderListItem 
                 key={order._id} 
                 order={order} 
@@ -156,6 +168,56 @@ export default function OrdersPage() {
           </AnimatePresence>
         )}
       </div>
+
+      {/* === ⚡ PAGINATION CONTROLS === */}
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center gap-2 pt-6 border-t border-white/10">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => {
+              setCurrentPage(p => Math.max(1, p - 1));
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            disabled={currentPage === 1}
+            className="h-9 w-9 border-white/10 bg-transparent text-white hover:bg-white/10 disabled:opacity-30"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          
+          <div className="flex items-center gap-1">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <button
+                key={page}
+                onClick={() => {
+                  setCurrentPage(page);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className={`h-9 w-9 rounded-md text-sm font-medium transition-all font-mono ${
+                  currentPage === page
+                    ? "bg-white text-black font-bold shadow-lg shadow-white/10"
+                    : "text-gray-400 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+          </div>
+
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => {
+              setCurrentPage(p => Math.min(totalPages, p + 1));
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            disabled={currentPage === totalPages}
+            className="h-9 w-9 border-white/10 bg-transparent text-white hover:bg-white/10 disabled:opacity-30"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
@@ -163,7 +225,7 @@ export default function OrdersPage() {
 // === SUB-COMPONENT: Order Item ===
 function OrderListItem({ order, index, onCopy }: { order: IOrder, index: number, onCopy: (t: string) => void }) {
   
-  // ⚡ FIX: Safer Access Logic for Product Data
+  // Safe Product Access
   const firstItem = order.products?.[0];
   const productData = firstItem && typeof firstItem.product === 'object' && firstItem.product !== null 
     ? (firstItem.product as any) 
@@ -178,7 +240,7 @@ function OrderListItem({ order, index, onCopy }: { order: IOrder, index: number,
     
   const extraCount = (order.products?.length || 0) - 1;
 
-  // Status Style Config
+  // Status Config
   const statusConfig: any = {
     pending: { color: "text-yellow-400 bg-yellow-400/10 border-yellow-400/20", icon: Clock },
     processing: { color: "text-blue-400 bg-blue-400/10 border-blue-400/20", icon: Zap },
@@ -197,11 +259,15 @@ function OrderListItem({ order, index, onCopy }: { order: IOrder, index: number,
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ delay: index * 0.05 }}
     >
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-xl bg-[#111] border border-gray-800 hover:border-gray-700 transition-all group shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-xl bg-[#111] border border-white/5 hover:border-white/10 transition-all group shadow-sm hover:shadow-md">
         
         {/* Left: Thumbnail */}
-        <div className="relative w-full sm:w-20 h-32 sm:h-20 bg-gray-900 rounded-lg overflow-hidden shrink-0 border border-gray-800">
-          <img src={thumbnail} alt={title}  className="object-cover transition-transform group-hover:scale-105" />
+        <div className="relative w-full sm:w-20 h-32 sm:h-20 bg-gray-900 rounded-lg overflow-hidden shrink-0 border border-white/5">
+          <img 
+            src={thumbnail} 
+            alt={title} 
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+          />
           {extraCount > 0 && (
             <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-xs font-bold text-white backdrop-blur-[1px]">
               +{extraCount} more
@@ -212,14 +278,14 @@ function OrderListItem({ order, index, onCopy }: { order: IOrder, index: number,
         {/* Center: Info */}
         <div className="flex-1 min-w-0 flex flex-col justify-center gap-1.5">
           <div className="flex items-center gap-2">
-            <h3 className="font-bold text-white text-base truncate max-w-[200px] sm:max-w-md" title={title}>
+            <h3 className="font-bold text-white text-base truncate max-w-[200px] sm:max-w-md group-hover:text-green-400 transition-colors" title={title}>
               {title}
             </h3>
             {extraCount > 0 && <span className="text-[10px] text-gray-500 bg-white/5 px-1.5 py-0.5 rounded hidden sm:inline-block">+{extraCount} items</span>}
           </div>
           
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-gray-500">
-            <span className="font-mono bg-gray-900 px-1.5 py-0.5 rounded border border-gray-800 text-gray-400 flex items-center gap-1">
+            <span className="font-mono bg-white/5 px-1.5 py-0.5 rounded border border-white/5 text-gray-400 flex items-center gap-1">
               <span className="text-[10px] text-gray-600">ID:</span> #{order.transactionId?.slice(-6) || "N/A"}
             </span>
             <span className="flex items-center gap-1">
@@ -233,7 +299,7 @@ function OrderListItem({ order, index, onCopy }: { order: IOrder, index: number,
         </div>
 
         {/* Right: Status, Price & Action */}
-        <div className="flex items-center justify-between sm:justify-end gap-6 w-full sm:w-auto border-t sm:border-t-0 border-gray-800 pt-3 sm:pt-0 mt-2 sm:mt-0">
+        <div className="flex items-center justify-between sm:justify-end gap-6 w-full sm:w-auto border-t sm:border-t-0 border-white/5 pt-3 sm:pt-0 mt-2 sm:mt-0">
           
           {/* Desktop Status */}
           <div className="hidden sm:flex flex-col items-end gap-1">
@@ -256,8 +322,8 @@ function OrderListItem({ order, index, onCopy }: { order: IOrder, index: number,
             </DialogTrigger>
             
             {/* --- MODAL CONTENT --- */}
-            <DialogContent className="bg-[#111] border-gray-800 text-white sm:max-w-md p-0 overflow-hidden shadow-2xl">
-              <DialogHeader className="p-5 border-b border-gray-800 bg-[#161616]">
+            <DialogContent className="bg-[#111] border-white/10 text-white sm:max-w-md p-0 overflow-hidden shadow-2xl">
+              <DialogHeader className="p-5 border-b border-white/10 bg-[#161616]">
                 <DialogTitle className="flex justify-between items-center">
                   <span className="text-sm font-bold uppercase tracking-wider">Order Details</span>
                   <Badge className={`${status.color} border px-2 py-0.5 text-[10px]`}>{order.status}</Badge>
@@ -316,17 +382,17 @@ function OrderListItem({ order, index, onCopy }: { order: IOrder, index: number,
                         </div>
                       )}
 
-                      {/* Download/Access Link - Handle Multiple Links */}
+                      {/* Download/Access Link */}
                       {order.deliveredContent.downloadLink && (
                          <div className="pt-2">
-                            <Button asChild className="w-full bg-green-600 hover:bg-green-500 text-white font-bold h-10 text-xs">
+                            {/* If clean single link, show button. If combined/messy, show button + text */}
+                            <Button asChild className="w-full bg-green-600 hover:bg-green-500 text-white font-bold h-10 text-xs shadow-lg shadow-green-900/20">
                                <a href={order.deliveredContent.downloadLink.split('\n')[0].split(': ').pop()} target="_blank" rel="noopener noreferrer">
                                   <ExternalLink className="w-3.5 h-3.5 mr-2"/> Access Content Now
                                </a>
                             </Button>
-                            {/* If raw links are complex, show them in a text area too */}
                             {order.deliveredContent.downloadLink.includes('\n') && (
-                               <div className="mt-2 text-[10px] text-gray-400 bg-black/20 p-2 rounded border border-white/5 font-mono whitespace-pre-wrap">
+                               <div className="mt-2 text-[10px] text-gray-400 bg-black/20 p-2 rounded border border-white/5 font-mono whitespace-pre-wrap max-h-32 overflow-y-auto scrollbar-hide">
                                  {order.deliveredContent.downloadLink}
                                </div>
                             )}
@@ -335,7 +401,7 @@ function OrderListItem({ order, index, onCopy }: { order: IOrder, index: number,
 
                       {/* Notes */}
                       {order.deliveredContent.accessNotes && (
-                        <div className="text-[11px] text-green-100/70 bg-green-500/10 p-3 rounded border border-green-500/10 leading-relaxed whitespace-pre-line">
+                        <div className="text-[11px] text-green-100/70 bg-green-500/10 p-3 rounded border border-green-500/10 leading-relaxed whitespace-pre-line max-h-40 overflow-y-auto scrollbar-hide">
                           <span className="font-bold text-green-400 block text-[9px] uppercase mb-1">Instructions:</span>
                           {order.deliveredContent.accessNotes}
                         </div>

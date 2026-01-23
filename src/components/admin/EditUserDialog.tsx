@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Pencil, Loader2, Save, UserCog, Mail, Phone, Shield } from "lucide-react";
+import { Pencil, Loader2, Save, User, Mail, Phone, Shield } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +10,7 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
-  DialogDescription, // Added for better UI/Accessibility
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,8 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-// Interface matches your Mongoose Schema exactly
-interface User {
+interface IUser {
   _id: string;
   name: string;
   email: string;
@@ -33,8 +32,8 @@ interface User {
 }
 
 interface EditUserDialogProps {
-  user: User;
-  onUpdate: (user: User) => void;
+  user: IUser;
+  onUpdate: (user: IUser) => void;
   fullWidth?: boolean; 
 }
 
@@ -42,12 +41,25 @@ export function EditUserDialog({ user, onUpdate, fullWidth }: EditUserDialogProp
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   
+  // Initialize form data
   const [formData, setFormData] = useState({
     name: user.name,
     email: user.email,
     phone: user.phone || "",
     role: user.role,
   });
+
+  // Reset form when user prop changes or modal opens
+  useEffect(() => {
+    if (open) {
+      setFormData({
+        name: user.name,
+        email: user.email,
+        phone: user.phone || "",
+        role: user.role,
+      });
+    }
+  }, [open, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,101 +94,117 @@ export function EditUserDialog({ user, onUpdate, fullWidth }: EditUserDialogProp
         <Button 
           variant={fullWidth ? "outline" : "ghost"} 
           size={fullWidth ? "default" : "icon"}
-          className={`
-            ${fullWidth 
-              ? "w-full border-gray-800 bg-[#111] text-gray-300 hover:bg-gray-800 hover:text-white transition-all" 
-              : "text-blue-500 hover:bg-blue-900/20 hover:text-blue-400 h-8 w-8"
-            }
-          `}
+          className={
+            fullWidth 
+              ? "w-full border-white/10 bg-[#111] text-gray-300 hover:bg-white/5 hover:text-white transition-all h-9" 
+              : "text-gray-500 hover:text-blue-400 hover:bg-blue-500/10 h-8 w-8"
+          }
         >
-          <Pencil className="w-4 h-4 mr-2" /> {fullWidth ? "Edit Profile" : ""}
+          <Pencil className={`w-3.5 h-3.5 ${fullWidth ? "mr-2" : ""}`} /> 
+          {fullWidth && "Edit Profile"}
         </Button>
       </DialogTrigger>
       
-      <DialogContent className="bg-[#111] border-gray-800 text-white sm:max-w-[450px] shadow-2xl p-6">
+      <DialogContent className="bg-[#111] border-white/10 text-white sm:max-w-[450px] shadow-2xl p-6 gap-6">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold flex items-center gap-2">
-            <UserCog className="w-5 h-5 text-green-500" />
+            <div className="bg-white/10 p-2 rounded-lg">
+              <User className="w-5 h-5 text-blue-400" />
+            </div>
             Edit User Details
           </DialogTitle>
-          <DialogDescription className="text-gray-400 text-sm">
-            Make changes to the user profile here. Click save when you're done.
+          <DialogDescription className="text-gray-500 text-sm">
+            Update personal information and permissions for <span className="text-white font-medium">{user.name}</span>.
           </DialogDescription>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-5 py-2">
+        <form onSubmit={handleSubmit} className="space-y-5">
           
-          {/* Name Field */}
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Full Name</Label>
-            <div className="relative">
-              <UserCog className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
-              <Input 
-                value={formData.name} 
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
-                className="pl-9 bg-[#0a0a0a] border-gray-800 text-white focus-visible:ring-green-500/50 focus-visible:border-green-500 h-10"
-                placeholder="User Name"
-              />
+          <div className="grid gap-4">
+            {/* Name Field */}
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Full Name</Label>
+              <div className="relative">
+                <User className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
+                <Input 
+                  value={formData.name} 
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  className="pl-9 bg-[#0a0a0a] border-white/10 text-white focus-visible:ring-blue-500/50 focus-visible:border-blue-500/50 h-10"
+                  placeholder="User Name"
+                />
+              </div>
+            </div>
+
+            {/* Email Field */}
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Email Address</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
+                <Input 
+                  value={formData.email} 
+                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  className="pl-9 bg-[#0a0a0a] border-white/10 text-white focus-visible:ring-blue-500/50 focus-visible:border-blue-500/50 h-10"
+                  placeholder="user@example.com"
+                />
+              </div>
+            </div>
+
+            {/* Phone Field */}
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Phone Number</Label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
+                <Input 
+                  value={formData.phone} 
+                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                  className="pl-9 bg-[#0a0a0a] border-white/10 text-white focus-visible:ring-blue-500/50 focus-visible:border-blue-500/50 h-10"
+                  placeholder="017xxxxxxxx"
+                />
+              </div>
+            </div>
+
+            {/* Role Selection */}
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Account Role</Label>
+              <div className="relative">
+                <Shield className="absolute left-3 top-2.5 h-4 w-4 z-10 text-gray-500" />
+                <Select 
+                  value={formData.role} 
+                  onValueChange={(val: "user" | "ADMIN") => setFormData({...formData, role: val})}
+                >
+                  <SelectTrigger className="pl-9 bg-[#0a0a0a] border-white/10 text-white focus:ring-blue-500/50 h-10">
+                    <SelectValue placeholder="Select Role" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#1a1a1a] border-white/10 text-white">
+                    <SelectItem value="user" className="focus:bg-white/10 focus:text-white cursor-pointer py-3">
+                      User (Standard)
+                    </SelectItem>
+                    <SelectItem value="ADMIN" className="focus:bg-white/10 focus:text-white cursor-pointer text-purple-400 font-semibold py-3">
+                      ADMIN (Full Access)
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 
-          {/* Email Field */}
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Email Address</Label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
-              <Input 
-                value={formData.email} 
-                onChange={(e) => setFormData({...formData, email: e.target.value})}
-                className="pl-9 bg-[#0a0a0a] border-gray-800 text-white focus-visible:ring-green-500/50 focus-visible:border-green-500 h-10"
-                placeholder="user@example.com"
-              />
-            </div>
-          </div>
-
-          {/* Phone Field */}
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Phone Number</Label>
-            <div className="relative">
-              <Phone className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
-              <Input 
-                value={formData.phone} 
-                onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                className="pl-9 bg-[#0a0a0a] border-gray-800 text-white focus-visible:ring-green-500/50 focus-visible:border-green-500 h-10"
-                placeholder="017xxxxxxxx"
-              />
-            </div>
-          </div>
-
-          {/* Role Selection */}
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Account Role</Label>
-            <div className="relative">
-              <Shield className="absolute left-3 top-2.5 h-4 w-4 z-10 text-gray-500" />
-              <Select 
-                value={formData.role} 
-                onValueChange={(val: "user" | "ADMIN") => setFormData({...formData, role: val})}
-              >
-                <SelectTrigger className="pl-9 bg-[#0a0a0a] border-gray-800 text-white focus:ring-green-500/50 h-10">
-                  <SelectValue placeholder="Select Role" />
-                </SelectTrigger>
-                <SelectContent className="bg-[#1a1a1a] border-gray-800 text-white">
-                  <SelectItem value="user" className="focus:bg-gray-800 focus:text-white cursor-pointer">User (Standard)</SelectItem>
-                  <SelectItem value="ADMIN" className="focus:bg-gray-800 focus:text-white cursor-pointer text-purple-400 font-semibold">ADMIN (Full Access)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <DialogFooter className="pt-2">
+          <DialogFooter className="flex gap-2 pt-2">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setOpen(false)}
+              className="border-white/10 text-gray-400 hover:text-white hover:bg-white/5"
+            >
+              Cancel
+            </Button>
             <Button 
               type="submit" 
               disabled={loading}
-              className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto font-semibold shadow-lg shadow-green-900/20"
+              className="bg-white text-black hover:bg-gray-200 font-semibold"
             >
               {loading ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" /> Updating...
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" /> Saving...
                 </>
               ) : (
                 <>

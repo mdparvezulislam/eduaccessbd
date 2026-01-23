@@ -15,36 +15,56 @@ export async function GET() {
 
     await connectToDatabase();
 
-    // Run all queries in parallel for speed
-    const [totalUsers, totalProducts, orders] = await Promise.all([
+    // Run parallel queries for speed
+    const [
+      totalUsers,
+      totalProducts,
+      orderStats
+    ] = await Promise.all([
       User.countDocuments({ role: "user" }),
       Product.countDocuments({}),
-      Order.find({}).select("amount status"), // Fetch only needed fields
+      Order.aggregate([
+        {
+          $group: {
+            _id: null,
+            totalOrders: { $sum: 1 },
+            totalRevenue: {
+              $sum: { $cond: [{ $eq: ["$status", "completed"] }, "$amount", 0] }
+            },
+            pendingOrders: {
+              $sum: { $cond: [{ $eq: ["$status", "pending"] }, 1, 0] }
+            },
+            completedOrders: {
+              $sum: { $cond: [{ $eq: ["$status", "completed"] }, 1, 0] }
+            },
+            cancelledOrders: {
+              $sum: { $cond: [{ $eq: ["$status", "cancelled"] }, 1, 0] }
+            }
+          }
+        }
+      ])
     ]);
 
-    // Calculate details in memory (faster for small-medium apps)
-    const totalOrders = orders.length;
-    const pendingOrders = orders.filter((o) => o.status === "pending").length;
-    const completedOrders = orders.filter((o) => o.status === "completed").length;
-    
-    // Calculate Total Revenue
-    const totalRevenue = orders
-      .filter((o) => o.status === "completed")
-      .reduce((acc, curr) => acc + curr.amount, 0);
+    // Extract stats safely (aggregate returns an array)
+    const stats = orderStats[0] || {
+      totalOrders: 0,
+      totalRevenue: 0,
+      pendingOrders: 0,
+      completedOrders: 0,
+      cancelledOrders: 0
+    };
 
     return NextResponse.json({
       success: true,
       stats: {
         totalUsers,
         totalProducts,
-        totalOrders,
-        pendingOrders,
-        completedOrders,
-        totalRevenue
+        ...stats
       }
     });
 
   } catch (error) {
+    console.error("Stats API Error:", error);
     return NextResponse.json({ error: "Failed to fetch stats" }, { status: 500 });
   }
 }

@@ -26,7 +26,7 @@ export default function UserDashboard() {
         const res = await fetch("/api/orders");
         const data = await res.json();
         if (data.success) {
-          setOrders(data.orders);
+          setOrders(data.orders.slice(0, 7)); // Get only recent 7 orders
         }
       } catch (error) {
         console.error("Failed to fetch orders");
