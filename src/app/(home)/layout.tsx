@@ -13,8 +13,8 @@ export default function HomePagelayout({
           <Navbar />
 
       {/* Dynamic Page Content */}
-      <main className="flex-1 lg:pl-64 w-full">
-        <div className="p-4 md:p-8 max-w-7xl mx-auto">
+      <main className="flex-1 lg:pl-4 w-full">
+        <div className="p-0 md:p-2 mx-auto">
           {children}
                 <Footer />
         </div>

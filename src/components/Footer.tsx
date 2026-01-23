@@ -11,7 +11,7 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="relative bg-black text-white border-t border-white/10 overflow-hidden font-sans">
+    <footer className="relative bg-black text-white border-t border-white/10 overflow-hidden font-sans px-2">
       
       {/* === BACKGROUND AMBIENCE === */}
       <div className="absolute inset-0 pointer-events-none">

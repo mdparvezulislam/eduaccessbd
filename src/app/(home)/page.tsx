@@ -27,6 +27,8 @@ export default async function Home() {
 //  filter featured products
  const featuredProducts = data.products.filter((product: IProduct) => product.isFeatured === true);
  
+//  filter popular products
+  const popularProducts = data.products.slice(32, 50);
   return (
     <div>
       <HeroSection />
@@ -34,7 +36,7 @@ export default async function Home() {
       <FeaturedCourses products={featuredProducts} />
       {/* Header */}
       <div className="flex items-center justify-between mb-6 md:mb-10">
-        <div className="flex items-center gap-2">
+        <div className="flex sm:ml-28 ml-2  items-center gap-2">
           <div className="h-8 w-1 bg-green-500 rounded-full"></div>
           <h2 className="text-xl md:text-3xl font-bold tracking-wide text-white">
             Popular Courses
@@ -49,6 +51,7 @@ export default async function Home() {
       </div>
 
       <ProductList products={data?.products} />
+       <FeaturedCourses products={popularProducts} />
     </div>
   );
 }

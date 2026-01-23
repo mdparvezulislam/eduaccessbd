@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen, CreditCard, LayoutDashboard, User } from "lucide-react";
+import Link from "next/link";
 
 export default function QuickActions() {
   return (
@@ -10,26 +11,35 @@ export default function QuickActions() {
         <CardTitle className="text-lg text-white">Quick Actions</CardTitle>
       </CardHeader>
       <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <ActionButton 
-          icon={<BookOpen />} 
-          title="My Courses" 
-          desc="Continue learning" 
-        />
-        <ActionButton 
-          icon={<CreditCard />} 
-          title="Payment History" 
-          desc="View transactions" 
-        />
-        <ActionButton 
-          icon={<LayoutDashboard />} 
-          title="Browse Courses" 
-          desc="Explore new content" 
-        />
-        <ActionButton 
-          icon={<User />} 
-          title="My Profile" 
-          desc="Update Info" 
-        />
+{/*  Here add Link to other pages */}
+        <Link href="/dashboard/profile" className="w-full">
+          <ActionButton
+            icon={<User size={20} />}
+            title="Edit Profile"
+            desc="Update your personal information"
+          />
+        </Link>
+        <Link href="/dashboard/orders" className="w-full">
+          <ActionButton
+            icon={<LayoutDashboard size={20} />}
+            title="View Orders"
+            desc="Check your recent orders"
+          />
+        </Link>
+        <Link href="/dashboard/payments" className="w-full">
+          <ActionButton
+            icon={<CreditCard size={20} />}
+            title="Manage Payments"
+            desc="Update your payment methods"
+          />
+        </Link>
+        <Link href="/products" className="w-full">
+          <ActionButton
+            icon={<BookOpen size={20} />}
+            title="View More "
+            desc="Access learning materials"
+          />
+        </Link>
       </CardContent>
     </Card>
   );

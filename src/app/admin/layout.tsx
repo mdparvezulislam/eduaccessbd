@@ -43,7 +43,7 @@ export default async function AdminLayout({
         </header>
 
         {/* Page Content */}
-        <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-slate-50/50">
+        <main className="flex flex-1 flex-col gap-2 p-0 lg:gap-4 lg:p-2 bg-slate-50/50">
            {children}
         </main>
       </div>
