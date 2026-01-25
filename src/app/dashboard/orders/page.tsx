@@ -40,7 +40,7 @@ export default function OrdersPage() {
 
   // ⚡ Pagination State
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 18; // Number of orders per page
+  const itemsPerPage = 10; // ✅ Adjusted to 10 for better viewability
 
   // Fetch Data
   useEffect(() => {
@@ -86,15 +86,22 @@ export default function OrdersPage() {
     return matchesSearch && matchesStatus;
   });
 
-  // ⚡ Pagination Logic
+  // ⚡ Pagination Logic Calculation
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const currentOrders = filteredOrders.slice(startIndex, startIndex + itemsPerPage);
+  const endIndex = startIndex + itemsPerPage;
+  const currentOrders = filteredOrders.slice(startIndex, endIndex); // ✅ Slice data for current page
 
-  // Reset to page 1 if filter changes
+  // ✅ Reset to page 1 if filter changes
   useEffect(() => {
     setCurrentPage(1);
   }, [search, statusFilter]);
+
+  // ✅ Scroll to top on page change
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   if (loading) {
     return (
@@ -142,7 +149,7 @@ export default function OrdersPage() {
       </div>
 
       {/* === ORDERS LIST === */}
-      <div className="space-y-4">
+      <div className="space-y-4 min-h-[400px]"> 
         {filteredOrders.length === 0 ? (
           <motion.div 
             initial={{ opacity: 0 }} 
@@ -171,32 +178,29 @@ export default function OrdersPage() {
 
       {/* === ⚡ PAGINATION CONTROLS === */}
       {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-2 pt-6 border-t border-white/10">
+        <div className="flex justify-center items-center gap-2 pt-6 border-t border-white/10 animate-in fade-in slide-in-from-bottom-4">
+          
+          {/* Previous Button */}
           <Button
             variant="outline"
             size="icon"
-            onClick={() => {
-              setCurrentPage(p => Math.max(1, p - 1));
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
+            onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
             disabled={currentPage === 1}
-            className="h-9 w-9 border-white/10 bg-transparent text-white hover:bg-white/10 disabled:opacity-30"
+            className="h-9 w-9 border-white/10 bg-transparent text-white hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent"
           >
             <ChevronLeft className="w-4 h-4" />
           </Button>
           
-          <div className="flex items-center gap-1">
+          {/* Page Numbers */}
+          <div className="flex items-center gap-1.5">
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
               <button
                 key={page}
-                onClick={() => {
-                  setCurrentPage(page);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
-                className={`h-9 w-9 rounded-md text-sm font-medium transition-all font-mono ${
+                onClick={() => handlePageChange(page)}
+                className={`h-9 w-9 rounded-lg text-sm transition-all font-mono border ${
                   currentPage === page
-                    ? "bg-white text-black font-bold shadow-lg shadow-white/10"
-                    : "text-gray-400 hover:bg-white/10 hover:text-white"
+                    ? "bg-white text-black font-bold border-white shadow-lg shadow-white/10 scale-105"
+                    : "bg-transparent text-gray-400 border-transparent hover:bg-white/5 hover:text-white"
                 }`}
               >
                 {page}
@@ -204,20 +208,26 @@ export default function OrdersPage() {
             ))}
           </div>
 
+          {/* Next Button */}
           <Button
             variant="outline"
             size="icon"
-            onClick={() => {
-              setCurrentPage(p => Math.min(totalPages, p + 1));
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
+            onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
             disabled={currentPage === totalPages}
-            className="h-9 w-9 border-white/10 bg-transparent text-white hover:bg-white/10 disabled:opacity-30"
+            className="h-9 w-9 border-white/10 bg-transparent text-white hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent"
           >
             <ChevronRight className="w-4 h-4" />
           </Button>
         </div>
       )}
+      
+      {/* Page Info Text */}
+      {filteredOrders.length > 0 && (
+         <div className="text-center text-xs text-gray-600 font-mono">
+            Showing {startIndex + 1} - {Math.min(endIndex, filteredOrders.length)} of {filteredOrders.length} orders
+         </div>
+      )}
+
     </div>
   );
 }

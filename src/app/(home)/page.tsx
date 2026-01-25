@@ -2,6 +2,7 @@ import CategorySection from "@/components/CategorySLider";
 import HeroSection from "@/components/HeroSlider";
 import FeaturedCourses from "@/components/home/FeaturedCourses";
 import ProductList from "@/components/home/ProductList";
+import HowToBuySection from "@/components/HowToBuySection";
 import { IProduct, SITE_URL } from "@/types";
 import { ArrowRight, Link } from "lucide-react";
 
@@ -33,7 +34,9 @@ export default async function Home() {
     <div>
       <HeroSection />
       <CategorySection categories={categories} />
+ 
       <FeaturedCourses products={featuredProducts} />
+           <HowToBuySection />
       {/* Header */}
       <div className="flex items-center justify-between mb-6 md:mb-10">
         <div className="flex sm:ml-28 ml-2  items-center gap-2">
