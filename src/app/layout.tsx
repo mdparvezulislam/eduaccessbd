@@ -5,6 +5,7 @@ import Providers from "@/components/Providers";
 import { ImageKitProvider } from "@imagekit/next";
 import { Toaster } from "sonner";
 import { GoogleTagManager } from "@next/third-parties/google";
+import LiveSalesPopup from "@/components/LiveSalesPopup";
 
 
 // 1. FONTS
@@ -145,7 +146,7 @@ export default function RootLayout({
             {children}
       
           </ImageKitProvider>
-          
+          <LiveSalesPopup />
           <Toaster position="top-right" richColors closeButton />
         </Providers>
       </body>

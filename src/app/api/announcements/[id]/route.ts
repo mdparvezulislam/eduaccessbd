@@ -22,12 +22,31 @@ export async function PUT(req: NextRequest, { params }: IdParams) {
     const { id } = await params;
     const body = await req.json();
 
+    // Destructure allowed fields to prevent pollution
+    const { 
+      title, 
+      description, 
+      type, 
+      isActive,
+      link,        // ✅ New Popup Field
+      imageUrl,    // ✅ New Popup Field
+      buttonText   // ✅ New Popup Field
+    } = body;
+
     await connectToDatabase();
 
     // 2. Update
     const updatedAnnouncement = await Announcement.findByIdAndUpdate(
       id,
-      { ...body }, // Updates fields sent in body (title, description, type, isActive)
+      { 
+        title,
+        description,
+        type,
+        isActive,
+        link,
+        imageUrl,
+        buttonText
+      },
       { new: true, runValidators: true }
     );
 

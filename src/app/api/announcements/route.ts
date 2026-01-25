@@ -5,14 +5,21 @@ import { authOptions } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 
 // ==================================================================
-// GET: Fetch All Active Announcements (Public)
+// GET: Fetch Announcements
 // ==================================================================
 export async function GET(req: NextRequest) {
   try {
     await connectToDatabase();
+    const session = await getServerSession(authOptions);
 
-    // Fetch only active ones, sorted by newest first
-    const announcements = await Announcement.find({ isActive: true })
+    let query: any = { isActive: true };
+
+    // If Admin, show ALL (Active & Inactive)
+    if (session?.user?.role === "ADMIN") {
+      query = {}; 
+    }
+
+    const announcements = await Announcement.find(query)
       .sort({ createdAt: -1 });
 
     return NextResponse.json({ success: true, data: announcements });
@@ -22,7 +29,7 @@ export async function GET(req: NextRequest) {
 }
 
 // ==================================================================
-// POST: Create New Announcement (Admin Only)
+// POST: Create New Announcement
 // ==================================================================
 export async function POST(req: NextRequest) {
   try {
@@ -33,7 +40,16 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { title, description, type } = body;
+    
+    const { 
+      title, 
+      description, 
+      type, 
+      isActive,
+      link,        
+      imageUrl,    
+      buttonText   
+    } = body;
 
     // 2. Validation
     if (!title || !description) {
@@ -42,12 +58,16 @@ export async function POST(req: NextRequest) {
 
     await connectToDatabase();
 
-    // 3. Create
+    // 3. Create (Will now accept "popup" because Model is updated)
     const newAnnouncement = await Announcement.create({
       title,
       description,
       type: type || "info",
-      isActive: true,
+      isActive: isActive !== undefined ? isActive : true,
+      
+      link: link || "/shop",
+      imageUrl: imageUrl || "",
+      buttonText: buttonText || "Explore Offer"
     });
 
     return NextResponse.json({ 
@@ -57,6 +77,7 @@ export async function POST(req: NextRequest) {
     }, { status: 201 });
 
   } catch (error: any) {
+    console.error("Create Error:", error);
     return NextResponse.json({ error: error.message || "Failed to create" }, { status: 500 });
   }
 }
