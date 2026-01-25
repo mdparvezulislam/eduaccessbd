@@ -38,9 +38,9 @@ export default function OrdersPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  // ⚡ Pagination State
+  // ⚡ PAGINATION STATE
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10; // ✅ Adjusted to 10 for better viewability
+  const itemsPerPage = 10; // ✅ Shows 10 orders per page
 
   // Fetch Data
   useEffect(() => {
@@ -66,7 +66,7 @@ export default function OrdersPage() {
     toast.success("Copied to clipboard!");
   };
 
-  // ⚡ Filter Logic
+  // ⚡ FILTER LOGIC
   const filteredOrders = orders.filter((order) => {
     const firstItem = order.products?.[0];
     
@@ -86,18 +86,18 @@ export default function OrdersPage() {
     return matchesSearch && matchesStatus;
   });
 
-  // ⚡ Pagination Logic Calculation
+  // ⚡ PAGINATION LOGIC (The "Next 10" Magic)
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentOrders = filteredOrders.slice(startIndex, endIndex); // ✅ Slice data for current page
+  const currentOrders = filteredOrders.slice(startIndex, endIndex); // ✅ This grabs exactly 10 items for the current view
 
-  // ✅ Reset to page 1 if filter changes
+  // Reset to page 1 if filter/search changes
   useEffect(() => {
     setCurrentPage(1);
   }, [search, statusFilter]);
 
-  // ✅ Scroll to top on page change
+  // Handle Page Change (with Scroll to Top)
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -178,54 +178,55 @@ export default function OrdersPage() {
 
       {/* === ⚡ PAGINATION CONTROLS === */}
       {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-2 pt-6 border-t border-white/10 animate-in fade-in slide-in-from-bottom-4">
+        <div className="flex flex-col items-center gap-3 pt-6 border-t border-white/10 animate-in fade-in slide-in-from-bottom-4">
           
-          {/* Previous Button */}
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
-            disabled={currentPage === 1}
-            className="h-9 w-9 border-white/10 bg-transparent text-white hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          
-          {/* Page Numbers */}
-          <div className="flex items-center gap-1.5">
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-              <button
-                key={page}
-                onClick={() => handlePageChange(page)}
-                className={`h-9 w-9 rounded-lg text-sm transition-all font-mono border ${
-                  currentPage === page
-                    ? "bg-white text-black font-bold border-white shadow-lg shadow-white/10 scale-105"
-                    : "bg-transparent text-gray-400 border-transparent hover:bg-white/5 hover:text-white"
-                }`}
-              >
-                {page}
-              </button>
-            ))}
+          <div className="flex items-center gap-2">
+            {/* Previous Button */}
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+              className="h-9 w-9 border-white/10 bg-transparent text-white hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            
+            {/* Page Numbers */}
+            <div className="flex items-center gap-1.5 flex-wrap justify-center max-w-[200px] sm:max-w-none">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <button
+                  key={page}
+                  onClick={() => handlePageChange(page)}
+                  className={`h-9 w-9 rounded-lg text-sm transition-all font-mono border ${
+                    currentPage === page
+                      ? "bg-white text-black font-bold border-white shadow-lg shadow-white/10 scale-105"
+                      : "bg-transparent text-gray-400 border-transparent hover:bg-white/5 hover:text-white"
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+
+            {/* Next Button */}
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage === totalPages}
+              className="h-9 w-9 border-white/10 bg-transparent text-white hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
           </div>
 
-          {/* Next Button */}
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
-            disabled={currentPage === totalPages}
-            className="h-9 w-9 border-white/10 bg-transparent text-white hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </Button>
+          {/* Page Info Text */}
+          <div className="text-center text-[10px] text-gray-600 font-mono uppercase tracking-widest">
+            Showing {startIndex + 1} - {Math.min(endIndex, filteredOrders.length)} of {filteredOrders.length}
+          </div>
+
         </div>
-      )}
-      
-      {/* Page Info Text */}
-      {filteredOrders.length > 0 && (
-         <div className="text-center text-xs text-gray-600 font-mono">
-            Showing {startIndex + 1} - {Math.min(endIndex, filteredOrders.length)} of {filteredOrders.length} orders
-         </div>
       )}
 
     </div>
@@ -395,26 +396,12 @@ function OrderListItem({ order, index, onCopy }: { order: IOrder, index: number,
                       {/* Download/Access Link */}
                       {order.deliveredContent.downloadLink && (
                          <div className="pt-2">
-                            {/* If clean single link, show button. If combined/messy, show button + text */}
                             <Button asChild className="w-full bg-green-600 hover:bg-green-500 text-white font-bold h-10 text-xs shadow-lg shadow-green-900/20">
                                <a href={order.deliveredContent.downloadLink.split('\n')[0].split(': ').pop()} target="_blank" rel="noopener noreferrer">
                                   <ExternalLink className="w-3.5 h-3.5 mr-2"/> Access Content Now
                                </a>
                             </Button>
-                            {order.deliveredContent.downloadLink.includes('\n') && (
-                               <div className="mt-2 text-[10px] text-gray-400 bg-black/20 p-2 rounded border border-white/5 font-mono whitespace-pre-wrap max-h-32 overflow-y-auto scrollbar-hide">
-                                 {order.deliveredContent.downloadLink}
-                               </div>
-                            )}
                          </div>
-                      )}
-
-                      {/* Notes */}
-                      {order.deliveredContent.accessNotes && (
-                        <div className="text-[11px] text-green-100/70 bg-green-500/10 p-3 rounded border border-green-500/10 leading-relaxed whitespace-pre-line max-h-40 overflow-y-auto scrollbar-hide">
-                          <span className="font-bold text-green-400 block text-[9px] uppercase mb-1">Instructions:</span>
-                          {order.deliveredContent.accessNotes}
-                        </div>
                       )}
                     </div>
                   </div>
@@ -422,9 +409,6 @@ function OrderListItem({ order, index, onCopy }: { order: IOrder, index: number,
                   <div className="bg-yellow-500/5 border border-yellow-500/10 rounded-xl p-6 text-center">
                     <Loader2 className="w-8 h-8 text-yellow-500/50 mx-auto mb-3 animate-spin" />
                     <p className="text-sm font-bold text-yellow-200 uppercase tracking-wide">Processing Payment</p>
-                    <p className="text-[11px] text-gray-500 mt-1 max-w-[200px] mx-auto">
-                      Your order is being reviewed by our team. This usually takes 15-30 minutes.
-                    </p>
                   </div>
                 )}
               </div>

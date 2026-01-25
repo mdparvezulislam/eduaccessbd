@@ -14,7 +14,7 @@ const steps = [
     title: "কোর্স সিলেক্ট করুন",
     description: "পছন্দের প্রোডাক্ট বা কোর্স বেছে নিন এবং সরাসরি 'Buy Now' বাটনে ক্লিক করুন।",
     icon: ShoppingCart,
-    image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=600&auto=format&fit=crop", 
+    image: "https://ik.imagekit.io/pemifp53t/1769358254768-2026-01-25_22.15.07_V98rkNzKV.jpg", 
     color: "text-blue-400",
     bg: "bg-blue-500/10",
     border: "border-blue-500/20"

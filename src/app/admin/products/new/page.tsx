@@ -623,7 +623,7 @@ export default function CreateProduct() {
                   placeholder={tags.length===0?"Type tags...":""} 
                   value={tagInput} 
                   onChange={(e) => setTagInput(e.target.value)} 
-                  onKeyDown={(e) => {
+                  onKeyDown={(e: React.KeyboardEvent) => {
                     if (e.key === "Enter" || e.key === ",") {
                       e.preventDefault();
                       const val = tagInput.trim();

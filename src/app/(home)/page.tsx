@@ -3,6 +3,7 @@ import HeroSection from "@/components/HeroSlider";
 import FeaturedCourses from "@/components/home/FeaturedCourses";
 import ProductList from "@/components/home/ProductList";
 import HowToBuySection from "@/components/HowToBuySection";
+import ReviewSlider from "@/components/ReviewSlider";
 import { IProduct, SITE_URL } from "@/types";
 import { ArrowRight, Link } from "lucide-react";
 
@@ -55,6 +56,7 @@ export default async function Home() {
 
       <ProductList products={data?.products} />
        <FeaturedCourses products={popularProducts} />
+       <ReviewSlider />
     </div>
   );
 }

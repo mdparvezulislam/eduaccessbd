@@ -10,7 +10,8 @@ import {
   Settings,
   Layers,
   ShieldCheck,
-  Megaphone
+  Megaphone,
+  Star
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +22,7 @@ const navItems = [
   { label: "Products", href: "/admin/products", icon: Package },
   { label: "Coupons", href: "/admin/coupons", icon: ShoppingBag },
   { label: "Categories", href: "/admin/categories", icon: Layers },
+  { label: "Reviews", href: "/admin/reviews", icon: Star },
   { label: "Users", href: "/admin/users", icon: Users },
   { label: "Settings", href: "/admin/settings", icon: Settings },
 ];
