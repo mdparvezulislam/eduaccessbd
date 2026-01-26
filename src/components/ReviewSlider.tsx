@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
 import Image from "next/image";
 import { Star, Quote, CheckCircle2, ZoomIn } from "lucide-react";
 
@@ -23,7 +22,7 @@ export default function ReviewSlider() {
         const data = await res.json();
         if (data.success) {
           const result = data.reviews;
-          // Duplicate 6 times to ensure seamless infinite loop
+          // Duplicate 6 times for seamless loop
           setReviews([...result, ...result, ...result, ...result, ...result, ...result]);
         }
       } catch (error) {
@@ -43,34 +42,31 @@ export default function ReviewSlider() {
   const secondRow = reviews.slice(half);
 
   return (
-    <section className="py-3 bg-[#050505] border-t border-b border-white/5 relative w-full overflow-hidden">
+    <section className="py-4 bg-[#050505] border-t border-b border-white/5 relative w-full overflow-hidden">
       
-      {/* 1. Header */}
-      <div className="container mx-auto px-4 mb-12 text-center relative z-10">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-green-500/10 border border-green-500/20 mb-4">
-          <CheckCircle2 className="w-3.5 h-3.5 text-green-400" />
-          <span className="text-[11px] uppercase font-bold tracking-widest text-green-400">Real Feedback</span>
+      {/* 1. Header (Minimal) */}
+      <div className="container mx-auto px-4 mb-6 text-center relative z-10">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20 mb-2">
+          <CheckCircle2 className="w-3 h-3 text-green-400" />
+          <span className="text-[10px] uppercase font-bold tracking-widest text-green-400">Success Stories</span>
         </div>
-        <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight mb-3">
+        <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
           Trusted by <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">Thousands</span>
         </h2>
-        <p className="text-sm text-gray-500 max-w-lg mx-auto">
-          See what our community is saying. Genuine reviews from verified purchases.
-        </p>
       </div>
 
       {/* 2. Slider Container */}
-      <div className="flex flex-col gap-8 relative max-w-[100vw]">
+      <div className="flex flex-col gap-4 relative max-w-[100vw]">
         
         {/* Fade Masks */}
-        <div className="absolute top-0 left-0 h-full w-12 md:w-40 bg-gradient-to-r from-[#050505] to-transparent z-20 pointer-events-none" />
-        <div className="absolute top-0 right-0 h-full w-12 md:w-40 bg-gradient-to-l from-[#050505] to-transparent z-20 pointer-events-none" />
+        <div className="absolute top-0 left-0 h-full w-8 md:w-32 bg-gradient-to-r from-[#050505] via-[#050505]/80 to-transparent z-20 pointer-events-none" />
+        <div className="absolute top-0 right-0 h-full w-8 md:w-32 bg-gradient-to-l from-[#050505] via-[#050505]/80 to-transparent z-20 pointer-events-none" />
 
-        {/* === ROW 1: FAST SPEED (Left) === */}
+        {/* === ROW 1: FAST (Left) === */}
         <div className="w-full overflow-hidden group">
           <div 
-            className="flex gap-4 md:gap-6 w-max animate-marquee group-hover:[animation-play-state:paused]"
-            style={{ animationDuration: "15s" }} // ⚡ FAST SPEED
+            className="flex gap-3 md:gap-4 w-max animate-marquee group-hover:[animation-play-state:paused]"
+            style={{ animationDuration: "20s" }} // ⚡ FAST
           >
             {firstRow.map((review, index) => (
               <ReviewCard key={`row1-${index}`} review={review} />
@@ -78,13 +74,11 @@ export default function ReviewSlider() {
           </div>
         </div>
 
-        {/* === ROW 2: SLOW SPEED (Right - Reverse logic via CSS or just Left with different content) === */}
-        {/* Note: To reverse direction simply, we usually animate from -100% to 0%, but keeping both left is smoother for reading. 
-            Here we make it MUCH SLOWER for readability. */}
+        {/* === ROW 2: SLOW (Right - Reversed Content) === */}
         <div className="w-full overflow-hidden group">
           <div 
-            className="flex gap-4 md:gap-6 w-max animate-marquee group-hover:[animation-play-state:paused]"
-            style={{ animationDuration: "40s" }} // 🐢 SLOW SPEED
+            className="flex gap-3 md:gap-4 w-max animate-marquee group-hover:[animation-play-state:paused]"
+            style={{ animationDuration: "40s" }} // 🐢 SLOW
           >
             {secondRow.map((review, index) => (
                <ReviewCard key={`row2-${index}`} review={review} variant="purple" />
@@ -108,55 +102,57 @@ export default function ReviewSlider() {
   );
 }
 
-// === Sub Component: The Card Design ===
+// === Sub Component: Zero-Gap Review Card ===
 function ReviewCard({ review, variant = "green" }: { review: IReview, variant?: "green" | "purple" }) {
   const accentColor = variant === "green" 
-    ? "group-hover:border-green-500/50 shadow-green-900/10" 
-    : "group-hover:border-purple-500/50 shadow-purple-900/10";
+    ? "hover:border-green-500/40" 
+    : "hover:border-purple-500/40";
   
   const iconColor = variant === "green" ? "text-green-500" : "text-purple-500";
 
   return (
     <div 
       className={`
-        relative shrink-0 bg-[#111] rounded-2xl border border-white/10 overflow-hidden group cursor-zoom-in 
-        transition-all duration-500 hover:shadow-2xl hover:scale-[1.02] hover:z-30
+        relative shrink-0 bg-[#0a0a0a] rounded-xl border border-white/5 overflow-hidden group cursor-zoom-in 
+        transition-all duration-300 hover:z-30 hover:shadow-2xl hover:scale-[1.02]
         ${accentColor}
-        w-[85vw] md:w-[350px] /* 📱 Mobile: 85% width (1 slide focused) | 💻 Desktop: 350px */
+        /* 📱 Mobile: 80% width (Shows part of next slide) */
+        w-[80vw] 
+        /* 💻 Desktop: ~45% width (Shows 2 slides) */
+        md:w-[45vw] lg:w-[600px]
       `}
     >
       
-      {/* Image Area - Optimized for Reading */}
-      <div className="relative h-[450px] md:h-[500px] w-full bg-[#080808] p-2">
+      {/* Image Area - 100% Full Bleed, No Padding */}
+      <div className="relative overflow-hidden sm-80 h-[180px] w-full bg-[#080808]">
         <Image 
           src={review.imageUrl} 
           alt="Review" 
           fill 
-          // ✅ Shows FULL image without cropping
-          className="object-contain transition-transform duration-700" 
-          sizes="(max-width: 768px) 90vw, 350px"
+          // ✅ Shows FULL image from top-down
+          className="object-contain object-top transition-transform duration-700" 
+          sizes="(max-width: 768px) 80vw, 600px"
         />
         
-        {/* Subtle Gradient at bottom only */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-transparent to-transparent opacity-90" />
+        {/* Subtle Gradient Overlay (Bottom Only) */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80 pointer-events-none" />
         
         {/* Hover Hint */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-           <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 flex items-center gap-2 text-white text-xs font-bold">
-              <ZoomIn className="w-4 h-4" /> View Details
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none bg-black/20 backdrop-blur-[2px]">
+           <div className="bg-black/80 px-3 py-1.5 rounded-full border border-white/20 flex items-center gap-2 text-white text-[10px] font-bold uppercase tracking-widest shadow-xl">
+              <ZoomIn className="w-3 h-3" /> Zoom
            </div>
         </div>
 
         {/* Content Card (Floating at Bottom) */}
-        <div className="absolute bottom-3 left-3 right-3 p-4 rounded-xl bg-white/5 backdrop-blur-xl border border-white/10 group-hover:bg-black/80 transition-colors">
+        <div className="absolute bottom-0 left-0 right-0 p-4 pt-2 bg-gradient-to-t from-black via-black/90 to-transparent">
           
-          {/* Header Row */}
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between mb-1">
              <div className="flex items-center gap-2">
-               <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center">
+               <div className="bg-white/10 p-1 rounded-full">
                  <Quote className={`w-3 h-3 ${iconColor} fill-current`} />
                </div>
-               <span className="text-xs font-bold text-white uppercase tracking-wide">Verified</span>
+               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Verified Purchase</span>
              </div>
              
              {/* Stars */}
@@ -164,14 +160,14 @@ function ReviewCard({ review, variant = "green" }: { review: IReview, variant?: 
                {[...Array(5)].map((_, i) => (
                  <Star 
                    key={i} 
-                   className={`w-3 h-3 ${i < review.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-700"}`} 
+                   className={`w-3 h-3 ${i < review.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-800"}`} 
                  />
                ))}
              </div>
           </div>
 
-          {/* Review Text */}
-          <p className="text-xs md:text-sm font-medium text-gray-300 leading-snug line-clamp-2">
+          {/* Caption */}
+          <p className="text-xs md:text-sm font-medium text-gray-200 leading-snug line-clamp-2 pl-1">
             {review.name}
           </p>
 
