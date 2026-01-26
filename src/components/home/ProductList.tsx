@@ -21,7 +21,7 @@ import { Badge } from "@/components/ui/badge";
 type VipPlanKey = "monthly" | "yearly" | "lifetime";
 
 // ----------------------------------------------------------------------
-// 1. SUB-COMPONENT: Compact Product Card
+// 1. SUB-COMPONENT: Compact Product Card (Optimized)
 // ----------------------------------------------------------------------
 const ProductCard = ({ product }: { product: IProduct }) => {
   const { addToCart, mapProductToCartItem } = useCart();
@@ -81,15 +81,16 @@ const ProductCard = ({ product }: { product: IProduct }) => {
       {/* Link Wrapper */}
       <Link href={`/product/${product.slug}`} className="flex-1 flex flex-col">
         
-        {/* === IMAGE AREA === */}
-        <div className="relative aspect-video w-full bg-gray-900 overflow-hidden">
+        {/* === IMAGE AREA (Full Image Show) === */}
+        <div className="relative aspect-square w-full bg-[#151515] overflow-hidden p-2">
           {product.thumbnail ? (
             <Image
               src={product.thumbnail}
               alt={product.title}
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              className="object-cover transition-transform duration-500 group-hover:scale-105"
+              // ✅ object-contain ensures 100% of the image is visible (no crop)
+              className="object-contain transition-transform duration-500 group-hover:scale-105"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-[#151515] text-gray-700 text-[10px] font-bold tracking-widest">
@@ -97,10 +98,10 @@ const ProductCard = ({ product }: { product: IProduct }) => {
             </div>
           )}
 
-          {/* Overlay Gradient */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#111] via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity" />
+          {/* Subtler Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#111] via-transparent to-transparent opacity-40 group-hover:opacity-20 transition-opacity pointer-events-none" />
 
-          {/* Floating Badges (Top Left) */}
+          {/* Floating Badges */}
           <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
              {discount > 0 && (
               <Badge className="bg-green-500/90 hover:bg-green-500 text-white border-0 font-bold text-[9px] px-1.5 py-0 shadow-sm backdrop-blur-sm">
@@ -114,7 +115,7 @@ const ProductCard = ({ product }: { product: IProduct }) => {
             )}
           </div>
           
-          {/* Plan Badge (Bottom Right Overlay) */}
+          {/* Plan Badge */}
           {selectedPlan !== "default" && (
              <div className="absolute bottom-2 right-2 z-10">
                <span className="flex items-center gap-1 bg-black/60 backdrop-blur-md border border-white/10 text-gray-200 text-[9px] font-medium px-2 py-0.5 rounded-full">
@@ -124,8 +125,8 @@ const ProductCard = ({ product }: { product: IProduct }) => {
           )}
         </div>
 
-        {/* === CONTENT AREA === */}
-        <div className="flex flex-1 flex-col p-3 space-y-2.5">
+        {/* === CONTENT AREA (Compact) === */}
+        <div className="flex flex-1 flex-col p-2.5 space-y-2">
           
           {/* Title */}
           <h3
@@ -135,7 +136,7 @@ const ProductCard = ({ product }: { product: IProduct }) => {
             {product.title}
           </h3>
 
-          {/* ⚡ Compact VIP Selector */}
+          {/* ⚡ Compact VIP Selector or Spacer */}
           {availablePlans.length > 0 ? (
             <div 
               className="mt-0.5" 
@@ -161,23 +162,20 @@ const ProductCard = ({ product }: { product: IProduct }) => {
               </Select>
             </div>
           ) : (
-             // Spacer to align cards if no selector
-             <div className="h-7 flex items-center">
+             // ✅ Height matches SelectTrigger (h-7) for perfect grid alignment
+             <div className="h-3 flex items-center">
                 <div className="flex items-center gap-1 text-[10px] text-gray-500">
                    <Check className="w-3 h-3 text-green-500" /> Instant Access
                 </div>
              </div>
           )}
 
-          {/* Divider */}
-          <div className="w-full h-px bg-white/5 group-hover:bg-white/10 transition-colors" />
-
-          {/* Price + Action Row */}
-          <div className="flex items-end justify-between gap-2 mt-auto">
+          {/* Price + Action Row (Pushed to bottom) */}
+          <div className="flex items-end justify-between gap-2 mt-auto pt-1">
             
             <div className="flex flex-col leading-none">
               {regularPrice > displayPrice && (
-                <span className="text-[9px] text-gray-300 line-through mb-0.5 ml-0.5">
+                <span className="text-[9px] text-gray-500 line-through mb-0.5 ml-0.5">
                   {formatPrice(regularPrice)}
                 </span>
               )}
@@ -186,7 +184,7 @@ const ProductCard = ({ product }: { product: IProduct }) => {
               </span>
             </div>
 
-            {/* Cart Button (Squircle) */}
+            {/* Cart Button */}
             <Button
               size="icon"
               className="h-8 w-8 rounded-lg bg-white text-black hover:bg-blue-500 hover:text-white transition-all shadow-md active:scale-95"

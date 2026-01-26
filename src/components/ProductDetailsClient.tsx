@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -18,7 +18,10 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 
-// ⚡ Helper: Extract YouTube ID
+// ✅ Import Related Products Component (Create this file next)
+import RelatedProducts from "@/components/RelatedProducts"; 
+
+// ⚡ Helper: Extract YouTube ID safely
 const getYouTubeEmbedId = (url: string | undefined) => {
   if (!url) return null;
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -30,50 +33,44 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
   const router = useRouter();
   const { addToCart, mapProductToCartItem } = useCart();
 
-  // ⚡ 1. PREPARE DATA FOR DEFAULT SELECTION LOGIC
+  // --- 1. Data Preparation ---
   const pricing = product.pricing || {};
   const accountAccess = (product as any).accountAccess;
   
-  // Calculate Standard Price
+  // Standard Price Logic
   const standardPrice = product.salePrice > 0 ? product.salePrice : product.defaultPrice;
-  const isStandardValid = standardPrice !== 1;
+  const isStandardValid = standardPrice !== 1; // Hidden if price is 1 (placeholder)
 
-  // Determine available alternative plans
+  // --- 2. State Management ---
+  const [mainImage, setMainImage] = useState(product.thumbnail);
+  const [qty, setQty] = useState(1);
+  const [showVideo, setShowVideo] = useState(false); 
+
+  // Auto-Select Plan Logic
   const availablePlans: string[] = [];
   if (pricing.monthly?.isEnabled) availablePlans.push("monthly");
   if (pricing.yearly?.isEnabled) availablePlans.push("yearly");
   if (pricing.lifetime?.isEnabled) availablePlans.push("lifetime");
   if (accountAccess?.isEnabled) availablePlans.push("account_access");
 
-  // --- States ---
-  const [mainImage, setMainImage] = useState(product.thumbnail);
-  const [qty, setQty] = useState(1);
-  const [showVideo, setShowVideo] = useState(false); 
-
-  // ✅ AUTO-SELECT LOGIC: 
-  // If Standard Price is 1, pick the first available plan. Otherwise, default to "standard".
   const [selectedPlan, setSelectedPlan] = useState<string | null>(
     isStandardValid ? "standard" : (availablePlans.length > 0 ? availablePlans[0] : null)
   );
 
-  // --- Derived Data ---
+  // --- 3. Derived Data ---
   const allImages = [product.thumbnail, ...(product.gallery || [])];
   const videoId = getYouTubeEmbedId(product.videoUrl);
 
-  // ⚡ 2. DYNAMIC PRICE & LABEL LOGIC
+  // Dynamic Price Calculation
   let currentPrice = 0;
   let referencePrice = 0; 
   let validityLabel = "Standard License"; 
   let currentDescription = product.description; 
 
-  // 🟢 CASE A: Account Access
   if (selectedPlan === "account_access" && accountAccess) {
     currentPrice = Number(accountAccess.price);
-    referencePrice = 0; 
     validityLabel = "Full Account Access";
-  } 
-  // 🟢 CASE B: VIP Plans
-  else if (selectedPlan && ["monthly", "yearly", "lifetime"].includes(selectedPlan)) {
+  } else if (selectedPlan && ["monthly", "yearly", "lifetime"].includes(selectedPlan)) {
     const plan = pricing[selectedPlan as keyof typeof pricing];
     if (plan) {
       currentPrice = Number(plan.price);
@@ -81,15 +78,12 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
       validityLabel = plan.validityLabel;
       if (plan.description?.trim()) currentDescription = plan.description;
     }
-  } 
-  // 🟢 CASE C: Standard / Total Price (Default)
-  else {
-    currentPrice =  standardPrice || product.defaultPrice || 0;
+  } else {
+    currentPrice = standardPrice || 0;
     referencePrice = product.regularPrice;
     validityLabel = "Standard License";
   }
 
-  // Calculate Discount
   const discount = referencePrice > currentPrice
     ? Math.round(((referencePrice - currentPrice) / referencePrice) * 100)
     : 0;
@@ -97,12 +91,15 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
   const categoryName = typeof product.category === "object" && product.category 
     ? (product.category as any).name 
     : "Store";
+  
+  const categoryId = typeof product.category === "object" && product.category 
+    ? (product.category as any)._id 
+    : product.category;
 
-  // --- Handlers ---
+  // --- 4. Handlers ---
   const handleAddToCart = () => {
     if (!selectedPlan) return toast.error("Please select a plan");
 
-    // Determine plan type for Cart Context
     let planArg: any = undefined;
     if (["monthly", "yearly", "lifetime"].includes(selectedPlan)) {
       planArg = selectedPlan;
@@ -110,7 +107,6 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
 
     const item = mapProductToCartItem(product, qty, planArg);
 
-    // ⚡ OVERRIDE: Manually set price/ID for Account Access & Standard
     if (selectedPlan === "account_access") {
       item.price = currentPrice;
       item.validity = "Account Access";
@@ -122,16 +118,7 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
     }
 
     addToCart(item);
-    toast.success(
-      <div className="flex flex-col gap-1">
-        <span className="font-bold flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-green-500"/> Added to Cart
-        </span>
-        <span className="text-xs text-muted-foreground line-clamp-1">
-          {product.title} ({validityLabel})
-        </span>
-      </div>
-    );
+    toast.success("Added to Cart");
   };
 
   const handleBuyNow = () => {
@@ -140,11 +127,12 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
   };
 
   return (
-    <div className="bg-black text-white min-h-screen pb-4 font-sans selection:bg-green-500/30 selection:text-green-200">
+    // ✅ FIX: "overflow-x-hidden" and "max-w-[100vw]" stops all horizontal scrolling
+    <div className="bg-black text-white min-h-screen pb-10 font-sans w-full max-w-[100vw] overflow-x-hidden">
       
-      {/* Breadcrumb */}
-      <div className="border-b border-white/10 bg-black/90 backdrop-blur-md sticky top-0 z-30">
-        <div className="container mx-auto px-4 py-3 text-xs md:text-sm text-gray-400 flex items-center gap-2 overflow-hidden whitespace-nowrap">
+      {/* --- Breadcrumb (Sticky) --- */}
+      <div className="border-b border-white/10 bg-black/80 backdrop-blur-md sticky top-0 z-40 w-full">
+        <div className="max-w-7xl mx-auto px-4 py-3 text-xs text-gray-400 flex items-center gap-2 overflow-hidden whitespace-nowrap">
           <Link href="/" className="hover:text-white transition-colors shrink-0">Home</Link> 
           <ChevronRight className="w-3 h-3 shrink-0 text-gray-600" />
           <Link href={`/products/${(product.category as any)?.slug || 'all'}`} className="hover:text-white transition-colors shrink-0">{categoryName}</Link>
@@ -153,14 +141,17 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-6 md:py-8">
+      <div className="max-w-7xl mx-auto px-3 md:px-6 py-6 w-full">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10">
           
           {/* =================================
-              LEFT: GALLERY
+              LEFT: GALLERY (Fully Contained Image)
           ================================= */}
-          <div className="lg:col-span-7 space-y-3">
-            <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-white/10 bg-[#111] shadow-2xl group">
+          <div className="lg:col-span-7 flex flex-col gap-3 min-w-0"> 
+            
+            {/* Main Display Area */}
+            <div className={`relative w-full overflow-hidden rounded-xl border border-white/10 bg-[#080808] shadow-2xl group transition-all duration-300 ${showVideo ? 'aspect-video' : 'aspect-square md:aspect-[4/3]'}`}>
+              
               <AnimatePresence mode="wait">
                 {showVideo && videoId ? (
                   <motion.iframe
@@ -169,31 +160,31 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
                     src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`}
                     title="Product Video"
                     className="w-full h-full absolute inset-0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
                   />
                 ) : (
                   <motion.div 
                     key="image"
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    className="relative w-full h-full"
+                    className="relative w-full h-full p-2" 
                   >
                     <Image 
                       src={mainImage} 
                       alt={product.title} 
                       fill 
-                      className="object-cover transition-transform duration-700 hover:scale-105"
+                      // ✅ FIX: object-contain ensures NO cropping
+                      className="object-contain transition-transform duration-500 hover:scale-[1.02]"
                       priority
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60"></div>
                     
+                    {/* Play Button Overlay */}
                     {videoId && (
                       <button 
                         onClick={() => setShowVideo(true)}
-                        className="absolute inset-0 flex items-center justify-center group/btn"
+                        className="absolute inset-0 flex items-center justify-center group/btn z-20"
                       >
-                         <div className="bg-white/10 backdrop-blur-md p-3 md:p-4 rounded-full border border-white/20 shadow-2xl transition-transform duration-300 group-hover/btn:scale-110 group-hover/btn:bg-red-600/90 group-hover/btn:border-red-500">
-                            <PlayCircle className="w-10 h-10 md:w-12 md:h-12 text-white fill-white/20" />
+                         <div className="bg-white/10 backdrop-blur-md p-4 rounded-full border border-white/20 shadow-2xl transition-transform duration-300 group-hover/btn:scale-110">
+                            <PlayCircle className="w-12 h-12 text-white fill-white/20" />
                          </div>
                       </button>
                     )}
@@ -204,32 +195,32 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
               {showVideo && (
                 <button 
                   onClick={() => setShowVideo(false)}
-                  className="absolute top-3 right-3 bg-black/50 hover:bg-black p-1.5 rounded-full text-white backdrop-blur-md border border-white/10 transition-all z-20"
+                  className="absolute top-3 right-3 bg-black/60 p-1.5 rounded-full text-white backdrop-blur-md border border-white/10 z-20"
                 >
                   <X className="w-4 h-4" />
                 </button>
               )}
 
-              {/* Show Discount Badge if Applicable */}
               {!showVideo && discount > 0 && selectedPlan === 'standard' && (
-                <Badge className="absolute top-3 left-3 bg-yellow-500 hover:bg-yellow-500 text-black text-[10px] md:text-xs px-2 py-0.5 font-bold shadow-lg border-0 rounded-md z-10">
+                <Badge className="absolute top-3 left-3 bg-yellow-500 text-black text-xs px-2 py-0.5 font-bold shadow-lg border-0 z-10">
                   -{discount}% OFF
                 </Badge>
               )}
             </div>
 
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            {/* Thumbnail Strip */}
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide max-w-full">
               {allImages.map((img, idx) => (
                 <button 
                   key={idx}
                   onClick={() => { setMainImage(img); setShowVideo(false); }}
-                  className={`relative w-20 h-14 md:w-24 md:h-16 flex-shrink-0 rounded-lg overflow-hidden border-2 transition-all ${
+                  className={`relative w-16 h-16 md:w-20 md:h-20 flex-shrink-0 rounded-lg overflow-hidden border bg-[#111] transition-all ${
                     mainImage === img && !showVideo
-                      ? "border-green-500 opacity-100 ring-2 ring-green-500/20" 
-                      : "border-transparent opacity-60 hover:opacity-100 hover:border-white/20"
+                      ? "border-green-500 opacity-100 ring-1 ring-green-500" 
+                      : "border-white/10 opacity-60 hover:opacity-100"
                   }`}
                 >
-                  <Image src={img} alt="thumb" fill className="object-cover" />
+                  <Image src={img} alt="thumb" fill className="object-contain p-1" />
                 </button>
               ))}
             </div>
@@ -238,284 +229,205 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
           {/* =================================
               RIGHT: INFO & ACTIONS
           ================================= */}
-          <div className="lg:col-span-5 flex flex-col gap-5">
+          <div className="lg:col-span-5 flex flex-col gap-5 min-w-0">
             
-            {/* Header Info */}
-            <div className="space-y-3">
+            {/* Header */}
+            <div className="space-y-3 border-b border-white/5 pb-4">
               <div className="flex items-center justify-between">
                  <div className="flex items-center gap-2">
                     {product.isFeatured && (
-                      <Badge variant="outline" className="text-orange-400 border-orange-400/30 bg-orange-400/10 text-[10px] px-1.5 uppercase tracking-wide gap-1">
+                      <Badge variant="outline" className="text-orange-400 border-orange-400/20 bg-orange-400/5 text-[10px] px-1.5 uppercase gap-1">
                         <Flame className="w-3 h-3 fill-orange-400" /> Hot
                       </Badge>
                     )}
-                    <span className="text-[10px] text-gray-500 font-mono uppercase bg-white/5 px-1.5 py-0.5 rounded">ID: {product._id.toString().slice(-4)}</span>
+                    <span className="text-[10px] text-gray-500 font-mono">ID: {product._id.toString().slice(-6)}</span>
                  </div>
-                 <button className="text-gray-500 hover:text-white transition p-1.5 hover:bg-white/5 rounded-full"><Share2 className="w-4 h-4" /></button>
+                 <button className="text-gray-500 hover:text-white transition"><Share2 className="w-4 h-4" /></button>
               </div>
 
-              <div>
-                <h1 className="text-2xl md:text-3xl font-extrabold text-white leading-tight tracking-tight mb-1.5">
-                  {product.title}
-                </h1>
-                
-                {product.shortDescription && (
-                  <p className="text-gray-400 text-xs md:text-sm leading-relaxed border-l-2 border-green-500/50 pl-3 line-clamp-3">
-                    {product.shortDescription}
-                  </p>
-                )}
-              </div>
-
-              <div className="flex items-center gap-3 text-xs font-medium border-b border-white/5 pb-3">
-                 <div className="flex items-center gap-1 text-yellow-400 bg-yellow-400/10 px-1.5 py-0.5 rounded border border-yellow-400/20">
-                    <Star className="w-3 h-3 fill-yellow-400" /> 
+              <h1 className="text-2xl md:text-3xl font-bold text-white leading-tight break-words">
+                {product.title}
+              </h1>
+              
+              <div className="flex items-center gap-4 text-xs font-medium text-gray-400">
+                 <div className="flex items-center gap-1 text-yellow-400">
+                    <Star className="w-3.5 h-3.5 fill-yellow-400" /> 
                     <span className="text-white font-bold">4.9</span>
                  </div>
-                 <span className="text-gray-600">|</span>
-                 <span className="text-green-400 font-mono">{product.salesCount + 10} Sold</span>
+                 <div className="w-1 h-1 rounded-full bg-gray-600" />
+                 <span className="text-green-400">{product.salesCount + 10} Sold</span>
               </div>
             </div>
 
-            {/* ⚡ PLAN SELECTOR GRID */}
-            <div className="space-y-2 bg-[#111] p-3 rounded-lg border border-white/5">
-              <div className="flex justify-between items-center mb-1">
-                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Select Option</p>
-                  <span className="text-[10px] text-green-400 font-bold flex items-center gap-1 bg-green-900/20 px-1.5 py-0.5 rounded">
-                    <Clock className="w-3 h-3" /> {validityLabel}
+            {/* Plan Selector */}
+            <div className="space-y-3">
+              <div className="flex justify-between items-end">
+                  <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Choose Plan</p>
+                  <span className="text-[10px] text-green-400 font-medium bg-green-500/10 px-2 py-0.5 rounded border border-green-500/20">
+                    {validityLabel}
                   </span>
               </div>
               
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                
-                {/* 1. ✅ STANDARD / TOTAL PRICE (Hidden if Price is 1) */}
                 {(isStandardValid) && (
-                  <button
+                  <PlanButton 
+                    label="Standard" 
+                    price={standardPrice} 
+                    icon={<Box className="w-3 h-3"/>}
+                    isActive={selectedPlan === "standard"}
                     onClick={() => setSelectedPlan("standard")}
-                    className={`relative p-2 rounded-md border transition-all duration-200 flex flex-col items-center justify-center gap-0.5 ${
-                      selectedPlan === "standard"
-                        ? "bg-white text-black border-white shadow-lg shadow-white/10"
-                        : "bg-black/40 border-white/10 hover:border-white/30 text-gray-400 hover:text-white"
-                    }`}
-                  >
-                    <div className="flex items-center gap-1">
-                        <Box className="w-3 h-3" />
-                        <span className="font-bold text-[10px] uppercase">Standard</span>
-                    </div>
-                    <span className="text-xs font-black">
-                      ৳{ standardPrice }
-                    </span>
-                    {selectedPlan === "standard" && <CheckCircle2 className="absolute top-1 right-1 w-2.5 h-2.5 text-green-600" />}
-                  </button>
+                  />
                 )}
-
-                {/* 2. ✅ VIP PLANS */}
                 {pricing.monthly?.isEnabled && (
-                  <button
-                    onClick={() => setSelectedPlan("monthly")}
-                    className={`relative p-2 rounded-md border transition-all duration-200 flex flex-col items-center justify-center gap-0.5 ${
-                      selectedPlan === "monthly"
-                        ? "bg-white text-black border-white shadow-lg shadow-white/10"
-                        : "bg-black/40 border-white/10 hover:border-white/30 text-gray-400 hover:text-white"
-                    }`}
-                  >
-                    <span className="font-bold text-[10px] uppercase">Monthly</span>
-                    <span className="text-xs font-black">৳{pricing.monthly.price}</span>
-                  </button>
+                  <PlanButton label="Monthly" price={pricing.monthly.price} isActive={selectedPlan === "monthly"} onClick={() => setSelectedPlan("monthly")} />
                 )}
-
                 {pricing.yearly?.isEnabled && (
-                  <button
-                    onClick={() => setSelectedPlan("yearly")}
-                    className={`relative p-2 rounded-md border transition-all duration-200 flex flex-col items-center justify-center gap-0.5 ${
-                      selectedPlan === "yearly"
-                        ? "bg-white text-black border-white shadow-lg shadow-white/10"
-                        : "bg-black/40 border-white/10 hover:border-white/30 text-gray-400 hover:text-white"
-                    }`}
-                  >
-                    <span className="font-bold text-[10px] uppercase">Yearly</span>
-                    <span className="text-xs font-black">৳{pricing.yearly.price}</span>
-                  </button>
+                  <PlanButton label="Yearly" price={pricing.yearly.price} isActive={selectedPlan === "yearly"} onClick={() => setSelectedPlan("yearly")} />
                 )}
-
                 {pricing.lifetime?.isEnabled && (
-                  <button
+                  <PlanButton 
+                    label="Lifetime" 
+                    price={pricing.lifetime.price} 
+                    icon={<Crown className="w-3 h-3 text-amber-400"/>}
+                    isActive={selectedPlan === "lifetime"}
                     onClick={() => setSelectedPlan("lifetime")}
-                    className={`relative p-2 rounded-md border transition-all duration-200 flex flex-col items-center justify-center gap-0.5 ${
-                      selectedPlan === "lifetime"
-                        ? "bg-gradient-to-br from-amber-200 to-amber-500 text-black border-amber-400 shadow-lg shadow-amber-500/20"
-                        : "bg-black/40 border-white/10 hover:border-white/30 text-gray-400 hover:text-white"
-                    }`}
-                  >
-                    <div className="flex items-center gap-1">
-                        <span className="font-bold text-[10px] uppercase">Lifetime</span>
-                        <Crown className="w-2.5 h-2.5" />
-                    </div>
-                    <span className="text-xs font-black">৳{pricing.lifetime.price}</span>
-                  </button>
+                    special
+                  />
                 )}
-
-                {/* 3. ✅ ACCOUNT ACCESS (New Field) */}
                 {accountAccess?.isEnabled && (
-                  <button
+                  <PlanButton 
+                    label="Account" 
+                    price={accountAccess.price} 
+                    icon={<User className="w-3 h-3"/>}
+                    isActive={selectedPlan === "account_access"}
                     onClick={() => setSelectedPlan("account_access")}
-                    className={`relative p-2 rounded-md border transition-all duration-200 flex flex-col items-center justify-center gap-0.5 ${
-                      selectedPlan === "account_access"
-                        ? "bg-gradient-to-br from-purple-400 to-purple-600 text-white border-purple-400 shadow-lg shadow-purple-500/30"
-                        : "bg-black/40 border-white/10 hover:border-white/30 text-gray-400 hover:text-white"
-                    }`}
-                  >
-                    <div className="flex items-center gap-1">
-                        <span className="font-bold text-[10px] uppercase">Account</span>
-                        <User className="w-2.5 h-2.5" />
-                    </div>
-                    <span className="text-xs font-black">৳{accountAccess.price}</span>
-                  </button>
+                  />
                 )}
-
               </div>
             </div>
 
-            {/* 4. Price & Actions */}
-            <div className="bg-[#161616] border border-white/10 p-3 md:p-5 rounded-xl relative overflow-hidden shadow-2xl">
-              <div className="absolute top-[-50%] right-[-50%] w-[100%] h-[100%] bg-green-500/10 blur-[60px] rounded-full pointer-events-none" />
-
+            {/* Price & Cart Box */}
+            <div className="bg-[#111] border border-white/10 p-4 rounded-xl shadow-lg relative overflow-hidden">
               <div className="relative z-10 flex flex-col gap-4">
                 
-                {/* ⚡ Price Display */}
-                <div className="flex flex-col">
-                  <span className="text-[10px] text-gray-500 font-bold uppercase mb-0.5">Total Price</span>
-                  <div className="flex items-end gap-2">
-                    <span className="text-3xl font-black text-white tracking-tighter h-9">
-                      {/* Hide Price if 1 */}
-                      {currentPrice === 1 ? "" : `৳${currentPrice.toLocaleString()}`}
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-black text-white tracking-tight">
+                    {currentPrice === 1 ? "" : `৳${currentPrice.toLocaleString()}`}
+                  </span>
+                  {referencePrice > currentPrice && selectedPlan !== 'account_access' && (
+                    <span className="text-sm text-gray-500 line-through">
+                      ৳{referencePrice.toLocaleString()}
                     </span>
-                    
-                    {/* Show Crossed Price */}
-                    {referencePrice > currentPrice && selectedPlan !== 'account_access' && (
-                      <div className="flex flex-col mb-1">
-                        <span className="text-xs text-gray-500 line-through font-medium">
-                          ৳{referencePrice.toLocaleString()}
-                        </span>
-                      </div>
-                    )}
-                  </div>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-[80px_1fr] gap-2 h-10 md:h-11">
-                  <div className="flex items-center bg-black border border-white/10 rounded-lg overflow-hidden">
-                    <button onClick={() => setQty(q => Math.max(1, q - 1))} className="w-8 h-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition" disabled={qty <= 1}>
-                      <Minus className="w-3 h-3" />
-                    </button>
-                    <span className="flex-1 text-center font-bold text-sm text-white">{qty}</span>
-                    <button onClick={() => setQty(q => q + 1)} className="w-8 h-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition">
-                      <Plus className="w-3 h-3" />
-                    </button>
+                <div className="flex gap-2 h-11">
+                  <div className="flex items-center bg-black border border-white/10 rounded-lg w-24 shrink-0">
+                    <button onClick={() => setQty(Math.max(1, qty - 1))} className="flex-1 flex items-center justify-center text-gray-400 hover:text-white" disabled={qty <= 1}><Minus className="w-3 h-3"/></button>
+                    <span className="text-sm font-bold text-white">{qty}</span>
+                    <button onClick={() => setQty(qty + 1)} className="flex-1 flex items-center justify-center text-gray-400 hover:text-white"><Plus className="w-3 h-3"/></button>
                   </div>
 
-                  <div className="flex gap-2">
-                    <Button 
-                      onClick={handleAddToCart}
-                      variant="outline" 
-                      className="flex-1 h-full border-white/10 bg-white/5 hover:bg-white hover:text-black font-bold text-xs md:text-sm rounded-lg transition-all"
-                    >
-                      <ShoppingCart className="w-3.5 h-3.5 mr-1.5" /> Add
-                    </Button>
+                  <Button onClick={handleAddToCart} variant="outline" className="flex-1 h-full border-white/10 bg-white/5 hover:bg-white hover:text-black font-bold">
+                    <ShoppingCart className="w-4 h-4 mr-2" /> Add
+                  </Button>
 
-                    <Button 
-                      onClick={handleBuyNow}
-                      className="flex-[1.5] h-full bg-white text-black hover:bg-gray-200 font-bold text-xs md:text-sm rounded-lg shadow-[0_0_15px_rgba(255,255,255,0.1)] transition-all"
-                    >
-                      Buy Now
-                    </Button>
-                  </div>
+                  <Button onClick={handleBuyNow} className="flex-[1.5] h-full bg-white text-black hover:bg-gray-200 font-bold">
+                    Buy Now
+                  </Button>
                 </div>
               </div>
             </div>
 
-            {/* Features */}
-            <div className="pt-2">
-               {product.features && product.features.length > 0 && (
-                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-1.5 gap-x-3">
-                   {product.features.slice(0, 6).map((feature, i) => (
-                     <div key={i} className="flex items-start gap-2 text-[11px] md:text-xs text-gray-400">
-                       <CheckCircle2 className="w-3 h-3 text-green-500 mt-0.5 shrink-0" />
-                       <span className="leading-snug">{feature}</span>
-                     </div>
-                   ))}
-                 </div>
-               )}
-               
-               <div className="flex items-center justify-start gap-4 pt-4 mt-4 border-t border-white/5 opacity-70">
-                  <div className="flex items-center gap-1.5 text-[9px] text-gray-400 uppercase font-bold tracking-wider">
-                    <ShieldCheck className="w-3.5 h-3.5 text-green-500" /> Secure
-                  </div>
-                  <div className="flex items-center gap-1.5 text-[9px] text-gray-400 uppercase font-bold tracking-wider">
-                    <CreditCard className="w-3.5 h-3.5 text-blue-500" /> Instant
-                  </div>
+            {/* Features List */}
+            {product.features && product.features.length > 0 && (
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-400 pt-2">
+                 {product.features.slice(0, 6).map((feature, i) => (
+                   <div key={i} className="flex items-start gap-2">
+                     <CheckCircle2 className="w-3.5 h-3.5 text-green-500 mt-0.5 shrink-0" />
+                     <span className="break-words">{feature}</span>
+                   </div>
+                 ))}
                </div>
+            )}
+
+            <div className="flex flex-wrap gap-4 md:gap-6 pt-4 border-t border-white/5 opacity-60">
+                <div className="flex items-center gap-2 text-[10px] uppercase font-bold tracking-wider text-gray-400">
+                  <ShieldCheck className="w-4 h-4 text-green-500" /> Secure Payment
+                </div>
+                <div className="flex items-center gap-2 text-[10px] uppercase font-bold tracking-wider text-gray-400">
+                  <CreditCard className="w-4 h-4 text-blue-500" /> Instant Access
+                </div>
             </div>
 
           </div>
         </div>
 
-        {/* BOTTOM: DESC & REVIEWS */}
-        <div className="mt-10 md:mt-16 max-w-5xl mx-auto">
+        {/* --- TABS SECTION --- */}
+        <div className="mt-12 max-w-4xl mx-auto w-full">
           <Tabs defaultValue="description" className="w-full">
-            <TabsList className="flex w-full md:w-auto border-b border-white/10 bg-transparent p-0 mb-6 gap-6 overflow-x-auto scrollbar-hide">
+            <TabsList className="flex border-b border-white/10 bg-transparent p-0 mb-6 w-full justify-start gap-8 overflow-x-auto scrollbar-hide">
               <TabsTrigger 
                 value="description" 
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-green-500 data-[state=active]:bg-transparent data-[state=active]:text-white text-gray-500 text-sm font-bold px-0 pb-3 transition-colors shrink-0"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-green-500 data-[state=active]:bg-transparent data-[state=active]:text-white text-gray-500 font-bold px-0 pb-3"
               >
-                Description {selectedPlan && selectedPlan !== 'standard' && <span className="ml-1.5 text-[9px] text-green-400 bg-green-900/20 px-1 py-0.5 rounded border border-green-500/20 uppercase tracking-wide hidden sm:inline-block">for {validityLabel}</span>}
+                Description
               </TabsTrigger>
               <TabsTrigger 
                 value="reviews" 
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-white data-[state=active]:bg-transparent data-[state=active]:text-white text-gray-500 text-sm font-bold px-0 pb-3 transition-colors shrink-0"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-white data-[state=active]:bg-transparent data-[state=active]:text-white text-gray-500 font-bold px-0 pb-3"
               >
                 Reviews
               </TabsTrigger>
             </TabsList>
             
-            <TabsContent value="description" className="animate-in fade-in-50 slide-in-from-bottom-2">
-              <div className="bg-[#111] border text-gray-300 border-white/5 rounded-2xl p-5 md:p-8 leading-relaxed shadow-lg">
-                <AnimatePresence mode="wait">
-                  <motion.div 
-                    key={validityLabel} 
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -5 }}
-                    transition={{ duration: 0.2 }}
-                    className="prose prose-invert prose-sm md:prose-base max-w-full overflow-hidden
-                      prose-p:text-gray-400 prose-p:leading-7 
-                      prose-headings:text-white prose-headings:font-bold
-                      prose-a:text-green-400 hover:prose-a:text-green-300
-                      prose-strong:text-white prose-strong:font-semibold
-                      prose-ul:list-disc prose-li:marker:text-green-500 
-                      prose-img:rounded-xl prose-img:border prose-img:border-white/10 prose-img:shadow-lg prose-img:max-w-full"
-                    dangerouslySetInnerHTML={{ __html: currentDescription }}
-                  />
-                </AnimatePresence>
+            <TabsContent value="description" className="animate-in fade-in-50">
+              <div className="bg-[#111] border border-white/5 rounded-xl p-6 md:p-8 text-gray-300 leading-relaxed overflow-hidden break-words">
+                <div 
+                  className="prose prose-invert prose-sm max-w-none 
+                    prose-headings:text-white prose-a:text-green-400 prose-img:rounded-xl prose-img:max-w-full"
+                  dangerouslySetInnerHTML={{ __html: currentDescription }}
+                />
               </div>
             </TabsContent>
             
             <TabsContent value="reviews">
-              <div className="flex flex-col items-center justify-center py-16 text-center space-y-4 bg-[#111] border border-white/5 rounded-2xl">
-                <div className="bg-white/5 p-3 rounded-full">
-                   <Heart className="w-8 h-8 text-gray-500" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-white">No Reviews Yet</h3>
-                  <p className="text-xs text-gray-500 mt-1">Be the first to share your thoughts!</p>
-                </div>
-                <Button variant="outline" size="sm" className="border-white/10 text-gray-300 hover:bg-white hover:text-black">
-                  Write a Review
-                </Button>
+              <div className="flex flex-col items-center justify-center py-12 text-center bg-[#111] border border-white/5 rounded-xl">
+                <Heart className="w-8 h-8 text-gray-600 mb-3" />
+                <h3 className="text-white font-bold">No Reviews Yet</h3>
+                <p className="text-xs text-gray-500">Be the first to review this product.</p>
               </div>
             </TabsContent>
           </Tabs>
         </div>
 
+        {/* ✅ RELATED PRODUCTS SECTION (Added Here) */}
+        <RelatedProducts categoryId={categoryId} currentProductId={product._id} />
+
       </div>
     </div>
+  );
+}
+
+// --- Sub Component: Plan Button ---
+function PlanButton({ label, price, isActive, onClick, icon, special }: any) {
+  return (
+    <button
+      onClick={onClick}
+      className={`relative p-2.5 rounded-lg border transition-all duration-200 flex flex-col items-center justify-center gap-1 ${
+        isActive
+          ? special 
+            ? "bg-gradient-to-br from-amber-200 to-amber-500 text-black border-amber-400 shadow-lg"
+            : "bg-white text-black border-white shadow-lg"
+          : "bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-white"
+      }`}
+    >
+      <div className="flex items-center gap-1.5">
+          {icon}
+          <span className="font-bold text-[10px] uppercase tracking-wider">{label}</span>
+      </div>
+      <span className="text-sm font-black">৳{price}</span>
+      {isActive && !special && <CheckCircle2 className="absolute top-1 right-1 w-2.5 h-2.5 text-green-600" />}
+    </button>
   );
 }

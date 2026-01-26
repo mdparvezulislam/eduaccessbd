@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { IProduct, SITE_URL } from "@/types"; // Import your type
+import {  SITE_URL } from "@/types"; // Import your type
 import ProductDetailsClient from "@/components/ProductDetailsClient";
 
 // Helper to fetch data
@@ -33,6 +33,16 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     title: `${product.title} | ProAccess Shop`,
     description: product.shortDescription || product.description.substring(0, 160),
     openGraph: {
+      images: [product.thumbnail],
+      title: product.title,
+      description: product.shortDescription || product.description.substring(0, 160),
+      url: `${SITE_URL}/product/${slug}`,
+      siteName: "Edu Access Bd",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: product.title,
+      description: product.shortDescription || product.description.substring(0, 160),
       images: [product.thumbnail],
     },
   };
