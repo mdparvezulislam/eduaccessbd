@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect } from "react";
 import { motion, useAnimation, PanInfo } from "framer-motion";
-import { ShoppingCart, CreditCard, Unlock, ArrowRight } from "lucide-react";
+import { ShoppingCart, CreditCard, Unlock, ArrowRight, MousePointerClick } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -11,117 +11,123 @@ import { Button } from "@/components/ui/button";
 const steps = [
   {
     id: 1,
-    title: "কোর্স সিলেক্ট করুন",
-    description: "পছন্দের প্রোডাক্ট বা কোর্স বেছে নিন এবং সরাসরি 'Buy Now' বাটনে ক্লিক করুন।",
+    title: "প্রোডাক্ট বেছে নিন",
+    description: "শপ পেজ থেকে আপনার পছন্দের প্রোডাক্টটি বেছে নিন এবং 'Buy Now' বাটনে ক্লিক করুন।",
     icon: ShoppingCart,
-    image: "https://ik.imagekit.io/pemifp53t/1769358254768-2026-01-25_22.15.07_V98rkNzKV.jpg", 
+    image: "https://ik.imagekit.io/pemifp53t/1769401816316-type_Q--tUWlA2.jpg", 
     color: "text-blue-400",
-    bg: "bg-blue-500/10",
+    bg: "bg-blue-500/20",
     border: "border-blue-500/20"
   },
   {
     id: 2,
-    title: "ফর্ম পূরণ করুন",
-    description: "চেকআউট পেজে নাম, ফোন নম্বর ও ইমেইল দিয়ে ফর্ম পূরণ করে পেমেন্ট সম্পন্ন করুন।",
+    title: "চেকআউট ও রেজিস্টার",
+    description: "চেকআউট ফর্মটি সঠিক তথ্য দিয়ে পূরণ করুন। এটি অটোমেটিক আপনার অ্যাকাউন্ট তৈরি করে দেবে।",
     icon: CreditCard,
-    image: "https://ik.imagekit.io/pemifp53t/1769355151503-Screenshot_2026-01-25_at_9.31.57_PM_5ptoOSATe.png", 
+    image: "https://ik.imagekit.io/pemifp53t/1769401795460-paymentType_JYi0vJRxx.jpg", 
     color: "text-purple-400",
-    bg: "bg-purple-500/10",
+    bg: "bg-purple-500/20",
     border: "border-purple-500/20"
   },
   {
     id: 3,
-    title: "অ্যাকাউন্ট ও অ্যাক্সেস",
-    description: "অর্ডার কনফার্ম হলেই আপনার দেওয়া ফোন নম্বর ও পাসওয়ার্ড দিয়ে লগইন করে ক্লাস শুরু করুন।",
+    title: "ড্যাশবোর্ড অ্যাক্সেস",
+    description: "অর্ডার সম্পন্ন হলে ইউজার ড্যাশবোর্ড থেকে আপনার কোর্স বা প্রোডাক্ট এক্সেস করুন।",
     icon: Unlock,
-    image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=600&auto=format&fit=crop", 
+    image: "https://ik.imagekit.io/pemifp53t/1769401769622-access-Course_Dahboard_1MVvSU3G_.jpg", 
     color: "text-green-400",
-    bg: "bg-green-500/10",
+    bg: "bg-green-500/20",
     border: "border-green-500/20"
   }
 ];
 
-// Combine steps + CTA card for total count
 const totalItems = steps.length + 1; 
 
 export default function HowToBuySection() {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [width, setWidth] = useState(0);
+  const [cardWidth, setCardWidth] = useState(320); // Default, updates on mount
+  const [dragConstraint, setDragConstraint] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  
   const carousel = useRef<HTMLDivElement>(null);
   const controls = useAnimation();
 
   // Settings
-  const CARD_WIDTH_MOBILE = 290; // Card width + gap
-  const CARD_WIDTH_DESKTOP = 400; // Card width + gap
-  const AUTO_SLIDE_INTERVAL = 3500;
+  const GAP = 16; 
+  const AUTO_SLIDE_INTERVAL = 5000;
 
-  // 1. Calculate Constraints
+  // 1. Dynamic Width Calculation (Responsiveness)
   useEffect(() => {
-    if (carousel.current) {
-      setWidth(carousel.current.scrollWidth - carousel.current.offsetWidth);
-    }
+    const updateDimensions = () => {
+      if (carousel.current) {
+        // Desktop: Fixed 400px, Mobile: Full screen width minus padding (32px for px-4)
+        const isMobile = window.innerWidth < 768;
+        const newCardWidth = isMobile ? window.innerWidth - 32 : 400;
+        
+        setCardWidth(newCardWidth);
+        
+        // Calculate max drag area
+        const totalWidth = (newCardWidth + GAP) * totalItems;
+        setDragConstraint(totalWidth - carousel.current.offsetWidth);
+      }
+    };
+
+    updateDimensions();
+    window.addEventListener("resize", updateDimensions);
+    return () => window.removeEventListener("resize", updateDimensions);
   }, []);
 
-  // 2. Auto Slide Logic
+  // 2. Auto Slide
   useEffect(() => {
     if (isPaused) return;
-
     const interval = setInterval(() => {
-      setCurrentIndex((prev) => {
-        // Reset to 0 if at end, else next
-        return prev === totalItems - 1 ? 0 : prev + 1;
-      });
+      setCurrentIndex((prev) => (prev === totalItems - 1 ? 0 : prev + 1));
     }, AUTO_SLIDE_INTERVAL);
-
     return () => clearInterval(interval);
-  }, [isPaused]);
+  }, [isPaused, totalItems]);
 
-  // 3. Animate when index changes
+  // 3. Animation Logic
   useEffect(() => {
-    const isMobile = window.innerWidth < 768;
-    const scrollAmount = isMobile ? CARD_WIDTH_MOBILE : CARD_WIDTH_DESKTOP;
-    
-    // Calculate new X position
+    const scrollAmount = cardWidth + GAP;
     let newX = -(currentIndex * scrollAmount);
     
-    // Boundary check (don't scroll past end content)
-    if (-newX > width && width > 0) newX = -width;
+    // Prevent overscrolling
+    if (Math.abs(newX) > dragConstraint && dragConstraint > 0) {
+      newX = -dragConstraint;
+    }
 
     controls.start({
       x: newX,
-      transition: { type: "spring", stiffness: 300, damping: 30 }
+      transition: { type: "spring", stiffness: 200, damping: 25 }
     });
-  }, [currentIndex, width, controls]);
+  }, [currentIndex, cardWidth, dragConstraint, controls]);
 
-  // 4. Handle Drag End (Snap to nearest)
+  // 4. Drag Handling
   const handleDragEnd = (event: any, info: PanInfo) => {
-    const isMobile = window.innerWidth < 768;
-    const scrollAmount = isMobile ? CARD_WIDTH_MOBILE : CARD_WIDTH_DESKTOP;
     const draggedDistance = info.offset.x;
-    
-    // Determine direction
-    if (draggedDistance < -50) {
-      // Dragged Left -> Next
+    const threshold = 50;
+
+    if (draggedDistance < -threshold) {
+      // Drag Left -> Next
       setCurrentIndex((prev) => Math.min(prev + 1, totalItems - 1));
-    } else if (draggedDistance > 50) {
-      // Dragged Right -> Prev
+    } else if (draggedDistance > threshold) {
+      // Drag Right -> Prev
       setCurrentIndex((prev) => Math.max(prev - 1, 0));
     } else {
-      // Snap back if drag was small
+      // Snap back
+      const scrollAmount = cardWidth + GAP;
       controls.start({ x: -(currentIndex * scrollAmount) });
     }
-    
-    setIsPaused(false); // Resume auto slide after drag
+    setIsPaused(false);
   };
 
   return (
-    <section className="py-2 bg-[#050505] border-t border-b border-white/5 relative overflow-hidden">
+    <section className="py-12 bg-[#050505] border-t border-b border-white/5 relative overflow-hidden">
       
       <div className="container mx-auto px-4">
         
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 gap-4">
           <div>
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-2 tracking-tight">
               কেনার <span className="text-green-500">সহজ নিয়ম</span>
@@ -132,7 +138,6 @@ export default function HowToBuySection() {
           </div>
           
           <div className="hidden md:flex gap-2">
-            {/* Desktop Arrows */}
              <Button 
                variant="outline" size="icon" 
                onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
@@ -153,7 +158,7 @@ export default function HowToBuySection() {
         {/* === SLIDER AREA === */}
         <motion.div 
           ref={carousel} 
-          className="cursor-grab active:cursor-grabbing overflow-hidden min-h-[320px]"
+          className="cursor-grab active:cursor-grabbing overflow-hidden min-h-[610px] py-2"
           whileTap={{ cursor: "grabbing" }}
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
@@ -161,69 +166,79 @@ export default function HowToBuySection() {
         >
           <motion.div 
             drag="x"
-            dragConstraints={{ right: 0, left: -width }}
+            dragConstraints={{ right: 0, left: -dragConstraint }}
             animate={controls}
             onDragEnd={handleDragEnd}
-            className="flex gap-4 md:gap-6 w-max px-1"
+            className="flex gap-4 w-max" // Fixed Gap
           >
             {steps.map((step, idx) => (
               <motion.div 
                 key={step.id}
                 animate={{ 
-                  scale: currentIndex === idx ? 1 : 0.95,
+                  scale: currentIndex === idx ? 1 : 0.98,
                   opacity: currentIndex === idx ? 1 : 0.6 
                 }}
-                className={`relative w-[280px] md:w-[380px] h-full bg-[#111] rounded-2xl border transition-colors overflow-hidden group
-                  ${currentIndex === idx ? 'border-green-500/30 shadow-[0_0_30px_rgba(34,197,94,0.1)]' : 'border-white/10'}
+                style={{ width: cardWidth }} // ⚡ Dynamic Width (Full mobile width)
+                // ✅ INCREASED HEIGHT to 600px for Long Screenshots
+                className={`relative h-[600px] bg-[#111] rounded-3xl border overflow-hidden group transition-all duration-300
+                  ${currentIndex === idx ? 'border-green-500/40 shadow-2xl shadow-green-900/10' : 'border-white/10'}
                 `}
               >
-                {/* Image Section */}
-                <div className="relative h-40 md:h-48 w-full overflow-hidden">
-                   <Image 
-                     src={step.image} 
-                     alt={step.title}
-                     fill
-                     className="object-cover transition-transform duration-700 group-hover:scale-110"
-                   />
-                   <div className="absolute inset-0 bg-gradient-to-t from-[#111] via-[#111]/20 to-transparent opacity-90" />
-                   
-                   {/* Step Number */}
-                   <div className={`absolute top-3 left-3 w-8 h-8 rounded-full ${step.bg} ${step.color} flex items-center justify-center font-bold text-sm border border-white/5 backdrop-blur-md z-10 shadow-lg`}>
+                {/* --- Full Image Display --- */}
+                <Image 
+                  src={step.image} 
+                  alt={step.title}
+                  fill
+                  // ✅ object-top: Shows the start of the instructions/screenshot
+                  className="object-cover object-top transition-transform duration-700 group-hover:scale-105"
+                  sizes="(max-width: 768px) 100vw, 400px"
+                  quality={100}
+                />
+
+                {/* Gradient: Only at the very bottom so Image is Clear */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent opacity-100 top-[60%]" />
+                
+                {/* Number Badge */}
+                <div className={`absolute top-4 right-4 flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/60 border border-white/10 backdrop-blur-md shadow-lg z-10`}>
+                   <div className={`w-5 h-5 flex items-center justify-center rounded-full bg-white/20 font-bold text-xs ${step.color}`}>
                      {step.id}
                    </div>
+                   <span className="text-[10px] text-white font-bold">ধাপ</span>
                 </div>
 
-                {/* Content Section */}
-                <div className="p-5 relative -mt-4">
+                {/* Bottom Content */}
+                <div className="absolute bottom-0 left-0 w-full p-6 z-10">
                    <div className="flex items-center gap-3 mb-2">
-                     <div className={`p-1.5 rounded-lg ${step.bg} ${step.color}`}>
-                       <step.icon className="w-4 h-4" />
+                     <div className={`p-2 rounded-xl bg-white/10 backdrop-blur-md border border-white/10 ${step.color}`}>
+                       <step.icon className="w-5 h-5" />
                      </div>
-                     <h3 className={`text-lg font-bold transition-colors ${currentIndex === idx ? 'text-white' : 'text-gray-300'}`}>
+                     <h3 className="text-xl font-bold text-white group-hover:text-green-400 transition-colors shadow-black drop-shadow-md">
                        {step.title}
                      </h3>
                    </div>
                    
-                   <p className="text-xs md:text-sm text-gray-400 leading-relaxed line-clamp-3">
+                   <p className="text-sm text-gray-200 leading-relaxed font-sans opacity-95 drop-shadow-sm">
                      {step.description}
                    </p>
                 </div>
               </motion.div>
             ))}
             
-            {/* 'Start Now' Card (CTA) */}
+            {/* 'Start Now' Card */}
              <motion.div 
                 animate={{ 
-                  scale: currentIndex === steps.length ? 1 : 0.95,
+                  scale: currentIndex === steps.length ? 1 : 0.98,
                   opacity: currentIndex === steps.length ? 1 : 0.6 
                 }}
-                className="relative w-[150px] md:w-[200px] flex items-center justify-center bg-white/5 rounded-2xl border border-dashed border-white/10 hover:bg-white/10 transition-colors group cursor-pointer"
+                style={{ width: cardWidth }}
+                className="relative h-[600px] flex flex-col items-center justify-center bg-[#111] rounded-3xl border border-dashed border-white/20 hover:border-green-500/50 hover:bg-green-500/5 transition-all group cursor-pointer"
              >
-                <Link href="/shop" className="text-center p-4 w-full h-full flex flex-col items-center justify-center">
-                   <div className="w-14 h-14 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center mb-4 group-hover:scale-110 group-hover:bg-green-500 group-hover:text-white transition-all duration-300 shadow-lg shadow-green-900/20">
-                      <ArrowRight className="w-6 h-6" />
+                <Link href="/shop" className="text-center p-8 w-full h-full flex flex-col items-center justify-center">
+                   <div className="w-24 h-24 rounded-full bg-green-500/10 text-green-400 border border-green-500/20 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-green-500 group-hover:text-white transition-all duration-300 shadow-xl">
+                      <MousePointerClick className="w-10 h-10" />
                    </div>
-                   <span className="text-sm font-bold text-white group-hover:text-green-400 transition-colors">এখনই শুরু করুন</span>
+                   <h3 className="text-3xl font-bold text-white mb-2">অর্ডার করুন</h3>
+                   <span className="text-sm text-gray-400 group-hover:text-green-400 transition-colors">এখনই শুরু করুন</span>
                 </Link>
              </motion.div>
 
@@ -231,7 +246,7 @@ export default function HowToBuySection() {
         </motion.div>
         
         {/* Indicators (Dots) */}
-        <div className="mt-6 flex items-center justify-center gap-2">
+        <div className="mt-4 flex items-center justify-center gap-2">
            {Array.from({ length: totalItems }).map((_, idx) => (
              <button
                key={idx}

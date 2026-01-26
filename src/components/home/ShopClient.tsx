@@ -48,7 +48,7 @@ export default function ShopClient({ products, categories }: ShopClientProps) {
   
   // ⚡ Pagination State
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 24; // 12 looks good on 2, 3, and 4 column layouts
+  const itemsPerPage = 28; // 12 looks good on 2, 3, and 4 column layouts
 
   // --- Filtering Logic ---
   const filteredProducts = useMemo(() => {

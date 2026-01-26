@@ -27,7 +27,7 @@ export default function AllProductsPage() {
 
   // ⚡ Pagination State
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 24; // 9 items fits nicely in 3 columns (3x3)
+  const itemsPerPage = 30; // 9 items fits nicely in 3 columns (3x3)
 
   // Load Data
   useEffect(() => {

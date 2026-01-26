@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { IProduct } from "@/types";
-import { ShoppingCart, Star, Zap, ArrowRight, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { ShoppingCart, Zap, ArrowRight, Clock, ChevronLeft, ChevronRight, Check } from "lucide-react";
 import { useCart, PlanType } from "@/lib/CartContext"; 
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -17,27 +17,23 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 
-// ✅ Helper Type: Restrict plans to only those present in product.pricing
+// ✅ Helper Type
 type VipPlanKey = "monthly" | "yearly" | "lifetime";
 
 // ----------------------------------------------------------------------
-// 1. SUB-COMPONENT: Individual Product Card (Handles its own state)
+// 1. SUB-COMPONENT: Compact Product Card
 // ----------------------------------------------------------------------
 const ProductCard = ({ product }: { product: IProduct }) => {
   const { addToCart, mapProductToCartItem } = useCart();
   
   // ⚡ VIP Plan Logic
   const pricing = product.pricing || {};
-  
-  // We explicitly type this to prevent "account_access" from being added here
-  // since it doesn't exist inside the 'pricing' object structure.
   const availablePlans: VipPlanKey[] = [];
   
   if (pricing.monthly?.isEnabled) availablePlans.push("monthly");
   if (pricing.yearly?.isEnabled) availablePlans.push("yearly");
   if (pricing.lifetime?.isEnabled) availablePlans.push("lifetime");
 
-  // Default to first plan found, or "default"
   const [selectedPlan, setSelectedPlan] = useState<VipPlanKey | "default">(
     availablePlans.length > 0 ? availablePlans[0] : "default"
   );
@@ -47,7 +43,6 @@ const ProductCard = ({ product }: { product: IProduct }) => {
   let regularPrice = product.regularPrice || 0;
   let validityLabel = "Standard";
 
-  // ✅ LOGIC FIX: TypeScript now knows selectedPlan is strictly a valid key of pricing
   if (selectedPlan !== "default" && pricing[selectedPlan]) {
     const plan = pricing[selectedPlan];
     if (plan) {
@@ -56,27 +51,19 @@ const ProductCard = ({ product }: { product: IProduct }) => {
       validityLabel = plan.validityLabel;
     }
   } else {
-    // Fallback logic for simple products or "default" selection
     displayPrice = product.salePrice || product.defaultPrice || 0;
     regularPrice = product.regularPrice;
   }
   
-  // Discount Calculation
   const discount = regularPrice > displayPrice
     ? Math.round(((regularPrice - displayPrice) / regularPrice) * 100)
     : 0;
 
-  // Handler: Add To Cart
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault(); 
     e.stopPropagation();
-
-    // Map cart item
-    // We cast selectedPlan to PlanType because CartContext handles the wider type
     const planArg = selectedPlan !== "default" ? (selectedPlan as PlanType) : undefined;
-
     const cartItem = mapProductToCartItem(product, 1, planArg);
-    
     addToCart(cartItem);
     toast.success(`Added ${product.title} to cart`);
   };
@@ -89,9 +76,9 @@ const ProductCard = ({ product }: { product: IProduct }) => {
     }).format(price);
 
   return (
-    <div className="group relative flex flex-col h-full bg-[#0f0f11] border border-white/5 rounded-2xl overflow-hidden hover:border-white/10 transition-all duration-500 hover:shadow-2xl hover:shadow-blue-900/10">
+    <div className="group relative flex flex-col h-full bg-[#111] border border-white/5 rounded-xl overflow-hidden hover:border-white/20 hover:bg-[#161616] transition-all duration-300 hover:shadow-2xl hover:shadow-black/50">
       
-      {/* Link to Details */}
+      {/* Link Wrapper */}
       <Link href={`/product/${product.slug}`} className="flex-1 flex flex-col">
         
         {/* === IMAGE AREA === */}
@@ -102,116 +89,110 @@ const ProductCard = ({ product }: { product: IProduct }) => {
               alt={product.title}
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              className="object-cover transition-transform duration-700 group-hover:scale-110"
+              className="object-cover transition-transform duration-500 group-hover:scale-105"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-[#151515] text-gray-700 font-bold">
-              NO IMAGE
+            <div className="w-full h-full flex items-center justify-center bg-[#151515] text-gray-700 text-[10px] font-bold tracking-widest">
+              NO PREVIEW
             </div>
           )}
 
-          {/* Dark Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0f0f11] via-transparent to-transparent opacity-80" />
+          {/* Overlay Gradient */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#111] via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity" />
 
-          {/* Badges */}
-          <div className="absolute top-2 left-2 flex flex-col gap-1.5 z-10">
+          {/* Floating Badges (Top Left) */}
+          <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
              {discount > 0 && (
-              <Badge className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold text-[10px] px-2 shadow-lg backdrop-blur-md border-0">
-                -{discount}% OFF
+              <Badge className="bg-green-500/90 hover:bg-green-500 text-white border-0 font-bold text-[9px] px-1.5 py-0 shadow-sm backdrop-blur-sm">
+                -{discount}%
               </Badge>
             )}
-            
-            {/* Show Plan Badge if VIP */}
-            {selectedPlan !== "default" && (
-               <Badge variant="outline" className="bg-black/50 text-white border-white/20 text-[10px] backdrop-blur-md">
-                 <Clock className="w-3 h-3 mr-1 text-green-400" /> 
-                 {validityLabel}
-               </Badge>
+             {product.isFeatured && (
+              <Badge className="bg-red-600/90 hover:bg-red-600 text-white border-0 font-bold text-[9px] px-1.5 py-0 shadow-sm backdrop-blur-sm flex items-center gap-0.5">
+                <Zap className="w-2.5 h-2.5 fill-white" /> HOT
+              </Badge>
             )}
           </div>
-
-          {product.isFeatured && (
-            <div className="absolute top-2 right-2 z-10">
-               <span className="flex items-center gap-1 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg animate-pulse">
-                 <Zap className="w-3 h-3 fill-white" /> HOT
+          
+          {/* Plan Badge (Bottom Right Overlay) */}
+          {selectedPlan !== "default" && (
+             <div className="absolute bottom-2 right-2 z-10">
+               <span className="flex items-center gap-1 bg-black/60 backdrop-blur-md border border-white/10 text-gray-200 text-[9px] font-medium px-2 py-0.5 rounded-full">
+                 <Clock className="w-2.5 h-2.5 text-blue-400" /> {validityLabel}
                </span>
-            </div>
+             </div>
           )}
         </div>
 
         {/* === CONTENT AREA === */}
-        <div className="flex flex-1 flex-col p-4 space-y-3">
+        <div className="flex flex-1 flex-col p-3 space-y-2.5">
           
           {/* Title */}
           <h3
-            className="text-sm md:text-[15px] font-semibold text-gray-100 line-clamp-2 leading-relaxed group-hover:text-blue-400 transition-colors min-h-[2.5rem]"
+            className="text-[13px] md:text-sm font-semibold text-gray-100 line-clamp-2 leading-snug group-hover:text-white transition-colors min-h-[2.2rem]"
             title={product.title}
           >
             {product.title}
           </h3>
 
-          {/* ⚡ VIP Plan Selector (Click blocker to prevent navigation) */}
-          {availablePlans.length > 0 && (
+          {/* ⚡ Compact VIP Selector */}
+          {availablePlans.length > 0 ? (
             <div 
-              className="mt-1" 
+              className="mt-0.5" 
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
             >
               <Select 
                 value={selectedPlan} 
                 onValueChange={(v) => setSelectedPlan(v as VipPlanKey)}
               >
-                <SelectTrigger className="h-8 text-xs bg-white/5 border-white/10 text-gray-300 focus:ring-0 focus:ring-offset-0">
+                <SelectTrigger className="h-7 text-[10px] bg-white/5 border-white/10 text-gray-400 hover:text-white hover:border-white/20 focus:ring-0 rounded-lg px-2">
                   <SelectValue placeholder="Select Plan" />
                 </SelectTrigger>
-                <SelectContent className="bg-[#1a1a1d] border-white/10 text-gray-300">
+                <SelectContent className="bg-[#1a1a1d] border-white/10 text-gray-300 min-w-[140px]">
                   {availablePlans.map((planKey) => {
-                    const pInfo = pricing[planKey];
-                    // Capitalize first letter
                     const label = planKey.charAt(0).toUpperCase() + planKey.slice(1);
                     return (
-                      <SelectItem key={planKey} value={planKey} className="text-xs focus:bg-white/10 focus:text-white">
-                        {label} - {pInfo?.validityLabel}
+                      <SelectItem key={planKey} value={planKey} className="text-[10px] py-1 focus:bg-white/10 focus:text-white">
+                        {label}
                       </SelectItem>
                     );
                   })}
                 </SelectContent>
               </Select>
             </div>
-          )}
-
-          {/* Fallback Info for Simple Products */}
-          {availablePlans.length === 0 && (
-             <div className="flex items-center gap-1.5">
-               <div className="flex text-yellow-500">
-                 <Star className="w-3 h-3 fill-current" />
-               </div>
-               <span className="text-xs text-gray-500 font-medium pt-0.5">4.9</span>
+          ) : (
+             // Spacer to align cards if no selector
+             <div className="h-7 flex items-center">
+                <div className="flex items-center gap-1 text-[10px] text-gray-500">
+                   <Check className="w-3 h-3 text-green-500" /> Instant Access
+                </div>
              </div>
           )}
 
+          {/* Divider */}
+          <div className="w-full h-px bg-white/5 group-hover:bg-white/10 transition-colors" />
+
           {/* Price + Action Row */}
-          <div className="mt-auto pt-3 border-t border-white/5 flex items-center justify-between gap-2">
+          <div className="flex items-end justify-between gap-2 mt-auto">
             
-            <div className="flex flex-col">
+            <div className="flex flex-col leading-none">
               {regularPrice > displayPrice && (
-                <span className="text-[10px] text-gray-500 line-through font-medium">
+                <span className="text-[9px] text-gray-300 line-through mb-0.5 ml-0.5">
                   {formatPrice(regularPrice)}
                 </span>
               )}
-              <span className="text-base md:text-lg font-bold text-white tracking-tight flex items-center gap-1">
+              <span className="text-sm md:text-base font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">
                 {formatPrice(displayPrice)}
-                {/* Small indicator */}
-                {selectedPlan !== "default" && <span className="text-[10px] font-normal text-gray-400 relative top-[1px]">/ {validityLabel}</span>}
               </span>
             </div>
 
-            {/* Cart Button */}
+            {/* Cart Button (Squircle) */}
             <Button
               size="icon"
-              className="h-9 w-9 rounded-full bg-white text-black hover:bg-blue-600 hover:text-white transition-all duration-300 shadow-lg shadow-white/5"
+              className="h-8 w-8 rounded-lg bg-white text-black hover:bg-blue-500 hover:text-white transition-all shadow-md active:scale-95"
               onClick={handleAddToCart}
             >
-              <ShoppingCart className="w-4 h-4" />
+              <ShoppingCart className="w-3.5 h-3.5" />
             </Button>
           </div>
         </div>
@@ -221,69 +202,65 @@ const ProductCard = ({ product }: { product: IProduct }) => {
 };
 
 // ----------------------------------------------------------------------
-// 2. MAIN COMPONENT: Grid Wrapper with Pagination
+// 2. MAIN COMPONENT: Optimized Grid
 // ----------------------------------------------------------------------
 const ProductList = ({ products }: { products: IProduct[] }) => {
-  // ⚡ Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 16; 
 
   if (!products || products.length === 0) return null;
 
-  // ⚡ Pagination Calculation
   const totalPages = Math.ceil(products.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentProducts = products.slice(startIndex, startIndex + itemsPerPage);
 
-  // Scroll to top of section on page change
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
     const section = document.getElementById("product-list-section");
-    if (section) {
-      section.scrollIntoView({ behavior: "smooth" });
-    }
+    if (section) section.scrollIntoView({ behavior: "smooth" });
   };
 
   return (
-    <section id="product-list-section" className="bg-black py-2 md:py-4 text-white min-h-[50vh]">
+    <section id="product-list-section" className="bg-[#050505] py-4 md:py-8 text-white min-h-[50vh]">
       <div className="container mx-auto px-4 md:px-6">
         
-        {/* Header */}
-        <div className="flex items-end justify-between mb-4">
-           <Link href="/shop" className="hidden md:flex text-sm text-blue-400 hover:text-blue-300 items-center gap-1 transition-colors">
-              View All <ArrowRight className="w-4 h-4" />
+        {/* Header - Minimal */}
+        <div className="flex items-center justify-between mb-2">
+         
+           <Link href="/shop" className="hidden md:flex text-xs font-medium text-gray-500 hover:text-white items-center gap-1 transition-colors group">
+              View All <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
            </Link>
         </div>
 
-        {/* Grid (Showing only currentProducts) */}
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-8 mb-4">
+        {/* ⚡ THE GRID: Tighter Gap, Optimized Columns */}
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-5 mb-8">
           {currentProducts.map((product) => (
             <ProductCard key={product._id} product={product} />
           ))}
         </div>
 
-        {/* ⚡ Pagination Controls */}
+        {/* ⚡ Compact Pagination */}
         {totalPages > 1 && (
-          <div className="flex justify-center items-center gap-2 mb-8">
+          <div className="flex justify-center items-center gap-1.5">
             <Button
               variant="outline"
               size="icon"
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={currentPage === 1}
-              className="h-9 w-9 border-white/10 bg-transparent text-white hover:bg-white/10 disabled:opacity-30"
+              className="h-8 w-8 border-white/10 bg-[#111] text-gray-400 hover:text-white hover:bg-white/10 disabled:opacity-30 rounded-lg"
             >
               <ChevronLeft className="w-4 h-4" />
             </Button>
             
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 bg-[#111] border border-white/5 rounded-lg p-1">
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                 <button
                   key={page}
                   onClick={() => handlePageChange(page)}
-                  className={`h-9 w-9 rounded-md text-sm font-medium transition-all ${
+                  className={`h-6 w-6 rounded flex items-center justify-center text-xs font-medium transition-all ${
                     currentPage === page
-                      ? "bg-white text-black font-bold"
-                      : "text-gray-400 hover:bg-white/10 hover:text-white"
+                      ? "bg-white text-black shadow-sm"
+                      : "text-gray-500 hover:bg-white/5 hover:text-white"
                   }`}
                 >
                   {page}
@@ -296,21 +273,21 @@ const ProductList = ({ products }: { products: IProduct[] }) => {
               size="icon"
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
-              className="h-9 w-9 border-white/10 bg-transparent text-white hover:bg-white/10 disabled:opacity-30"
+              className="h-8 w-8 border-white/10 bg-[#111] text-gray-400 hover:text-white hover:bg-white/10 disabled:opacity-30 rounded-lg"
             >
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
         )}
 
-        {/* Mobile View All */}
-        <div className="mt-4 flex justify-center md:hidden">
+        {/* Mobile View All Button */}
+        <div className="mt-6 flex justify-center md:hidden">
           <Link href="/shop" className="w-full">
             <Button
               variant="outline"
-              className="w-full border-white/10 text-gray-300 hover:bg-white/5 bg-transparent h-12 text-sm font-medium rounded-xl"
+              className="w-full border-white/10 text-gray-400 hover:text-white hover:bg-white/5 bg-[#111] h-10 text-xs font-medium rounded-lg uppercase tracking-wider"
             >
-              Browse All Courses <ArrowRight className="w-4 h-4 ml-2" />
+              Explore All Items
             </Button>
           </Link>
         </div>
