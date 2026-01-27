@@ -166,7 +166,7 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
                   <motion.div 
                     key="image"
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    className="relative w-full h-full p-2" 
+                    className="relative w-full h-full p-1" 
                   >
                     <Image 
                       src={mainImage} 
@@ -208,22 +208,7 @@ export default function ProductDetailsClient({ product }: { product: IProduct })
               )}
             </div>
 
-            {/* Thumbnail Strip */}
-            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide max-w-full">
-              {allImages.map((img, idx) => (
-                <button 
-                  key={idx}
-                  onClick={() => { setMainImage(img); setShowVideo(false); }}
-                  className={`relative w-16 h-16 md:w-20 md:h-20 flex-shrink-0 rounded-lg overflow-hidden border bg-[#111] transition-all ${
-                    mainImage === img && !showVideo
-                      ? "border-green-500 opacity-100 ring-1 ring-green-500" 
-                      : "border-white/10 opacity-60 hover:opacity-100"
-                  }`}
-                >
-                  <Image src={img} alt="thumb" fill className="object-contain p-1" />
-                </button>
-              ))}
-            </div>
+       
           </div>
 
           {/* =================================

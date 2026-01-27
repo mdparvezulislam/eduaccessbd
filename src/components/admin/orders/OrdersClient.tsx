@@ -82,7 +82,7 @@ export function OrdersClient({ data }: OrdersClientProps) {
     // ⚡ SUPER SEARCH
     globalFilterFn: (row, columnId, filterValue) => {
       const search = filterValue.toLowerCase();
-      const txId = String(row.original.transactionId).toLowerCase();
+      const txId = String(row.original.transactionId || "").toLowerCase();
       const email = String(row.original.user?.email || "").toLowerCase();
       const name = String(row.original.user?.name || "").toLowerCase();
       const phone = String(row.original.user?.phone || "").toLowerCase();
@@ -179,7 +179,7 @@ export function OrdersClient({ data }: OrdersClientProps) {
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] text-gray-500 font-bold uppercase">ID</span>
                     <span className="font-mono text-xs text-white font-bold bg-black px-1.5 py-0.5 rounded border border-white/10">
-                      #{row.original.transactionId.slice(-6)}
+                      #{row.original.transactionId.slice(-6) || "N/A"}
                     </span>
                   </div>
                   <div className="scale-90 origin-right">

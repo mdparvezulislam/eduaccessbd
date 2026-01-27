@@ -38,7 +38,7 @@ const ProductCard = ({ product }: { product: IProduct }) => {
     availablePlans.length > 0 ? availablePlans[0] : "default"
   );
 
-  // ⚡ Derived Data: Current Price
+  // ⚡ Price Calculation
   let displayPrice = product.defaultPrice || product.salePrice || 0;
   let regularPrice = product.regularPrice || 0;
   let validityLabel = "Standard";
@@ -65,7 +65,7 @@ const ProductCard = ({ product }: { product: IProduct }) => {
     const planArg = selectedPlan !== "default" ? (selectedPlan as PlanType) : undefined;
     const cartItem = mapProductToCartItem(product, 1, planArg);
     addToCart(cartItem);
-    toast.success(`Added ${product.title} to cart`);
+    toast.success(`Added ${product.title}`);
   };
 
   const formatPrice = (price: number) =>
@@ -76,67 +76,64 @@ const ProductCard = ({ product }: { product: IProduct }) => {
     }).format(price);
 
   return (
-    <div className="group relative flex flex-col h-full bg-[#111] border border-white/5 rounded-xl overflow-hidden hover:border-white/20 hover:bg-[#161616] transition-all duration-300 hover:shadow-2xl hover:shadow-black/50">
+    <div className="group relative flex flex-col h-full bg-[#0a0a0a] border border-white/5 rounded-lg overflow-hidden hover:border-white/20 transition-all duration-300 hover:shadow-xl hover:shadow-black/60 hover:-translate-y-1">
       
       {/* Link Wrapper */}
       <Link href={`/product/${product.slug}`} className="flex-1 flex flex-col">
         
-        {/* === IMAGE AREA (Full Image Show) === */}
-        <div className="relative aspect-square w-full bg-[#151515] overflow-hidden p-2">
+        {/* === IMAGE AREA (Optimized for Full Visibility) === */}
+        <div className="relative aspect-square w-full bg-[#050505] p-1 overflow-hidden">
           {product.thumbnail ? (
             <Image
               src={product.thumbnail}
               alt={product.title}
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              // ✅ object-contain ensures 100% of the image is visible (no crop)
+              // ✅ object-contain: Shows 100% of image (No crop)
               className="object-contain transition-transform duration-500 group-hover:scale-105"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-[#151515] text-gray-700 text-[10px] font-bold tracking-widest">
-              NO PREVIEW
+            <div className="w-full h-full flex items-center justify-center bg-[#111] text-gray-800 text-[10px] font-bold tracking-widest">
+              NO IMAGE
             </div>
           )}
 
-          {/* Subtler Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#111] via-transparent to-transparent opacity-40 group-hover:opacity-20 transition-opacity pointer-events-none" />
-
-          {/* Floating Badges */}
+          {/* Badges (Top Left) */}
           <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
              {discount > 0 && (
-              <Badge className="bg-green-500/90 hover:bg-green-500 text-white border-0 font-bold text-[9px] px-1.5 py-0 shadow-sm backdrop-blur-sm">
+              <Badge className="bg-red-600 hover:bg-red-600 text-white border-0 font-bold text-[9px] px-1.5 py-0 shadow-sm">
                 -{discount}%
               </Badge>
             )}
              {product.isFeatured && (
-              <Badge className="bg-red-600/90 hover:bg-red-600 text-white border-0 font-bold text-[9px] px-1.5 py-0 shadow-sm backdrop-blur-sm flex items-center gap-0.5">
-                <Zap className="w-2.5 h-2.5 fill-white" /> HOT
+              <Badge className="bg-yellow-500 hover:bg-yellow-500 text-black border-0 font-bold text-[9px] px-1.5 py-0 shadow-sm flex items-center gap-0.5">
+                <Zap className="w-2.5 h-2.5 fill-black" /> HOT
               </Badge>
             )}
           </div>
           
-          {/* Plan Badge */}
+          {/* Validity Badge (Bottom Right) */}
           {selectedPlan !== "default" && (
              <div className="absolute bottom-2 right-2 z-10">
-               <span className="flex items-center gap-1 bg-black/60 backdrop-blur-md border border-white/10 text-gray-200 text-[9px] font-medium px-2 py-0.5 rounded-full">
+               <span className="flex items-center gap-1 bg-black/80 backdrop-blur-md border border-white/10 text-gray-200 text-[9px] font-bold px-2 py-0.5 rounded-full">
                  <Clock className="w-2.5 h-2.5 text-blue-400" /> {validityLabel}
                </span>
              </div>
           )}
         </div>
 
-        {/* === CONTENT AREA (Compact) === */}
-        <div className="flex flex-1 flex-col p-2.5 space-y-2">
+        {/* === CONTENT AREA (Zero Extra Space) === */}
+        <div className="flex flex-1 flex-col p-0 space-y-1.5">
           
           {/* Title */}
           <h3
-            className="text-[13px] md:text-sm font-semibold text-gray-100 line-clamp-2 leading-snug group-hover:text-white transition-colors min-h-[2.2rem]"
+            className="text-[11px] sm:text-[13px] font-semibold text-gray-200 leading-snug line-clamp-2 min-h-[2.2rem] group-hover:text-white transition-colors"
             title={product.title}
           >
             {product.title}
           </h3>
 
-          {/* ⚡ Compact VIP Selector or Spacer */}
+          {/* ⚡ Selector or Spacer (Fixed Height for Alignment) */}
           {availablePlans.length > 0 ? (
             <div 
               className="mt-0.5" 
@@ -146,7 +143,7 @@ const ProductCard = ({ product }: { product: IProduct }) => {
                 value={selectedPlan} 
                 onValueChange={(v) => setSelectedPlan(v as VipPlanKey)}
               >
-                <SelectTrigger className="h-7 text-[10px] bg-white/5 border-white/10 text-gray-400 hover:text-white hover:border-white/20 focus:ring-0 rounded-lg px-2">
+                <SelectTrigger className="h-7 text-[10px] bg-white/5 border-white/10 text-gray-400 hover:text-white hover:border-white/20 focus:ring-0 rounded-md px-2">
                   <SelectValue placeholder="Select Plan" />
                 </SelectTrigger>
                 <SelectContent className="bg-[#1a1a1d] border-white/10 text-gray-300 min-w-[140px]">
@@ -162,24 +159,24 @@ const ProductCard = ({ product }: { product: IProduct }) => {
               </Select>
             </div>
           ) : (
-             // ✅ Height matches SelectTrigger (h-7) for perfect grid alignment
+          
              <div className="h-3 flex items-center">
-                <div className="flex items-center gap-1 text-[10px] text-gray-500">
+                <div className="flex items-center gap-1 text-[10px] text-gray-600 font-medium">
                    <Check className="w-3 h-3 text-green-500" /> Instant Access
                 </div>
              </div>
           )}
 
           {/* Price + Action Row (Pushed to bottom) */}
-          <div className="flex items-end justify-between gap-2 mt-auto pt-1">
+          <div className="flex items-end justify-between gap-2 mt-auto pt-1 border-t border-white/5">
             
             <div className="flex flex-col leading-none">
               {regularPrice > displayPrice && (
-                <span className="text-[9px] text-gray-500 line-through mb-0.5 ml-0.5">
+                <span className="text-[9px] text-gray-500 line-through mb-0.5">
                   {formatPrice(regularPrice)}
                 </span>
               )}
-              <span className="text-sm md:text-base font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">
+              <span className="text-sm font-bold text-white tracking-tight">
                 {formatPrice(displayPrice)}
               </span>
             </div>
@@ -187,7 +184,7 @@ const ProductCard = ({ product }: { product: IProduct }) => {
             {/* Cart Button */}
             <Button
               size="icon"
-              className="h-8 w-8 rounded-lg bg-white text-black hover:bg-blue-500 hover:text-white transition-all shadow-md active:scale-95"
+              className="h-7 w-7 rounded-md bg-white text-black hover:bg-blue-500 hover:text-white transition-all shadow-md active:scale-95"
               onClick={handleAddToCart}
             >
               <ShoppingCart className="w-3.5 h-3.5" />
@@ -231,7 +228,7 @@ const ProductList = ({ products }: { products: IProduct[] }) => {
         </div>
 
         {/* ⚡ THE GRID: Tighter Gap, Optimized Columns */}
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-5 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-4 mb-2">
           {currentProducts.map((product) => (
             <ProductCard key={product._id} product={product} />
           ))}
