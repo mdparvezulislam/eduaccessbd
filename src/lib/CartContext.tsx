@@ -1,6 +1,5 @@
 "use client";
 
-import { IProduct } from "@/types";
 import React, {
   createContext,
   useContext,
@@ -8,14 +7,21 @@ import React, {
   useState,
   useCallback,
   ReactNode,
+  useRef,
 } from "react";
+import { IProduct } from "@/types";
+import { toast } from "sonner";
 
-// ✅ 1. Updated Plan Types (Added "account_access")
+// ==============================================================================
+// 1. TYPES & INTERFACES
+// ==============================================================================
+
+// ✅ Updated Plan Types
 export type PlanType = "monthly" | "yearly" | "lifetime" | "account_access";
 
-// ✅ 2. Cart Item Interface
+// ✅ Cart Item Interface
 export interface CartItem {
-  cartId: string;       // Unique ID: "prod123-monthly" or "prod123-account_access"
+  cartId: string;       // Unique ID: "prod123-monthly"
   productId: string;    // DB ID
   name: string;
   image: string;
@@ -38,7 +44,8 @@ interface CartContextType {
   updateQuantity: (cartId: string, quantity: number) => void;
   clearCart: () => void;
   
-  mapProductToCartItem: (product: IProduct, qty?: number, planType?: PlanType) => CartItem;
+  // Logic to convert DB Product -> Cart Item
+  mapProductToCartItem: (product: IProduct, quantity?: number, planType?: PlanType) => CartItem;
   
   totalAmount: number;
   totalItems: number;
@@ -46,54 +53,74 @@ interface CartContextType {
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
-const CART_KEY = "eduaccess-cart-v3"; // Bumped version to v3 to ensure clean state
+const CART_KEY = "eduaccess-cart-v3"; 
 
+// ==============================================================================
+// 2. PROVIDER
+// ==============================================================================
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
+  
+  // Ref to track if initial load has happened (prevents overwriting LS with empty array)
+  const isLoaded = useRef(false);
 
-  // --- Load Cart ---
+  // --- Load Cart (Run Once on Mount) ---
   useEffect(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem(CART_KEY);
       if (stored) {
         try {
-          setCart(JSON.parse(stored));
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) {
+            setCart(parsed);
+          }
         } catch (e) {
           console.error("Cart corrupted, resetting", e);
           localStorage.removeItem(CART_KEY);
         }
       }
+      // Mark as loaded so future updates can save to LS
+      isLoaded.current = true;
       setIsInitialized(true);
     }
   }, []);
 
-  // --- Save Cart ---
+  // --- Save Cart (Run on Update) ---
   useEffect(() => {
-    if (isInitialized) {
+    // Only save if we have finished loading the initial state
+    if (isLoaded.current) {
       localStorage.setItem(CART_KEY, JSON.stringify(cart));
     }
-  }, [cart, isInitialized]);
+  }, [cart]);
 
-  // --- Actions ---
+  // ==============================================================================
+  // 3. ACTIONS
+  // ==============================================================================
+
   const addToCart = useCallback((newItem: CartItem) => {
     setCart((prev) => {
       // Check for existing item with SAME unique cartId (includes plan variant)
-      const existing = prev.find((item) => item.cartId === newItem.cartId);
+      const existingIndex = prev.findIndex((item) => item.cartId === newItem.cartId);
       
-      if (existing) {
-        return prev.map((item) =>
-          item.cartId === newItem.cartId
-            ? { ...item, quantity: item.quantity + newItem.quantity }
-            : item
-        );
+      if (existingIndex > -1) {
+        const updatedCart = [...prev];
+        updatedCart[existingIndex] = {
+           ...updatedCart[existingIndex],
+           quantity: updatedCart[existingIndex].quantity + newItem.quantity
+        };
+        toast.success("Quantity updated in cart");
+        return updatedCart;
       }
+      
+      toast.success("Added to cart");
       return [...prev, newItem];
     });
   }, []);
 
   const removeFromCart = useCallback((cartId: string) => {
     setCart((prev) => prev.filter((item) => item.cartId !== cartId));
+    toast.info("Item removed");
   }, []);
 
   const updateQuantity = useCallback((cartId: string, quantity: number) => {
@@ -106,9 +133,16 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     );
   }, []);
 
-  const clearCart = useCallback(() => setCart([]), []);
+  const clearCart = useCallback(() => {
+    setCart([]);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(CART_KEY);
+    }
+  }, []);
 
-  // --- ⚡ MAPPING LOGIC (Updated for Account Access) ---
+  // ==============================================================================
+  // 4. MAPPING LOGIC (Fixed Type Errors)
+  // ==============================================================================
   const mapProductToCartItem = useCallback(
     (product: IProduct, quantity = 1, planType?: PlanType): CartItem => {
       
@@ -122,28 +156,31 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
       // 🟢 CASE A: Account Access
       if (planType === "account_access") {
-        // Safe access to new field using 'any' casting if type isn't globally updated yet
+        // Use Type Assertion if property exists on Mongoose model but not strict Interface yet
         const accInfo = (product as any).accountAccess;
         
-        finalPrice = Number(accInfo?.price || 0);
-        finalRegularPrice = 0; // Account access usually has no "regular" price
-        validityLabel = "Full Account Access";
-        selectedPlanType = "account_access";
-        
-        // ⚡ Unique ID for Account Access
-        uniqueCartId = `${product._id}-account_access`;
+        if (accInfo && accInfo.isEnabled) {
+            finalPrice = Number(accInfo.price || 0);
+            finalRegularPrice = 0; 
+            validityLabel = "Full Account Access";
+            selectedPlanType = "account_access";
+            uniqueCartId = `${product._id}-account_access`;
+        }
       } 
       
-      // 🟢 CASE B: VIP Subscription Plans (Monthly/Yearly/Lifetime)
-      else if (planType && product.pricing && product.pricing[planType]?.isEnabled) {
-        const selectedPlan = product.pricing[planType];
+      // 🟢 CASE B: VIP Plans (Strict Type Check)
+      else if (planType && ["monthly", "yearly", "lifetime"].includes(planType)) {
+        // Cast planType to specific keys to satisfy TypeScript
+        const vipKey = planType as "monthly" | "yearly" | "lifetime";
+        const selectedPlan = product.pricing ? product.pricing[vipKey] : null;
         
-        finalPrice = selectedPlan.price;
-        finalRegularPrice = selectedPlan.regularPrice || 0;
-        validityLabel = selectedPlan.validityLabel || "VIP Access";
-        selectedPlanType = planType;
-        
-        uniqueCartId = `${product._id}-${planType}`;
+        if (selectedPlan && selectedPlan.isEnabled) {
+            finalPrice = selectedPlan.price;
+            finalRegularPrice = selectedPlan.regularPrice || 0;
+            validityLabel = selectedPlan.validityLabel || "VIP Access";
+            selectedPlanType = planType;
+            uniqueCartId = `${product._id}-${planType}`;
+        }
       } 
       
       // 🟢 CASE C: Standard Product (Fallback)
@@ -154,19 +191,20 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         }
       }
 
+      // Handle Category Object safely
+      const categoryName = typeof product.category === 'object' && product.category !== null 
+        ? (product.category as any).name 
+        : "Product";
+
       return {
         cartId: uniqueCartId,           
         productId: String(product._id), 
-        
         name: product.title,
         image: product.thumbnail,
-        
         price: finalPrice,
         regularPrice: finalRegularPrice,
-        
         quantity,
-        category: typeof product.category === 'object' ? (product.category as any).name : "Product",
-        
+        category: categoryName,
         planType: selectedPlanType, 
         validity: validityLabel,    
       };
@@ -197,6 +235,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
+// --- Hook ---
 export const useCart = () => {
   const context = useContext(CartContext);
   if (!context) throw new Error("useCart must be used within a CartProvider");

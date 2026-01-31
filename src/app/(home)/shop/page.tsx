@@ -10,7 +10,7 @@ export default async function ProductsPage() {
   const [productsRes, categoriesRes] = await Promise.all([
     fetch(`${SITE_URL}/api/products`, { 
       cache: "force-cache", 
-      next: { revalidate: 180 } 
+      next: { revalidate: 360 } 
     }),
     fetch(`${SITE_URL}/api/categories`, { 
       cache: "force-cache", 
