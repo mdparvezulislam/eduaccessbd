@@ -1,42 +1,49 @@
 import ShopClient from "@/components/home/ShopClient"; // ✅ Correct component path
 import { SITE_URL } from "@/types";
 
-;
-
 export default async function ProductsPage() {
+  // 1. Initialize default empty states to prevent undefined errors
+  let products = [];
+  let categories = [];
 
-  // 1. Fetch Data in Parallel (Faster)
-  // We use Promise.all to fetch products and categories at the same time
-  const [productsRes, categoriesRes] = await Promise.all([
-    fetch(`${SITE_URL}/api/products`, { 
-      cache: "force-cache", 
-      next: { revalidate: 360 } 
-    }),
-    fetch(`${SITE_URL}/api/categories`, { 
-      cache: "force-cache", 
-      next: { revalidate: 580 } 
-    })
-  ]);
+  try {
+    // 2. Fetch Data in Parallel (Faster)
+    const [productsRes, categoriesRes] = await Promise.all([
+      fetch(`${SITE_URL}/api/products`, {
+        next: { revalidate: 360 },
+      }),
+      fetch(`${SITE_URL}/api/categories`, {
+        next: { revalidate: 580 },
+      }),
+    ]);
 
-  // 2. Error Handling
-  if (!productsRes.ok || !categoriesRes.ok) {
-    // In a real app, you might want to render a specific error UI here
-    console.error("Failed to fetch shop data");
-    return <div className="text-white p-10">Failed to load shop data. Please refresh.</div>;
+    // 3. Safely parse Products
+    if (productsRes.ok) {
+      const productsData = await productsRes.json();
+      products = productsData?.products || [];
+    } else {
+      console.error("Failed to fetch products. Status:", productsRes.status);
+    }
+
+    // 4. Safely parse Categories
+    if (categoriesRes.ok) {
+      const categoriesData = await categoriesRes.json();
+      categories = categoriesData?.categories || [];
+    } else {
+      console.error("Failed to fetch categories. Status:", categoriesRes.status);
+    }
+  } catch (error) {
+    // This catches complete network failures (e.g., server offline during 'next build')
+    // allowing the build to finish gracefully without crashing.
+    console.error("Error fetching shop data:", error);
   }
-
-  // 3. Parse JSON
-  // Note: The API already returns serialized data (strings), 
-  // so we don't need to manually map .toString() or .toISOString()
-  const productsData = await productsRes.json();
-  const categoriesData = await categoriesRes.json();
-
-  const products = productsData.products || [];
-  const categories = categoriesData.categories || [];
 
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Pass data directly to the Client Component */}
+      {/* Pass data directly to the Client Component. 
+        If the API fails, it safely passes empty arrays [], 
+        allowing ShopClient to handle its own "No products found" UI. 
+      */}
       <ShopClient products={products} categories={categories} />
     </div>
   );
