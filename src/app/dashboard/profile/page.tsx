@@ -119,7 +119,7 @@ export default function ProfilePage() {
 
       <form onSubmit={handleSubmit} className="grid gap-8">
         
-        {/* Personal Info Card */}
+        {/* Personal  Card */}
         <Card className="bg-[#111] border-gray-800 shadow-lg">
           <CardHeader className="border-b border-gray-800 pb-4">
             <CardTitle className="text-lg text-white flex items-center gap-2">

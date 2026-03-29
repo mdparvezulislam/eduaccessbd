@@ -22,21 +22,13 @@ const PAYMENT_METHODS = {
   bkash: {
     id: "bkash",
     name: "Bkash Personal",
-    number: "01858957312",
+    number: "01857887025",
     type: "number",
     color: "text-pink-500",
     border: "peer-data-[state=checked]:border-pink-500",
     bg: "peer-data-[state=checked]:bg-pink-950/30"
   },
-  nagad: {
-    id: "nagad",
-    name: "Nagad Personal",
-    number: "01857887025",
-    type: "number",
-    color: "text-orange-500",
-    border: "peer-data-[state=checked]:border-orange-500",
-    bg: "peer-data-[state=checked]:bg-orange-950/30"
-  },
+  
   // ✅ NEW: USDT Option
   binance: {
     id: "binance",
