@@ -6,7 +6,7 @@ import HowToBuySection from "@/components/HowToBuySection";
 import ReviewSlider from "@/components/ReviewSlider";
 import { IProduct, SITE_URL } from "@/types";
 import { ArrowRight } from "lucide-react";
-import Link from "next/link"; // FIXED: Imported Next.js Link instead of Lucide icon
+import Link from "next/link"; 
 
 export default async function Home() {
   // Initialize default empty states to prevent undefined errors
@@ -16,7 +16,7 @@ export default async function Home() {
   try {
     // Run fetches in parallel for better performance
     const [response, categoryResponse] = await Promise.all([
-      fetch(`${SITE_URL}/api/products`, {
+      fetch(`${SITE_URL}/api/products`, { cache:"force-cache",
         next: { revalidate: 180 },
       }),
       fetch(`${SITE_URL}/api/categories`, {

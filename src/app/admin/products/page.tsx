@@ -1,30 +1,45 @@
 import ProductListClient from "@/components/admin/products/ProductListClient";
 import { SITE_URL } from "@/types"; // Ensure this is defined in your types file
 
-
-
 export default async function ProductListPage() {
   const baseUrl = SITE_URL || 'http://localhost:3000';
+  let products = [];
 
-  // 1. Fetch products
-  // Using 'no-store' ensures Admin always sees the latest data immediately (Zero Caching)
-  const res = await fetch(`${baseUrl}/api/products`, {
-    cache: "force-cache",next:{
-      revalidate: 100
-    } 
-  });
+  try {
+    // 1. Fetch products
+    const res = await fetch(`${baseUrl}/api/products`, {
+      next: {
+        revalidate: 100
+      } 
+    });
 
-  if (!res.ok) {
+    if (!res.ok) {
+      return (
+        <div className="flex items-center justify-center h-full w-full p-8 text-red-500 bg-black">
+          <p>Failed to load products. Check API connection.</p>
+        </div>
+      );
+    }
+
+    // 2. Parse JSON
+    const data = await res.json();
+    const fetchedProducts = data?.products || [];
+
+    // 3. ✅ SORT PRODUCTS A-Z BY TITLE
+    products = fetchedProducts.sort((a: any, b: any) => {
+      const titleA = a.title?.toLowerCase() || "";
+      const titleB = b.title?.toLowerCase() || "";
+      return titleA.localeCompare(titleB);
+    });
+
+  } catch (error) {
+    console.error("Failed to fetch products for admin list:", error);
     return (
       <div className="flex items-center justify-center h-full w-full p-8 text-red-500 bg-black">
-        <p>Failed to load products. Check API connection.</p>
+        <p>Something went wrong while fetching products.</p>
       </div>
     );
   }
-
-  // 2. Parse JSON
-  const data = await res.json();
-  const products = data.products || [];
 
   return (
     // 'flex-1' fills available space in layout
@@ -36,7 +51,7 @@ export default async function ProductListPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Products</h2>
-          <p className="text-sm text-gray-400">Manage your course catalog</p>
+          <p className="text-sm text-gray-400">Manage your course catalog (A-Z Sorted)</p>
         </div>
       </div>
 
