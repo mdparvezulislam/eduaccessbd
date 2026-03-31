@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Pencil, Loader2, Save, User, Mail, Phone, Shield } from "lucide-react";
+import { Pencil, Loader2, Save, User, Mail, Phone, Shield, Lock } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -41,12 +41,13 @@ export function EditUserDialog({ user, onUpdate, fullWidth }: EditUserDialogProp
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   
-  // Initialize form data
+  // Initialize form data with password field
   const [formData, setFormData] = useState({
     name: user.name,
     email: user.email,
     phone: user.phone || "",
     role: user.role,
+    password: "", // Added password field
   });
 
   // Reset form when user prop changes or modal opens
@@ -57,6 +58,7 @@ export function EditUserDialog({ user, onUpdate, fullWidth }: EditUserDialogProp
         email: user.email,
         phone: user.phone || "",
         role: user.role,
+        password: "", // Always reset password to empty on open
       });
     }
   }, [open, user]);
@@ -66,10 +68,16 @@ export function EditUserDialog({ user, onUpdate, fullWidth }: EditUserDialogProp
     setLoading(true);
 
     try {
+      // Only send password if it has been typed in
+      const payload = { ...formData };
+      if (!payload.password.trim()) {
+        delete (payload as any).password;
+      }
+
       const res = await fetch(`/api/admin/users/${user._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -114,7 +122,7 @@ export function EditUserDialog({ user, onUpdate, fullWidth }: EditUserDialogProp
             Edit User Details
           </DialogTitle>
           <DialogDescription className="text-gray-500 text-sm">
-            Update personal information and permissions for <span className="text-white font-medium">{user.name}</span>.
+            Update personal information, password, and permissions for <span className="text-white font-medium">{user.name}</span>.
           </DialogDescription>
         </DialogHeader>
         
@@ -131,6 +139,7 @@ export function EditUserDialog({ user, onUpdate, fullWidth }: EditUserDialogProp
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
                   className="pl-9 bg-[#0a0a0a] border-white/10 text-white focus-visible:ring-blue-500/50 focus-visible:border-blue-500/50 h-10"
                   placeholder="User Name"
+                  required
                 />
               </div>
             </div>
@@ -141,10 +150,12 @@ export function EditUserDialog({ user, onUpdate, fullWidth }: EditUserDialogProp
               <div className="relative">
                 <Mail className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
                 <Input 
+                  type="email"
                   value={formData.email} 
                   onChange={(e) => setFormData({...formData, email: e.target.value})}
                   className="pl-9 bg-[#0a0a0a] border-white/10 text-white focus-visible:ring-blue-500/50 focus-visible:border-blue-500/50 h-10"
                   placeholder="user@example.com"
+                  required
                 />
               </div>
             </div>
@@ -159,6 +170,21 @@ export function EditUserDialog({ user, onUpdate, fullWidth }: EditUserDialogProp
                   onChange={(e) => setFormData({...formData, phone: e.target.value})}
                   className="pl-9 bg-[#0a0a0a] border-white/10 text-white focus-visible:ring-blue-500/50 focus-visible:border-blue-500/50 h-10"
                   placeholder="017xxxxxxxx"
+                />
+              </div>
+            </div>
+
+            {/* New Password Field */}
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">New Password</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
+                <Input 
+                  type="password"
+                  value={formData.password} 
+                  onChange={(e) => setFormData({...formData, password: e.target.value})}
+                  className="pl-9 bg-[#0a0a0a] border-white/10 text-white focus-visible:ring-blue-500/50 focus-visible:border-blue-500/50 h-10 placeholder:text-gray-600"
+                  placeholder="Leave blank to keep unchanged"
                 />
               </div>
             </div>

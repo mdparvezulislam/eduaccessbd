@@ -3,6 +3,7 @@ import { User } from "@/models/User";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
+import bcrypt from "bcryptjs"; // <-- Make sure to import bcrypt
 
 // ⚡ CONFIG: Phone numbers allowed to edit/delete users
 const SUPER_ADMINS = ["01857887025", "01608257876"];
@@ -44,15 +45,24 @@ export async function PUT(req: NextRequest, { params }: Params) {
        return NextResponse.json({ error: "You cannot demote yourself!" }, { status: 400 });
     }
 
+    // Prepare Update Payload
+    const updateData: any = {
+      name: body.name,
+      email: body.email,
+      phone: body.phone,
+      role: body.role,
+    };
+
+    // If Admin provided a new password, hash it and add to update payload
+    if (body.password && body.password.trim() !== "") {
+      const hashedPassword = await bcrypt.hash(body.password, 10);
+      updateData.password = hashedPassword;
+    }
+
     // Update User
     const updatedUser = await User.findByIdAndUpdate(
       id,
-      { 
-        name: body.name,
-        email: body.email,
-        phone: body.phone,
-        role: body.role 
-      },
+      updateData,
       { new: true }
     ).select("-password");
 
@@ -66,7 +76,6 @@ export async function PUT(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
-
 // ==========================================
 // DELETE: Remove a User (Super Admin Only)
 // ==========================================
