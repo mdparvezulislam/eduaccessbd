@@ -1,30 +1,37 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   reactCompiler: true,
+
+  // 🔥 VERY IMPORTANT for VPS (low RAM)
+  experimental: {
+    workerThreads: false,
+    cpus: 1,
+  },
+
+  // 🚀 Reduce server load (important for 4GB VPS)
+  output: "standalone",
+
+  // 🧠 Disable heavy image optimization (saves RAM)
   images: {
-    // domains: ["images.unsplash.com", "ik.imagekit.io","github.com"],
+    unoptimized: true,
+
     remotePatterns: [
       {
         protocol: "https",
         hostname: "images.unsplash.com",
-        port: "",
         pathname: "/**",
       },
       {
         protocol: "https",
         hostname: "ik.imagekit.io",
-        port: "",
         pathname: "/**",
       },
       {
         protocol: "https",
         hostname: "github.com",
-        port: "",
         pathname: "/**",
       },
-      
     ],
   },
 };
