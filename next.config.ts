@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  
   reactCompiler: true,
 output: 'standalone',
   // 🔥 VERY IMPORTANT for VPS (low RAM)
@@ -9,8 +10,6 @@ output: 'standalone',
     cpus: 1,
   },
 
-  // 🚀 Reduce server load (important for 4GB VPS)
-  output: "standalone",
 
   // 🧠 Disable heavy image optimization (saves RAM)
   images: {
