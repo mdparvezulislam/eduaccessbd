@@ -21,8 +21,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 const PAYMENT_METHODS = {
   bkash: {
     id: "bkash",
-    name: "Bkash Personal",
-    number: "01857887025",
+    name: "Bkash Cashout",
+    number: "01718539406",
     type: "number",
     color: "text-pink-500",
     border: "peer-data-[state=checked]:border-pink-500",
@@ -281,7 +281,7 @@ export default function CheckoutPage() {
                         <Label htmlFor={method.id} className={`flex flex-col items-center justify-center gap-1 h-16 rounded-lg border border-white/10 bg-[#111] hover:bg-white/5 cursor-pointer transition-all ${method.border} ${method.bg}`}>
                           <span className={`font-bold text-sm ${method.id === paymentMethod ? method.color : "text-gray-300"}`}>{method.name}</span>
                           <span className="text-[9px] text-gray-500 uppercase tracking-wider">
-                            {method.type === 'crypto' ? "Pay via ID" : "Send Money"}
+                            {method.type === 'crypto' ? "Pay via ID" : "Cashout Only (Agent)"}
                           </span>
                         </Label>
                       </div>
@@ -294,8 +294,8 @@ export default function CheckoutPage() {
                      <div className="flex items-center justify-between gap-2">
                         <div className="min-w-0">
                            <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest mb-0.5">
-                             {activePay.type === 'crypto' ? "Binance Pay ID / Wallet" : "Send Money To (Personal)"}
-                           </p>
+                             {activePay.type === 'crypto' ? "Binance Pay ID / Wallet" : "Cashout Only (Agent)"}
+                           </p>  
                            <p className={`text-lg sm:text-xl font-mono font-bold tracking-wider truncate ${activePay.color}`}>
                              {activePay.number}
                            </p>
