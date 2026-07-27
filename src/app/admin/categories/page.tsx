@@ -1,27 +1,18 @@
 import CategoryListClient from "@/components/admin/categories/CategoryListClient";
-import { SITE_URL } from "@/types";
+import { connectToDatabase } from "@/lib/db";
+import { Category } from "@/models/Category";
 
 export default async function CategoryListPage() {
-  // 1. Initialize default empty state to prevent undefined errors
   let categories = [];
 
   try {
-    // 2. Fetch data safely
-    const res = await fetch(`${SITE_URL}/api/categories`, {
-      // Using next: { revalidate } automatically enables caching (ISR)
-      next: { revalidate: 60 },
-    });
-
-    // 3. Check if response is OK before parsing JSON
-    if (res.ok) {
-      const data = await res.json();
-      categories = data?.categories || [];
-    } else {
-      console.error("Failed to fetch categories. Status:", res.status);
+    if (process.env.MONGODB_URI) {
+      await connectToDatabase();
+      const rawCategories = await Category.find({}).sort({ name: 1 }).lean();
+      categories = JSON.parse(JSON.stringify(rawCategories || []));
     }
   } catch (error) {
-    // 4. Catch network errors to prevent build crashes
-    console.error("Error fetching categories data:", error);
+    console.error("Error fetching categories data from database:", error);
   }
 
   return (
@@ -29,11 +20,6 @@ export default async function CategoryListPage() {
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Categories</h2>
       </div>
-      
-      {/* Pass data directly to the Client Component. 
-        If the API fails, it safely passes an empty array [], 
-        allowing CategoryListClient to show an "Empty State" or data table correctly. 
-      */}
       <CategoryListClient initialData={categories} />
     </div>
   );

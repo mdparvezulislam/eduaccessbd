@@ -1,49 +1,32 @@
-import ShopClient from "@/components/home/ShopClient"; // ✅ Correct component path
-import { SITE_URL } from "@/types";
+import ShopClient from "@/components/home/ShopClient";
+import { connectToDatabase } from "@/lib/db";
+import { Product } from "@/models/Product";
+import { Category } from "@/models/Category";
 
 export default async function ProductsPage() {
-  // 1. Initialize default empty states to prevent undefined errors
   let products = [];
   let categories = [];
 
   try {
-    // 2. Fetch Data in Parallel (Faster)
-    const [productsRes, categoriesRes] = await Promise.all([
-      fetch(`${SITE_URL}/api/products`, {
-        next: { revalidate: 360 },
-      }),
-      fetch(`${SITE_URL}/api/categories`, {
-        next: { revalidate: 580 },
-      }),
-    ]);
+    if (process.env.MONGODB_URI) {
+      await connectToDatabase();
+      const [rawProducts, rawCategories] = await Promise.all([
+        Product.find({ isAvailable: true })
+          .populate("category", "name slug")
+          .sort({ createdAt: -1 })
+          .lean(),
+        Category.find({}).sort({ name: 1 }).lean(),
+      ]);
 
-    // 3. Safely parse Products
-    if (productsRes.ok) {
-      const productsData = await productsRes.json();
-      products = productsData?.products || [];
-    } else {
-      console.error("Failed to fetch products. Status:", productsRes.status);
-    }
-
-    // 4. Safely parse Categories
-    if (categoriesRes.ok) {
-      const categoriesData = await categoriesRes.json();
-      categories = categoriesData?.categories || [];
-    } else {
-      console.error("Failed to fetch categories. Status:", categoriesRes.status);
+      products = JSON.parse(JSON.stringify(rawProducts || []));
+      categories = JSON.parse(JSON.stringify(rawCategories || []));
     }
   } catch (error) {
-    // This catches complete network failures (e.g., server offline during 'next build')
-    // allowing the build to finish gracefully without crashing.
-    console.error("Error fetching shop data:", error);
+    console.error("Error fetching shop data from database:", error);
   }
 
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Pass data directly to the Client Component. 
-        If the API fails, it safely passes empty arrays [], 
-        allowing ShopClient to handle its own "No products found" UI. 
-      */}
       <ShopClient products={products} categories={categories} />
     </div>
   );

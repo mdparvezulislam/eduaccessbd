@@ -1,21 +1,21 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
-import {  SITE_URL } from "@/types"; // Import your type
 import ProductDetailsClient from "@/components/ProductDetailsClient";
+import { connectToDatabase } from "@/lib/db";
+import { Product } from "@/models/Product";
 
-// Helper to fetch data
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://eduaccessbd.store";
+
 async function getProduct(slug: string) {
   try {
-    // Replace with your actual API URL
-    const res = await fetch(`${SITE_URL}/api/products/slug/${slug}`, {
-      cache:"force-cache", next: { revalidate: 180 }, // Ensure fresh data, or use 'force-cache' for SSG
-    });
-
-    if (!res.ok) return null;
-    const data = await res.json();
-   
-    return data.success ? data.product : null;
+    if (!process.env.MONGODB_URI) return null;
+    await connectToDatabase();
+    const rawProduct = await Product.findOne({ slug, isAvailable: true })
+      .populate("category", "name slug")
+      .lean();
+    return rawProduct ? JSON.parse(JSON.stringify(rawProduct)) : null;
   } catch (error) {
+    console.error("Error fetching product:", error);
     return null;
   }
 }
@@ -31,18 +31,18 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   return {
     title: `${product.title} | ProAccess Shop`,
-    description: product.shortDescription || product.description.substring(0, 160),
+    description: product.shortDescription || (product.description ? product.description.substring(0, 160) : ""),
     openGraph: {
       images: [product.thumbnail],
       title: product.title,
-      description: product.shortDescription || product.description.substring(0, 160),
+      description: product.shortDescription || (product.description ? product.description.substring(0, 160) : ""),
       url: `${SITE_URL}/product/${slug}`,
-      siteName: "Edu Access Bd",
+      siteName: "Edu Access BD",
     },
     twitter: {
       card: "summary_large_image",
       title: product.title,
-      description: product.shortDescription || product.description.substring(0, 160),
+      description: product.shortDescription || (product.description ? product.description.substring(0, 160) : ""),
       images: [product.thumbnail],
     },
   };

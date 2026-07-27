@@ -4,7 +4,10 @@ import FeaturedCourses from "@/components/home/FeaturedCourses";
 import ProductList from "@/components/home/ProductList";
 import HowToBuySection from "@/components/HowToBuySection";
 import ReviewSlider from "@/components/ReviewSlider";
-import { IProduct, SITE_URL } from "@/types";
+import { IProduct } from "@/types";
+import { connectToDatabase } from "@/lib/db";
+import { Product } from "@/models/Product";
+import { Category } from "@/models/Category";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link"; 
 
@@ -14,41 +17,28 @@ export default async function Home() {
   let categories: any[] = [];
 
   try {
-    // Run fetches in parallel for better performance
-    const [response, categoryResponse] = await Promise.all([
-      fetch(`${SITE_URL}/api/products`, { cache:"force-cache",
-        next: { revalidate: 180 },
-      }),
-      fetch(`${SITE_URL}/api/categories`, {
-        next: { revalidate: 180 },
-      }),
-    ]);
+    if (process.env.MONGODB_URI) {
+      await connectToDatabase();
+      const [rawProducts, rawCategories] = await Promise.all([
+        Product.find({ isAvailable: true })
+          .populate("category", "name slug")
+          .sort({ createdAt: -1 })
+          .lean(),
+        Category.find({}).sort({ name: 1 }).lean(),
+      ]);
 
-    if (response.ok) {
-      const data = await response.json();
-      products = data?.products || [];
-    } else {
-      console.error("Failed to fetch products. Status:", response.status);
-    }
-
-    if (categoryResponse.ok) {
-      const categoriesData = await categoryResponse.json();
-      categories = categoriesData?.categories || [];
-    } else {
-      console.error("Failed to fetch categories. Status:", categoryResponse.status);
+      products = JSON.parse(JSON.stringify(rawProducts || []));
+      categories = JSON.parse(JSON.stringify(rawCategories || []));
     }
   } catch (error) {
-    // This catches network errors (e.g., server offline during 'next build')
-    // and allows the build to finish gracefully without crashing.
-    console.error("Error fetching homepage data:", error);
+    console.error("Error fetching homepage data from database:", error);
   }
 
-  // Safely filter data (even if products array is empty, this won't crash)
+  // Safely filter data
   const featuredProducts = products.filter(
     (product: IProduct) => product.isFeatured === true
   );
 
-  // safe even if the array has fewer than 50 items
   const popularProducts = products.slice(32, 50); 
 
   return (

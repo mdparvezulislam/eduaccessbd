@@ -33,8 +33,14 @@ export interface ICategory {
   updatedAt?: string;
 }
 
-// export const SITE_URL = "https://eduaccessbd.store";
-export const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+// Dynamic SITE_URL: Returns relative empty string in client browser so fetches hit current origin (localhost or production domain)
+export const SITE_URL =
+  typeof window !== "undefined"
+    ? ""
+    : process.env.INTERNAL_APP_URL ||
+      (process.env.NODE_ENV === "development"
+        ? "http://localhost:3000"
+        : process.env.NEXT_PUBLIC_APP_URL || "http://127.0.0.1:3000");
 // ==========================================
 // 3. PRODUCT TYPE
 // ==========================================

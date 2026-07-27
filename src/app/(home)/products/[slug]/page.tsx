@@ -1,80 +1,78 @@
-
 import { notFound } from "next/navigation";
-import { IProduct, SITE_URL } from "@/types";
 import ProductList from "@/components/home/ProductList";
 import CategorySection from "@/components/CategorySLider";
+import { connectToDatabase } from "@/lib/db";
+import { Product } from "@/models/Product";
+import { Category } from "@/models/Category";
 
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://eduaccessbd.store";
 
-//  Generate Static  Metadata With Slug Get Category Name
+// Generate Metadata
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params; 
-    const res = await fetch(`${SITE_URL}/api/products`, {
-          cache: "no-store", // Ensure fresh data, essential for dynamic pricing/availability
-        });
-        const products = await res.json();  
-// filter product by category slug
-  const product = products?.products.filter((prod: IProduct) => prod.category.slug === slug);
-  if (!product) {
-    return {
-      title: 'Category Not Found',
-      description: 'The requested category does not exist.',
-    };
-  }
-  const categoryName = product[0]?.category.name || 'Products';
+  const { slug } = await params;
+  try {
+    if (!process.env.MONGODB_URI) return { title: "Products" };
+    await connectToDatabase();
+    const category: any = await Category.findOne({ slug }).lean();
+    if (!category) {
+      return {
+        title: "Category Not Found",
+        description: "The requested category does not exist.",
+      };
+    }
 
-  return {
-    title: `${categoryName} `,
-    description: `Explore our exclusive collection of ${categoryName.toLowerCase()} at My E-commerce Store. Find the best deals and latest trends in ${categoryName.toLowerCase()}.`,
-    openGraph: {
-      title: `${categoryName} `,
-      description: `Explore our exclusive collection of ${categoryName.toLowerCase()} at My E-commerce Store. Find the best deals and latest trends in ${categoryName.toLowerCase()}.`,
-      url: `${SITE_URL}/products/${slug}`,
-      siteName: 'My E-commerce Store',
-      images: [
-        {
-          url: `${SITE_URL}/og-image.png`,
-          width: 1200,
-          height: 630,
-          alt: 'My E-commerce Store',
-        },
-      ],
-      locale: 'en_US',
-      type: 'website',
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: `${categoryName} - My E-commerce Store`,
-      description: `Explore our exclusive collection of ${categoryName.toLowerCase()} at My E-commerce Store. Find the best deals and latest trends in ${categoryName.toLowerCase()}.`,
-      images: [`${SITE_URL}/og-image.png`],
-    },
-  };
+    const categoryName = category.name || "Products";
+
+    return {
+      title: `${categoryName} | Edu Access BD`,
+      description: `Explore our collection of ${categoryName.toLowerCase()} at Edu Access BD.`,
+      openGraph: {
+        title: `${categoryName} | Edu Access BD`,
+        description: `Explore our collection of ${categoryName.toLowerCase()} at Edu Access BD.`,
+        url: `${SITE_URL}/products/${slug}`,
+        siteName: "Edu Access BD",
+        images: [{ url: `${SITE_URL}/og-image.jpg`, width: 1200, height: 630 }],
+      },
+    };
+  } catch {
+    return { title: "Products" };
+  }
 }
 
 // 2. The Server Page Component
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params; 
-    const res = await fetch(`${SITE_URL}/api/products`, {
-      cache: "no-store", // Ensure fresh data, essential for dynamic pricing/availability
-    });
-    const products = await res.json();
-// filter product by category slug
-  const product = products?.products.filter((prod: IProduct) => prod.category.slug === slug);
-  console.log(product)
-  if (!product) {
+  const { slug } = await params;
+  let products: any[] = [];
+  let categories: any[] = [];
+
+  try {
+    if (process.env.MONGODB_URI) {
+      await connectToDatabase();
+      const category: any = await Category.findOne({ slug }).lean();
+      if (!category) {
+        return notFound();
+      }
+
+      const [rawProducts, rawCategories] = await Promise.all([
+        Product.find({ category: category._id, isAvailable: true })
+          .populate("category", "name slug")
+          .sort({ createdAt: -1 })
+          .lean(),
+        Category.find({}).sort({ name: 1 }).lean(),
+      ]);
+
+      products = JSON.parse(JSON.stringify(rawProducts || []));
+      categories = JSON.parse(JSON.stringify(rawCategories || []));
+    }
+  } catch (error) {
+    console.error("Error fetching category products:", error);
     return notFound();
   }
-
-     const categoryResponse = await fetch(`${SITE_URL}/api/categories`, {
-          cache: "force-cache", next: { revalidate: 180 }
-        });
-
-        const categoriesData = await categoryResponse.json();
-        const categories = categoriesData.categories;
 
   return (
     <div className="min-h-screen bg-black text-white">
       <CategorySection categories={categories} />
-      <ProductList products={product} />
+      <ProductList products={products} />
     </div>
   );
 }
