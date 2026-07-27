@@ -1,9 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  
-  reactCompiler: true,
-output: 'standalone',
   // 🔥 VERY IMPORTANT for VPS (low RAM)
   experimental: {
     workerThreads: false,

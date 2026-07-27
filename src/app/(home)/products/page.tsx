@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { IProduct, ICategory } from "@/types";
 import { useSearchParams } from "next/navigation";
 import { 
@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ProductCard } from "@/components/ProductCard";
 import { Button } from "@/components/ui/button"; // Ensure you have this
 
-export default function AllProductsPage() {
+function ProductsContent() {
   const searchParams = useSearchParams();
   const initialCategory = searchParams.get("category");
 
@@ -345,5 +345,17 @@ function TagIcon({ className }: { className?: string }) {
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
       <path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l5 5a2 2 0 0 0 2.828 0l7.172-7.172a2 2 0 0 0 0-2.828l-5-5z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>
     </svg>
+  );
+}
+
+export default function AllProductsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="animate-pulse text-gray-400">Loading products...</div>
+      </div>
+    }>
+      <ProductsContent />
+    </Suspense>
   );
 }

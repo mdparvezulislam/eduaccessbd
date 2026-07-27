@@ -1,25 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Providers from "@/components/Providers";
 import { ImageKitProvider } from "@imagekit/next";
 import { Toaster } from "sonner";
 import { GoogleTagManager } from "@next/third-parties/google";
 import LiveSalesPopup from "@/components/LiveSalesPopup";
-
-
-// 1. FONTS
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-  display: "swap",
-});
 
 // 2. CONFIGURATION (Replace with your actual domain)
 const SITE_NAME = "Edu Access BD";
@@ -130,28 +115,23 @@ export default function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        {/* Inject Schema.org JSON-LD */}
+      <body
+        className="antialiased bg-gray-50 text-gray-900"
+      >
         <script
+          id="json-ld"
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
-      </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 text-gray-900`}
-      >
         <Providers>
-          {/* ⚠️ ImageKitProvider should usually wrap the children to provide context */}
           <ImageKitProvider urlEndpoint={urlEndpoint}>
             {children}
-      
           </ImageKitProvider>
           <LiveSalesPopup />
           <Toaster position="top-right" richColors closeButton />
         </Providers>
+        <GoogleTagManager gtmId="GTM-MC37TP75" />
       </body>
-        {/* GTM - Google Analytics & Ads */}
-      <GoogleTagManager gtmId="GTM-MC37TP75" />
     </html>
   );
 }
