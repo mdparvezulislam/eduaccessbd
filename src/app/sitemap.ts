@@ -7,13 +7,20 @@ import { Category } from '@/models/Category';
 const BASE_URL = 'https://eduaccessbd.store'; 
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  await connectToDatabase();
+  let products: any[] = [];
+  let categories: any[] = [];
 
-  // 1. Fetch Dynamic Data
-  const products = await Product.find({}).select('slug updatedAt').lean();
-  const categories = await Category.find({}).select('slug').lean();
+  if (process.env.MONGODB_URI) {
+    try {
+      await connectToDatabase();
+      products = await Product.find({}).select('slug updatedAt').lean();
+      categories = await Category.find({}).select('slug').lean();
+    } catch (error) {
+      console.warn("Sitemap: Skipped database routes generation during build (no active DB connection).");
+    }
+  }
 
-  // 2. Static Routes
+  // 1. Static Routes
   const staticRoutes = [
     '',
     '/shop',
@@ -29,7 +36,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: route === '' ? 1.0 : 0.8,
   }));
 
-  // 3. Dynamic Product Routes
+  // 2. Dynamic Product Routes
   const productRoutes = products.map((product: any) => ({
     url: `${BASE_URL}/product/${product.slug}`,
     lastModified: new Date(product.updatedAt || new Date()),
@@ -37,7 +44,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.9,
   }));
 
-  // 4. Dynamic Category Routes
+  // 3. Dynamic Category Routes
   const categoryRoutes = categories.map((cat: any) => ({
     url: `${BASE_URL}/products/${cat.slug}`, // Maps to your filtered products page
     lastModified: new Date(),
@@ -45,6 +52,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  // 5. Combine All
+  // 4. Combine All
   return [...staticRoutes, ...productRoutes, ...categoryRoutes];
 }

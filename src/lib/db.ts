@@ -1,18 +1,27 @@
 import mongoose from "mongoose";
 
-const MONGODB_URI = process.env.MONGODB_URI!;
-
-if (!MONGODB_URI) {
-  throw new Error("Please define mongo_uri in env variables");
+interface MongooseCache {
+  conn: typeof mongoose | null;
+  promise: Promise<typeof mongoose> | null;
 }
 
-let cached = global.mongoose;
+declare global {
+  var mongooseCache: MongooseCache | undefined;
+}
 
-if (!cached) {
-  cached = global.mongoose = { conn: null, promise: null };
+let cached: MongooseCache = global.mongooseCache || { conn: null, promise: null };
+
+if (!global.mongooseCache) {
+  global.mongooseCache = cached;
 }
 
 export async function connectToDatabase() {
+  const MONGODB_URI = process.env.MONGODB_URI;
+
+  if (!MONGODB_URI) {
+    throw new Error("Please define MONGODB_URI in environment variables");
+  }
+
   if (cached.conn) {
     return cached.conn;
   }
@@ -23,9 +32,7 @@ export async function connectToDatabase() {
       maxPoolSize: 10,
     };
 
-    mongoose.connect(MONGODB_URI, opts).then(() => mongoose.connection);
-
-
+    cached.promise = mongoose.connect(MONGODB_URI, opts).then(() => mongoose);
   }
 
   try {
