@@ -6,6 +6,9 @@ import { Product } from "@/models/Product";
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://eduaccessbd.store";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 async function getProduct(slug: string) {
   try {
     if (!process.env.MONGODB_URI) return null;

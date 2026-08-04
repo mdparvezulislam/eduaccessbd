@@ -9,7 +9,10 @@ import { connectToDatabase } from "@/lib/db";
 import { Product } from "@/models/Product";
 import { Category } from "@/models/Category";
 import { ArrowRight } from "lucide-react";
-import Link from "next/link"; 
+import Link from "next/link";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function Home() {
   // Initialize default empty states to prevent undefined errors

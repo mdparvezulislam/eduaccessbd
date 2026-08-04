@@ -7,6 +7,9 @@ import { Category } from "@/models/Category";
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://eduaccessbd.store";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 // Generate Metadata
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;

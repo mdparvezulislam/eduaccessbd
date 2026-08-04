@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
+import "@/models/Category";
 
 // 1. Interface for VIP Plan
 interface IVipPlan {

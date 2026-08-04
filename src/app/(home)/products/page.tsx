@@ -34,8 +34,8 @@ function ProductsContent() {
     const fetchData = async () => {
       try {
         const [prodRes, catRes] = await Promise.all([
-          fetch("/api/products"),
-          fetch("/api/categories")
+          fetch("/api/products", { cache: "no-store" }),
+          fetch("/api/categories", { cache: "no-store" })
         ]);
         
         const prodData = await prodRes.json();

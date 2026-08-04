@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 // GET: Fetch Reviews (Public = Active Only, Admin = All)
 export async function GET(req: NextRequest) {
