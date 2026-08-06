@@ -177,17 +177,17 @@ const FileUpload: React.FC<FileUploadProps> = ({
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Upload Zone */}
       <div
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`w-full p-8 rounded-2xl border-2 border-dashed transition-all ${
+        className={`w-full p-6 rounded-2xl border-2 border-dashed transition-all ${
           dragActive
-            ? "border-indigo-500 bg-indigo-50"
-            : "border-gray-300 bg-gradient-to-br from-gray-50 via-white to-gray-100"
-        } shadow-md hover:shadow-lg flex flex-col items-center justify-center gap-5`}
+            ? "border-emerald-500 bg-emerald-950/20"
+            : "border-zinc-700 bg-[#1a1a20] hover:border-zinc-600"
+        } shadow-lg flex flex-col items-center justify-center gap-3`}
       >
         {/* Hidden File Input */}
         <input
@@ -201,15 +201,15 @@ const FileUpload: React.FC<FileUploadProps> = ({
         />
 
         {/* Upload Area */}
-        <div className="flex flex-col items-center justify-center text-center space-y-3">
-          <div className="text-4xl">📤</div>
-          <h3 className="text-lg font-semibold text-gray-800">
+        <div className="flex flex-col items-center justify-center text-center space-y-2">
+          <div className="text-3xl">📤</div>
+          <h3 className="text-xs sm:text-sm font-bold text-white">
             {dragActive
-              ? "ছেড়ে দিন, আপলোড শুরু হবে..."
-              : "ফাইল টেনে আনুন অথবা নিচের বাটনে ক্লিক করুন"}
+              ? "Drop files here to upload..."
+              : "Drag & drop files or click button"}
           </h3>
-          <p className="text-sm text-gray-500">
-            JPG, PNG, বা WEBP ফরম্যাট সমর্থিত (একাধিক আপলোড সম্ভব)
+          <p className="text-[11px] text-zinc-400">
+            JPG, PNG, or WEBP formats supported
           </p>
 
           {/* Upload Button */}
@@ -217,34 +217,34 @@ const FileUpload: React.FC<FileUploadProps> = ({
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={disabled || uploading}
-            className="mt-2 px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold text-sm hover:from-indigo-600 hover:to-purple-700 shadow-lg transition-all duration-300 active:scale-95"
+            className="mt-1 px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-xs hover:from-emerald-500 hover:to-teal-500 shadow-md transition-all duration-300 active:scale-95 border border-emerald-400/20"
           >
-            {uploading ? "আপলোড হচ্ছে..." : "প্রিমিয়াম ইমেজ আপলোড করুন"}
+            {uploading ? "Uploading..." : "Upload Image"}
           </button>
 
           {uploading && (
             <button
               type="button"
               onClick={handleAbort}
-              className="px-5 py-2 rounded-md bg-gray-200 text-gray-800 text-sm hover:bg-gray-300 transition-colors"
+              className="px-4 py-1.5 rounded-lg bg-zinc-800 text-zinc-300 text-xs hover:bg-zinc-700 transition-colors"
             >
-              ❌ বাতিল করুন
+              Cancel
             </button>
           )}
         </div>
 
         {/* Progress */}
         {uploading && Object.entries(progress).length > 0 && (
-          <div className="mt-6 w-full max-w-md space-y-3">
+          <div className="mt-4 w-full max-w-md space-y-2">
             {Object.entries(progress).map(([name, value]) => (
               <div key={name}>
-                <div className="flex justify-between text-sm text-gray-700">
+                <div className="flex justify-between text-xs text-zinc-300">
                   <span className="truncate max-w-[65%]">{name}</span>
                   <span>{value}%</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                <div className="w-full bg-zinc-800 rounded-full h-1.5 overflow-hidden mt-1">
                   <div
-                    className="h-2 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full transition-all"
+                    className="h-1.5 bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all"
                     style={{ width: `${value}%` }}
                   ></div>
                 </div>
@@ -256,27 +256,27 @@ const FileUpload: React.FC<FileUploadProps> = ({
 
       {/* ✅ Image Gallery */}
       {uploadedImages.length > 0 && (
-        <div>
-          <h4 className="font-semibold text-gray-800 mb-3">
-            📸 আপলোড করা ইমেজ:
+        <div className="space-y-2">
+          <h4 className="text-xs font-bold text-zinc-300 uppercase tracking-wider">
+            Uploaded Images:
           </h4>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {uploadedImages.map((url) => (
               <div
                 key={url}
-                className="group relative overflow-hidden rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all"
+                className="group relative overflow-hidden rounded-xl border border-zinc-700 bg-[#121215] shadow-md"
               >
                 <img
                   src={url}
                   alt="Uploaded"
-                  className="aspect-square w-full object-cover rounded-lg"
+                  className="aspect-square w-full object-cover rounded-lg group-hover:scale-105 transition-transform"
                 />
                 <button
                   type="button"
                   onClick={() => handleRemove(url)}
-                  className="absolute top-2 right-2 bg-red-600/90 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-all duration-300"
+                  className="absolute top-2 right-2 bg-red-600/90 hover:bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-md"
                 >
-                  মুছে ফেলুন
+                  Remove
                 </button>
               </div>
             ))}

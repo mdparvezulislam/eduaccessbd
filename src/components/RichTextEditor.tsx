@@ -79,16 +79,16 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   }, [value]);
 
   return (
-    <div className="border rounded-md">
+    <div className="border border-white/10 rounded-xl overflow-hidden bg-[#0a0a0a]">
       {/* Toolbar */}
-      <div className="p-2 border-b flex flex-wrap gap-2 items-center bg-gray-50">
-        <Button type="button" onClick={() => applyFormat("bold")} title="Bold">B</Button>
-        <Button type="button" onClick={() => applyFormat("italic")} title="Italic">I</Button>
-        <Button type="button" onClick={() => applyFormat("underline")} title="Underline">U</Button>
-        <Button type="button" onClick={handleCreateLink} title="Link">🔗</Button>
-        <Button type="button" onClick={handleInsertImage} title="Image">🖼️</Button>
-        <Button type="button" onClick={() => applyFormat("insertOrderedList")} title="Ordered List">1.</Button>
-        <Button type="button" onClick={() => applyFormat("insertUnorderedList")} title="Unordered List">•</Button>
+      <div className="p-2 border-b border-white/10 flex flex-wrap gap-1.5 items-center bg-[#141414]">
+        <Button type="button" variant="ghost" size="sm" onClick={() => applyFormat("bold")} title="Bold" className="h-7 w-7 p-0 text-xs font-bold text-white hover:bg-white/10">B</Button>
+        <Button type="button" variant="ghost" size="sm" onClick={() => applyFormat("italic")} title="Italic" className="h-7 w-7 p-0 text-xs italic font-serif text-white hover:bg-white/10">I</Button>
+        <Button type="button" variant="ghost" size="sm" onClick={() => applyFormat("underline")} title="Underline" className="h-7 w-7 p-0 text-xs underline text-white hover:bg-white/10">U</Button>
+        <Button type="button" variant="ghost" size="sm" onClick={handleCreateLink} title="Link" className="h-7 w-7 p-0 text-xs text-blue-400 hover:bg-white/10">🔗</Button>
+        <Button type="button" variant="ghost" size="sm" onClick={handleInsertImage} title="Image" className="h-7 w-7 p-0 text-xs text-pink-400 hover:bg-white/10">🖼️</Button>
+        <Button type="button" variant="ghost" size="sm" onClick={() => applyFormat("insertOrderedList")} title="Ordered List" className="h-7 w-7 p-0 text-xs font-mono text-white hover:bg-white/10">1.</Button>
+        <Button type="button" variant="ghost" size="sm" onClick={() => applyFormat("insertUnorderedList")} title="Unordered List" className="h-7 w-7 p-0 text-xs font-mono text-white hover:bg-white/10">•</Button>
       </div>
 
       {/* Editable content */}
@@ -96,7 +96,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         ref={editorRef}
         contentEditable
         onInput={handleInput}
-        className="min-h-[200px] p-4 outline-none focus:ring-2 focus:ring-blue-500 prose max-w-none"
+        className="min-h-[200px] p-4 outline-none text-xs sm:text-sm text-gray-200 leading-relaxed prose prose-invert max-w-none focus:ring-1 focus:ring-emerald-500/50"
       />
     </div>
   );
