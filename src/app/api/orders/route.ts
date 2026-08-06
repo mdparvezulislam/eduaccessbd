@@ -64,11 +64,35 @@ function isVipPlan(key: string | undefined): key is PlanType {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { contact, payment, items, couponCode } = body;
+    const { contact, payment, items, couponCode, paymentProof } = body;
 
     // 1. Validation
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
+    }
+
+    // Server-side Payment Proof Validation
+    let sanitizedPaymentProof = null;
+    if (paymentProof && typeof paymentProof === "object" && paymentProof.url) {
+      const isValidUrl = typeof paymentProof.url === "string" && (paymentProof.url.startsWith("http://") || paymentProof.url.startsWith("https://"));
+      const isValidSize = !paymentProof.fileSize || paymentProof.fileSize <= 10 * 1024 * 1024;
+      const isValidMime = !paymentProof.mimeType || paymentProof.mimeType.toLowerCase().includes("image") || paymentProof.mimeType.toLowerCase().includes("octet");
+
+      if (isValidUrl && isValidSize && isValidMime) {
+        sanitizedPaymentProof = {
+          url: paymentProof.url,
+          thumbnailUrl: paymentProof.thumbnailUrl || paymentProof.url,
+          imageKitFileId: paymentProof.imageKitFileId || "",
+          originalName: paymentProof.originalName || "payment-proof.png",
+          fileSize: Number(paymentProof.fileSize) || 0,
+          mimeType: paymentProof.mimeType || "image/png",
+          uploadedAt: paymentProof.uploadedAt ? new Date(paymentProof.uploadedAt) : new Date(),
+          uploadedBy: "customer",
+          verificationStatus: "pending",
+        };
+      } else {
+        console.warn("⚠️ Received paymentProof but failed validation checks:", { isValidUrl, isValidSize, isValidMime, paymentProof });
+      }
     }
 
     await connectToDatabase();
@@ -243,6 +267,7 @@ export async function POST(req: NextRequest) {
       discountAmount: discount,
       couponCode: couponCode ? couponCode.toUpperCase() : undefined,
       
+      paymentProof: sanitizedPaymentProof,
       status: orderStatus, 
       paymentStatus: paymentStatus,
       deliveredContent: deliveredContent

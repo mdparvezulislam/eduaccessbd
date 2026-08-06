@@ -8,6 +8,38 @@ interface IDeliveredContent {
   downloadLink?: string;
 }
 
+export interface IPaymentProofDoc {
+  url: string;
+  thumbnailUrl?: string;
+  imageKitFileId?: string;
+  originalName?: string;
+  fileSize?: number;
+  mimeType?: string;
+  uploadedAt?: Date;
+  uploadedBy?: "customer" | "admin";
+  verificationStatus: "pending" | "verified" | "rejected" | "none";
+  verifiedAt?: Date;
+  verifiedBy?: string;
+  rejectionReason?: string;
+  adminNotes?: string;
+}
+
+export interface IPaymentProofHistoryDoc {
+  url: string;
+  thumbnailUrl?: string;
+  imageKitFileId?: string;
+  originalName?: string;
+  fileSize?: number;
+  mimeType?: string;
+  uploadedAt: Date;
+  uploadedBy?: "customer" | "admin";
+  verificationStatus: "pending" | "verified" | "rejected";
+  verifiedAt?: Date;
+  verifiedBy?: string;
+  rejectionReason?: string;
+  adminNotes?: string;
+}
+
 export interface IOrder extends Document {
   user: mongoose.Types.ObjectId;
   
@@ -24,6 +56,10 @@ export interface IOrder extends Document {
   senderNumber?: string;
   paymentMethod: string;  
   
+  // Enterprise Payment Proof Upload & Verification
+  paymentProof?: IPaymentProofDoc;
+  paymentProofHistory?: IPaymentProofHistoryDoc[];
+
   // Financials
   amount: number;         // Final paid amount
   discountAmount?: number; // How much was saved
@@ -31,7 +67,7 @@ export interface IOrder extends Document {
   
   // Statuses
   paymentStatus: "unpaid" | "paid" | "failed"; 
-  status: "pending" | "processing" | "completed" | "cancelled";
+  status: "pending" | "processing" | "completed" | "cancelled" | "declined";
 
   // Delivery
   deliveredContent?: IDeliveredContent;
@@ -39,6 +75,52 @@ export interface IOrder extends Document {
   createdAt: Date;
   updatedAt: Date;
 }
+
+const paymentProofSubSchema = new Schema(
+  {
+    url: { type: String, required: true },
+    thumbnailUrl: { type: String },
+    imageKitFileId: { type: String },
+    originalName: { type: String },
+    fileSize: { type: Number },
+    mimeType: { type: String },
+    uploadedAt: { type: Date, default: Date.now },
+    uploadedBy: { type: String, enum: ["customer", "admin"], default: "customer" },
+    verificationStatus: {
+      type: String,
+      enum: ["pending", "verified", "rejected", "none"],
+      default: "pending",
+    },
+    verifiedAt: { type: Date },
+    verifiedBy: { type: String },
+    rejectionReason: { type: String },
+    adminNotes: { type: String },
+  },
+  { _id: false }
+);
+
+const paymentProofHistorySubSchema = new Schema(
+  {
+    url: { type: String, required: true },
+    thumbnailUrl: { type: String },
+    imageKitFileId: { type: String },
+    originalName: { type: String },
+    fileSize: { type: Number },
+    mimeType: { type: String },
+    uploadedAt: { type: Date, required: true },
+    uploadedBy: { type: String, enum: ["customer", "admin"], default: "customer" },
+    verificationStatus: {
+      type: String,
+      enum: ["pending", "verified", "rejected"],
+      required: true,
+    },
+    verifiedAt: { type: Date },
+    verifiedBy: { type: String },
+    rejectionReason: { type: String },
+    adminNotes: { type: String },
+  },
+  { _id: false }
+);
 
 const orderSchema = new Schema<IOrder>(
   {
@@ -56,6 +138,10 @@ const orderSchema = new Schema<IOrder>(
     transactionId: { type: String, trim: true },
     senderNumber: { type: String, trim: true },
     paymentMethod: { type: String, default: "Manual" },
+
+    // Enterprise Payment Proof
+    paymentProof: { type: paymentProofSubSchema, default: null },
+    paymentProofHistory: { type: [paymentProofHistorySubSchema], default: [] },
     
     // Financials
     amount: { type: Number, required: true },
@@ -71,7 +157,7 @@ const orderSchema = new Schema<IOrder>(
 
     status: { 
       type: String, 
-      enum: ["pending", "processing", "completed", "cancelled"], 
+      enum: ["pending", "processing", "completed", "cancelled", "declined"], 
       default: "pending" 
     },
 
@@ -85,6 +171,10 @@ const orderSchema = new Schema<IOrder>(
   },
   { timestamps: true }
 );
+
+if (mongoose.models?.Order && !mongoose.models.Order.schema.path("paymentProof")) {
+  delete (mongoose.models as any).Order;
+}
 
 export const Order: Model<IOrder> = 
   mongoose.models?.Order || mongoose.model<IOrder>("Order", orderSchema);

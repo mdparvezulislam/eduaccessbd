@@ -20,10 +20,29 @@ import {
 export type OrderColumn = {
   _id: string;
   transactionId: string;
+  paymentMethod?: string;
   amount: number;
   status: "pending" | "completed" | "declined" | "cancelled" | "processing";
   createdAt: string;
   
+  // Enterprise Payment Proof
+  paymentProof?: {
+    url: string;
+    thumbnailUrl?: string;
+    imageKitFileId?: string;
+    originalName?: string;
+    fileSize?: number;
+    mimeType?: string;
+    uploadedAt?: string;
+    uploadedBy?: "customer" | "admin";
+    verificationStatus: "pending" | "verified" | "rejected" | "none";
+    verifiedAt?: string;
+    verifiedBy?: string;
+    rejectionReason?: string;
+    adminNotes?: string;
+  };
+  paymentProofHistory?: any[];
+
   // ✅ User Object
   user: {
     name: string;
@@ -184,7 +203,53 @@ export const columns: ColumnDef<OrderColumn>[] = [
     },
   },
 
-  // 4. Amount Column
+  // 4. Proof Screenshot Column
+  {
+    id: "paymentProof",
+    header: "Payment Proof",
+    cell: ({ row }) => {
+      const proof = row.original.paymentProof;
+      if (!proof?.url) {
+        return (
+          <span className="text-[10px] text-gray-500 font-mono flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded border border-white/5 w-fit">
+            No Proof
+          </span>
+        );
+      }
+
+      const statusStyles: Record<string, string> = {
+        verified: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+        rejected: "bg-red-500/10 text-red-400 border-red-500/20",
+        pending: "bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse",
+      };
+
+      return (
+        <div className="flex items-center gap-2">
+          <div className="relative w-9 h-9 rounded bg-black border border-white/10 overflow-hidden shrink-0 group">
+            <img
+              src={proof.thumbnailUrl || proof.url}
+              alt="Proof"
+              className="w-full h-full object-cover group-hover:scale-110 transition-transform"
+            />
+          </div>
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <Badge
+              className={`text-[9px] uppercase font-bold px-1.5 py-0 h-4 border justify-center ${
+                statusStyles[proof.verificationStatus] || "bg-gray-800 text-gray-400 border-white/10"
+              }`}
+            >
+              {proof.verificationStatus}
+            </Badge>
+            <span className="text-[9px] text-gray-500 font-mono truncate max-w-[80px]">
+              {proof.originalName || "proof.png"}
+            </span>
+          </div>
+        </div>
+      );
+    },
+  },
+
+  // 5. Amount Column
   {
     accessorKey: "amount",
     header: ({ column }) => {

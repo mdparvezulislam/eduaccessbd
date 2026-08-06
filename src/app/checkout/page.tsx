@@ -16,6 +16,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { PaymentProofUploader } from "@/components/ui/PaymentProofUploader";
+import { IPaymentProof } from "@/types";
 
 // ⚡ Payment Configuration
 const PAYMENT_METHODS = {
@@ -51,6 +53,7 @@ export default function CheckoutPage() {
   // States
   const [loading, setLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodKey>("bkash");
+  const [paymentProof, setPaymentProof] = useState<IPaymentProof | null>(null);
   
   // Coupon States
   const [couponCode, setCouponCode] = useState("");
@@ -163,7 +166,8 @@ export default function CheckoutPage() {
           validity: item.validity, 
           price: item.price
         })),
-        couponCode: appliedCoupon
+        couponCode: appliedCoupon,
+        paymentProof: isFree ? null : paymentProof
       };
 
       const res = await fetch("/api/orders", {
@@ -333,6 +337,15 @@ export default function CheckoutPage() {
                        className="bg-[#111] border-white/20 h-10 text-base focus-visible:ring-1 focus-visible:ring-green-500 font-mono text-center tracking-widest text-white placeholder:text-gray-600" 
                        required 
                      />
+                  </div>
+
+                  {/* 📷 Enterprise Payment Proof Uploader */}
+                  <div className="pt-1 pb-1">
+                    <PaymentProofUploader 
+                      value={paymentProof} 
+                      onChange={setPaymentProof} 
+                      disabled={loading} 
+                    />
                   </div>
 
                   {/* Bangla Warning */}

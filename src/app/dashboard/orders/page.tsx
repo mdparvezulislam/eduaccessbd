@@ -6,7 +6,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Search, ShoppingBag, Clock, CheckCircle2, XCircle, 
   Key, Copy, Loader2, Filter, Zap, Package, 
-  Calendar as CalendarIcon, ExternalLink, ChevronLeft, ChevronRight
+  Calendar as CalendarIcon, ExternalLink, ChevronLeft, ChevronRight,
+  FileImage, Maximize2, UploadCloud, History, AlertTriangle
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -27,7 +28,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { IOrder } from "@/types";
+import { IOrder, IPaymentProof } from "@/types";
+import { OrderTimeline } from "@/components/orders/OrderTimeline";
+import { ImageLightboxModal } from "@/components/ui/ImageLightboxModal";
+import { PaymentProofUploader } from "@/components/ui/PaymentProofUploader";
 
 export default function OrdersPage() {
   const { data: session } = useSession();
@@ -234,8 +238,47 @@ export default function OrdersPage() {
 }
 
 // === SUB-COMPONENT: Order Item ===
-function OrderListItem({ order, index, onCopy }: { order: IOrder, index: number, onCopy: (t: string) => void }) {
-  
+function OrderListItem({ order: initialOrder, index, onCopy }: { order: IOrder, index: number, onCopy: (t: string) => void }) {
+  const [order, setOrder] = useState<IOrder>(initialOrder);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState("");
+  const [showReupload, setShowReupload] = useState(false);
+  const [reuploadProof, setReuploadProof] = useState<IPaymentProof | null>(null);
+  const [submittingReupload, setSubmittingReupload] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+
+  useEffect(() => {
+    setOrder(initialOrder);
+  }, [initialOrder]);
+
+  const handleReuploadSubmit = async () => {
+    if (!reuploadProof || !reuploadProof.url) {
+      toast.error("Please upload a screenshot first");
+      return;
+    }
+    setSubmittingReupload(true);
+    try {
+      const res = await fetch(`/api/orders/${order._id}/payment-proof`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paymentProof: reuploadProof }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success("New payment screenshot submitted successfully!");
+        setOrder(data.order);
+        setShowReupload(false);
+        setReuploadProof(null);
+      } else {
+        toast.error(data.error || "Failed to submit payment proof");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Network error");
+    } finally {
+      setSubmittingReupload(false);
+    }
+  };
+
   // Safe Product Access
   const firstItem = order.products?.[0];
   const productData = firstItem && typeof firstItem.product === 'object' && firstItem.product !== null 
@@ -262,6 +305,9 @@ function OrderListItem({ order, index, onCopy }: { order: IOrder, index: number,
 
   const status = statusConfig[order.status] || statusConfig.pending;
   const StatusIcon = status.icon;
+
+  const proof = order.paymentProof;
+  const history = order.paymentProofHistory || [];
 
   return (
     <motion.div 
@@ -302,6 +348,12 @@ function OrderListItem({ order, index, onCopy }: { order: IOrder, index: number,
             <span className="flex items-center gap-1">
               <CalendarIcon className="w-3 h-3"/> {new Date(order.createdAt).toLocaleDateString()}
             </span>
+            {/* Proof Status Pill */}
+            {proof?.url && (
+              <span className="flex items-center gap-1 text-[10px] text-pink-400 bg-pink-950/40 px-2 py-0.5 rounded-full border border-pink-500/20">
+                <FileImage className="w-3 h-3" /> Proof Uploaded
+              </span>
+            )}
             {/* Mobile Status Badge */}
             <Badge className={`${status.color} border px-1.5 py-0 text-[9px] uppercase font-bold sm:hidden`}>
               {order.status}
@@ -333,20 +385,176 @@ function OrderListItem({ order, index, onCopy }: { order: IOrder, index: number,
             </DialogTrigger>
             
             {/* --- MODAL CONTENT --- */}
-            <DialogContent className="bg-[#111] border-white/10 text-white sm:max-w-md p-0 overflow-hidden shadow-2xl">
+            <DialogContent className="bg-[#111] border-white/10 text-white sm:max-w-xl p-0 overflow-hidden shadow-2xl">
               <DialogHeader className="p-5 border-b border-white/10 bg-[#161616]">
                 <DialogTitle className="flex justify-between items-center">
-                  <span className="text-sm font-bold uppercase tracking-wider">Order Details</span>
+                  <span className="text-sm font-bold uppercase tracking-wider">Order Details & Proof</span>
                   <Badge className={`${status.color} border px-2 py-0.5 text-[10px]`}>{order.status}</Badge>
                 </DialogTitle>
                 <DialogDescription className="text-gray-500 text-xs font-mono pt-1">
-                  TrxID: {order.transactionId}
+                  TrxID: {order.transactionId} • Method: {order.paymentMethod}
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="p-5 space-y-6 max-h-[80vh] overflow-y-auto scrollbar-hide">
+              <div className="p-5 space-y-5 max-h-[80vh] overflow-y-auto scrollbar-hide">
                 
-                {/* Product List */}
+                {/* 1. PAYMENT PROOF CARD */}
+                <div className="bg-[#0a0a0a] border border-white/10 rounded-xl p-4 space-y-3">
+                  <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                    <h4 className="text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center gap-2">
+                      <FileImage className="w-4 h-4 text-pink-400" />
+                      Payment Screenshot Proof
+                    </h4>
+                    {proof?.verificationStatus && (
+                      <Badge className={`text-[10px] uppercase font-bold border px-2 py-0.5 ${
+                        proof.verificationStatus === "verified"
+                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                          : proof.verificationStatus === "rejected"
+                          ? "bg-red-500/10 text-red-400 border-red-500/20"
+                          : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                      }`}>
+                        {proof.verificationStatus}
+                      </Badge>
+                    )}
+                  </div>
+
+                  {proof?.url ? (
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                      <div 
+                        onClick={() => {
+                          setLightboxUrl(proof.url);
+                          setLightboxOpen(true);
+                        }}
+                        className="relative w-24 h-24 rounded-lg overflow-hidden border border-white/20 bg-black cursor-pointer group shrink-0"
+                      >
+                        <img 
+                          src={proof.thumbnailUrl || proof.url} 
+                          alt="Payment screenshot" 
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform" 
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity">
+                          <Maximize2 className="w-4 h-4" />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1 text-xs text-gray-400 min-w-0 flex-1">
+                        <p className="text-white font-mono font-medium truncate">
+                          {proof.originalName || "payment-proof.png"}
+                        </p>
+                        {proof.uploadedAt && (
+                          <p className="text-[10px] text-gray-500 font-mono">
+                            Uploaded: {new Date(proof.uploadedAt).toLocaleString()}
+                          </p>
+                        )}
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => {
+                            setLightboxUrl(proof.url);
+                            setLightboxOpen(true);
+                          }}
+                          className="h-7 text-[10px] px-2.5 mt-1 border-white/10 bg-white/5 text-gray-300 hover:text-white"
+                        >
+                          <Maximize2 className="w-3 h-3 mr-1" /> View Screenshot
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-4 bg-white/[0.02] border border-dashed border-white/10 rounded-lg">
+                      <p className="text-xs text-gray-400 font-medium">No payment screenshot attached.</p>
+                      <p className="text-[10px] text-gray-500 mt-0.5">Uploading proof speeds up manual verification.</p>
+                    </div>
+                  )}
+
+                  {/* Rejection Notice Banner */}
+                  {proof?.verificationStatus === "rejected" && (
+                    <div className="bg-red-950/30 border border-red-500/30 rounded-lg p-3 text-xs text-red-300 space-y-1">
+                      <div className="flex items-center gap-1.5 font-bold text-red-400">
+                        <AlertTriangle className="w-4 h-4 shrink-0" />
+                        <span>Payment Screenshot Rejected</span>
+                      </div>
+                      {proof.rejectionReason && (
+                        <p className="text-[11px] text-red-200/90 leading-relaxed">
+                          Reason: {proof.rejectionReason}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Toggle Re-upload Button (if rejected or missing & order not completed) */}
+                  {order.status !== "completed" && proof?.verificationStatus !== "verified" && (
+                    <div className="pt-2 border-t border-white/5">
+                      {!showReupload ? (
+                        <Button 
+                          type="button" 
+                          onClick={() => setShowReupload(true)}
+                          className="w-full bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-bold h-9 text-xs"
+                        >
+                          <UploadCloud className="w-3.5 h-3.5 mr-1.5" />
+                          {proof?.url ? "Upload New Screenshot" : "Upload Payment Screenshot"}
+                        </Button>
+                      ) : (
+                        <div className="space-y-3 pt-1 border-t border-white/10">
+                          <PaymentProofUploader 
+                            value={reuploadProof} 
+                            onChange={setReuploadProof} 
+                          />
+                          <div className="flex gap-2">
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              onClick={() => setShowReupload(false)}
+                              className="w-1/2 h-9 text-xs border-white/10 bg-transparent text-gray-400 hover:text-white"
+                            >
+                              Cancel
+                            </Button>
+                            <Button 
+                              type="button" 
+                              onClick={handleReuploadSubmit} 
+                              disabled={submittingReupload || !reuploadProof}
+                              className="w-1/2 h-9 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white"
+                            >
+                              {submittingReupload ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Submit Proof"}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Proof History Toggle */}
+                  {history.length > 0 && (
+                    <div className="pt-2">
+                      <button 
+                        type="button"
+                        onClick={() => setShowHistory(!showHistory)}
+                        className="text-[10px] text-gray-400 hover:text-white font-mono flex items-center gap-1 underline"
+                      >
+                        <History className="w-3 h-3" />
+                        {showHistory ? "Hide Upload History" : `View Upload History (${history.length})`}
+                      </button>
+
+                      {showHistory && (
+                        <div className="mt-2 space-y-2 max-h-40 overflow-y-auto pr-1">
+                          {history.map((item, idx) => (
+                            <div key={idx} className="flex items-center justify-between bg-black/40 p-2 rounded text-[11px] border border-white/5">
+                              <span className="text-gray-300 font-mono truncate max-w-[150px]">{item.originalName || "proof.png"}</span>
+                              <span className="text-[9px] text-gray-500">{new Date(item.uploadedAt).toLocaleDateString()}</span>
+                              <Badge className="text-[9px] uppercase px-1.5 py-0 bg-gray-800 text-gray-400">{item.verificationStatus}</Badge>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                </div>
+
+                {/* 2. ORDER TIMELINE */}
+                <OrderTimeline order={order} />
+
+                {/* 3. PRODUCT LIST */}
                 <div className="space-y-3">
                    <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">Ordered Items</h4>
                    {order.products?.map((item, i) => (
@@ -363,7 +571,7 @@ function OrderListItem({ order, index, onCopy }: { order: IOrder, index: number,
                    ))}
                 </div>
 
-                {/* Delivered Content (Secure Vault) */}
+                {/* 4. DELIVERED CONTENT */}
                 {order.status === "completed" && order.deliveredContent ? (
                   <div className="bg-green-500/5 border border-green-500/20 rounded-xl p-4 space-y-4 animate-in fade-in zoom-in-95 duration-300">
                     <h4 className="font-bold text-green-400 flex items-center gap-2 text-xs uppercase tracking-wider border-b border-green-500/10 pb-2 mb-2">
@@ -371,7 +579,6 @@ function OrderListItem({ order, index, onCopy }: { order: IOrder, index: number,
                     </h4>
                     
                     <div className="space-y-3">
-                      {/* Email/User */}
                       {order.deliveredContent.accountEmail && (
                         <div>
                           <p className="text-[9px] text-gray-500 uppercase font-bold mb-1">Username / Email</p>
@@ -382,7 +589,6 @@ function OrderListItem({ order, index, onCopy }: { order: IOrder, index: number,
                         </div>
                       )}
                       
-                      {/* Password */}
                       {order.deliveredContent.accountPassword && (
                         <div>
                           <p className="text-[9px] text-gray-500 uppercase font-bold mb-1">Password</p>
@@ -393,7 +599,6 @@ function OrderListItem({ order, index, onCopy }: { order: IOrder, index: number,
                         </div>
                       )}
 
-                      {/* Download/Access Link */}
                       {order.deliveredContent.downloadLink && (
                          <div className="pt-2">
                             <Button asChild className="w-full bg-green-600 hover:bg-green-500 text-white font-bold h-10 text-xs shadow-lg shadow-green-900/20">
@@ -408,12 +613,21 @@ function OrderListItem({ order, index, onCopy }: { order: IOrder, index: number,
                 ) : (
                   <div className="bg-yellow-500/5 border border-yellow-500/10 rounded-xl p-6 text-center">
                     <Loader2 className="w-8 h-8 text-yellow-500/50 mx-auto mb-3 animate-spin" />
-                    <p className="text-sm font-bold text-yellow-200 uppercase tracking-wide">Processing Payment</p>
+                    <p className="text-sm font-bold text-yellow-200 uppercase tracking-wide">Processing Payment Verification</p>
                   </div>
                 )}
               </div>
             </DialogContent>
           </Dialog>
+
+          {/* Lightbox Modal */}
+          <ImageLightboxModal 
+            isOpen={lightboxOpen} 
+            onClose={() => setLightboxOpen(false)} 
+            imageUrl={lightboxUrl} 
+            title={`Order #${order.transactionId} - Payment Screenshot`}
+          />
+
         </div>
       </div>
     </motion.div>

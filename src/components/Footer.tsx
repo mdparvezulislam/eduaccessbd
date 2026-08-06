@@ -86,6 +86,7 @@ export default function Footer() {
             <h4 className="font-bold text-white text-sm mb-4 uppercase tracking-wider">Support</h4>
             <ul className="space-y-2">
               {[
+                { name: "Disclaimer", link: "/disclaimer" },
                 { name: "Get Help", link: "/contact" },
                 { name: "My Account", link: "/dashboard" },
                 { name: "Discord", link: "/community" },

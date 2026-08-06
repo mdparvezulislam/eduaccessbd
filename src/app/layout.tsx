@@ -5,6 +5,7 @@ import { ImageKitProvider } from "@imagekit/next";
 import { Toaster } from "sonner";
 import { GoogleTagManager } from "@next/third-parties/google";
 import LiveSalesPopup from "@/components/LiveSalesPopup";
+import FloatingDisclaimerButton from "@/components/FloatingDisclaimerButton";
 
 // 2. CONFIGURATION (Replace with your actual domain)
 const SITE_NAME = "Edu Access BD";
@@ -128,6 +129,7 @@ export default function RootLayout({
             {children}
           </ImageKitProvider>
           <LiveSalesPopup />
+          <FloatingDisclaimerButton />
           <Toaster position="top-right" richColors closeButton />
         </Providers>
         <GoogleTagManager gtmId="GTM-MC37TP75" />

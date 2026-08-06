@@ -128,6 +128,39 @@ export interface IOrderItem {
   _id?: string;
 }
 
+// Enterprise Payment Proof Types
+export interface IPaymentProof {
+  url: string;
+  thumbnailUrl?: string;
+  imageKitFileId?: string;
+  originalName?: string;
+  fileSize?: number;
+  mimeType?: string;
+  uploadedAt?: string | Date;
+  uploadedBy?: "customer" | "admin";
+  verificationStatus: "pending" | "verified" | "rejected" | "none";
+  verifiedAt?: string | Date;
+  verifiedBy?: string;
+  rejectionReason?: string;
+  adminNotes?: string;
+}
+
+export interface IPaymentProofHistory {
+  url: string;
+  thumbnailUrl?: string;
+  imageKitFileId?: string;
+  originalName?: string;
+  fileSize?: number;
+  mimeType?: string;
+  uploadedAt: string | Date;
+  uploadedBy?: "customer" | "admin";
+  verificationStatus: "pending" | "verified" | "rejected";
+  verifiedAt?: string | Date;
+  verifiedBy?: string;
+  rejectionReason?: string;
+  adminNotes?: string;
+}
+
 // 3. Main Order Interface
 export interface IOrder {
   _id: string;
@@ -142,6 +175,10 @@ export interface IOrder {
   transactionId: string;
   paymentMethod: string;
   amount: number;
+
+  // Enterprise Payment Proof
+  paymentProof?: IPaymentProof;
+  paymentProofHistory?: IPaymentProofHistory[];
   
   // Statuses
   paymentStatus: "paid" | "unpaid" | "failed";

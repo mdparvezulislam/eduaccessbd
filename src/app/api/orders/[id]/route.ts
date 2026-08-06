@@ -28,9 +28,30 @@ export async function PUT(req: NextRequest, { params }: IdParams) {
     await connectToDatabase();
 
     // 2. Prepare Basic Update Data
-    const updateFields: Record<string, any> = {
-      status: body.status, 
-    };
+    const updateFields: Record<string, any> = {};
+    if (body.status) updateFields.status = body.status;
+
+    // Handle Payment Proof Verification Update
+    if (body.verificationStatus || body.rejectionReason !== undefined || body.adminNotes !== undefined) {
+      const targetStatus = body.verificationStatus || (body.status === "completed" ? "verified" : body.status === "declined" ? "rejected" : "pending");
+      
+      updateFields["paymentProof.verificationStatus"] = targetStatus;
+      if (body.rejectionReason !== undefined) updateFields["paymentProof.rejectionReason"] = body.rejectionReason;
+      if (body.adminNotes !== undefined) updateFields["paymentProof.adminNotes"] = body.adminNotes;
+      
+      if (targetStatus === "verified" || targetStatus === "rejected") {
+        updateFields["paymentProof.verifiedAt"] = new Date();
+        updateFields["paymentProof.verifiedBy"] = session.user.email || "admin";
+      }
+
+      if (targetStatus === "rejected" && !body.status) {
+        updateFields.status = "declined";
+        updateFields.paymentStatus = "failed";
+      } else if (targetStatus === "verified" && !body.status) {
+        updateFields.status = "completed";
+        updateFields.paymentStatus = "paid";
+      }
+    }
 
     // =========================================================
     // 3. 🟢 AUTOMATION LOGIC: IF ORDER IS MARKED "COMPLETED"
