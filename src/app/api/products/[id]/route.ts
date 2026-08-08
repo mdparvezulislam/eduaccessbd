@@ -24,11 +24,12 @@ export async function GET(req: NextRequest, { params }: IdParams) {
       // 1. Reveal Root Secure Fields (Standard Delivery)
       query = query.select("+accessLink +accessNote");
       
-      // 2. Reveal VIP Plan Secure Fields (Monthly/Yearly/Lifetime)
+      // 2. Reveal VIP Plan Secure Fields & Account Access Credentials
       query = query.select(
         "+pricing.monthly.accessLink +pricing.monthly.accessNote " +
         "+pricing.yearly.accessLink +pricing.yearly.accessNote " +
-        "+pricing.lifetime.accessLink +pricing.lifetime.accessNote"
+        "+pricing.lifetime.accessLink +pricing.lifetime.accessNote " +
+        "+accountAccess.accountEmail +accountAccess.accountPassword"
       );
     }
 

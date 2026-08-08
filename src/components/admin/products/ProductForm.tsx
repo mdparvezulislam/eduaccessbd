@@ -3,13 +3,14 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { 
-  ArrowLeft, Save, LayoutGrid, Loader2, 
-  X, User, Wand2, Crown, 
-  Video, Tag, ImageIcon, CheckCircle2, Plus, Zap
+import {
+  ArrowLeft, Save, LayoutGrid, Loader2,
+  X, User, Wand2, Crown,
+  Video, Tag, ImageIcon, CheckCircle2, Plus, Zap,
+  Link as LinkIcon, Lock, FileText
 } from "lucide-react";
 
-import FileUpload from "@/components/Fileupload"; 
+import FileUpload from "@/components/Fileupload";
 import RichTextEditor from "@/components/RichTextEditor";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -137,8 +138,8 @@ export default function ProductForm({ initialData, isEditMode = false }: Product
     slug: initialData?.slug || "",
     shortDescription: initialData?.shortDescription || "",
     description: initialData?.description || "",
-    categoryId: typeof initialData?.category === "object" 
-      ? initialData?.category?._id 
+    categoryId: typeof initialData?.category === "object"
+      ? initialData?.category?._id
       : (initialData?.category || initialData?.categoryId || ""),
     videoUrl: initialData?.videoUrl || "",
     fileType: initialData?.fileType || "Subscription",
@@ -286,8 +287,8 @@ export default function ProductForm({ initialData, isEditMode = false }: Product
         },
       };
 
-      const url = isEditMode && initialData?._id 
-        ? `/api/products/${initialData._id}` 
+      const url = isEditMode && initialData?._id
+        ? `/api/products/${initialData._id}`
         : "/api/products";
       const method = isEditMode ? "PUT" : "POST";
 
@@ -312,15 +313,15 @@ export default function ProductForm({ initialData, isEditMode = false }: Product
 
   return (
     <div className="min-h-screen bg-[#09090b] text-zinc-100 font-sans selection:bg-emerald-500 selection:text-black">
-      
+
       {/* ⚡ STICKY PC-APP COMMAND BAR (HIGH CONTRAST) */}
       <header className="sticky top-0 z-40 bg-[#121216]/95 backdrop-blur-md border-b border-zinc-800 px-4 sm:px-6 py-3.5 flex items-center justify-between shadow-2xl">
         <div className="flex items-center gap-3">
-          <Button 
-            type="button" 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => router.back()} 
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => router.back()}
             className="h-9 w-9 text-zinc-400 hover:text-white hover:bg-zinc-800/80 rounded-xl"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -330,11 +331,10 @@ export default function ProductForm({ initialData, isEditMode = false }: Product
               <h1 className="text-base sm:text-lg font-black tracking-tight text-white">
                 {isEditMode ? "Edit Product" : "Create New Product"}
               </h1>
-              <Badge className={`text-[10px] uppercase font-mono font-bold px-2 py-0.5 border ${
-                formData.isAvailable 
-                  ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" 
+              <Badge className={`text-[10px] uppercase font-mono font-bold px-2 py-0.5 border ${formData.isAvailable
+                  ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
                   : "bg-red-500/15 text-red-400 border-red-500/30"
-              }`}>
+                }`}>
                 {formData.isAvailable ? "Available" : "Hidden"}
               </Badge>
             </div>
@@ -370,12 +370,12 @@ export default function ProductForm({ initialData, isEditMode = false }: Product
 
       {/* MAIN FORM GRID */}
       <form onSubmit={handleSubmit} className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
-        
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          
+
           {/* LEFT COLUMN (Core Details - 8 Cols) */}
           <div className="lg:col-span-8 space-y-6">
-            
+
             {/* 1. CORE INFORMATION CARD */}
             <Card className="bg-[#121215] border-zinc-800 text-zinc-100 shadow-xl rounded-2xl overflow-hidden">
               <CardHeader className="bg-[#18181c] px-5 py-3.5 border-b border-zinc-800/80">
@@ -385,17 +385,17 @@ export default function ProductForm({ initialData, isEditMode = false }: Product
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-5 sm:p-6 space-y-4">
-                
+
                 {/* Product Title */}
                 <div className="space-y-1.5">
                   <Label className="text-xs font-bold text-zinc-200 uppercase tracking-wider">
                     Product Title <span className="text-red-500">*</span>
                   </Label>
-                  <Input 
-                    name="title" 
-                    value={formData.title} 
-                    onChange={handleChange} 
-                    placeholder="e.g. Masterclass 2026 - Premium Access" 
+                  <Input
+                    name="title"
+                    value={formData.title}
+                    onChange={handleChange}
+                    placeholder="e.g. Masterclass 2026 - Premium Access"
                     className="bg-[#1a1a20] border-zinc-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 text-white font-medium text-sm h-10 placeholder:text-zinc-500 rounded-xl"
                     required
                   />
@@ -406,17 +406,17 @@ export default function ProductForm({ initialData, isEditMode = false }: Product
                   <div className="space-y-1.5">
                     <Label className="text-xs font-bold text-zinc-200 uppercase tracking-wider">Slug (Auto Generated)</Label>
                     <div className="flex gap-2">
-                      <Input 
-                        name="slug" 
-                        value={formData.slug} 
-                        onChange={(e) => { setSlugManuallyEdited(true); setFormData({ ...formData, slug: e.target.value }); }} 
+                      <Input
+                        name="slug"
+                        value={formData.slug}
+                        onChange={(e) => { setSlugManuallyEdited(true); setFormData({ ...formData, slug: e.target.value }); }}
                         className="bg-[#1a1a20] border-zinc-700 text-xs h-10 font-mono text-zinc-300 rounded-xl"
                       />
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        size="icon" 
-                        onClick={regenerateSlug} 
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={regenerateSlug}
                         title="Regenerate Slug"
                         className="shrink-0 h-10 w-10 border-zinc-700 bg-[#18181c] hover:bg-zinc-800 text-amber-400 rounded-xl"
                       >
@@ -445,11 +445,11 @@ export default function ProductForm({ initialData, isEditMode = false }: Product
                 {/* Short Summary */}
                 <div className="space-y-1.5">
                   <Label className="text-xs font-bold text-zinc-200 uppercase tracking-wider">Short Summary</Label>
-                  <Textarea 
-                    name="shortDescription" 
-                    value={formData.shortDescription} 
-                    onChange={handleChange} 
-                    placeholder="Brief summary displayed on product cards..." 
+                  <Textarea
+                    name="shortDescription"
+                    value={formData.shortDescription}
+                    onChange={handleChange}
+                    placeholder="Brief summary displayed on product cards..."
                     className="bg-[#1a1a20] border-zinc-700 text-xs text-white min-h-[60px] resize-none placeholder:text-zinc-500 rounded-xl"
                   />
                 </div>
@@ -458,9 +458,9 @@ export default function ProductForm({ initialData, isEditMode = false }: Product
                 <div className="space-y-1.5 pt-2">
                   <Label className="text-xs font-bold text-zinc-200 uppercase tracking-wider">Full Description</Label>
                   <div className="bg-[#1a1a20] border border-zinc-700 rounded-xl overflow-hidden">
-                    <RichTextEditor 
-                      value={formData.description} 
-                      onChange={(html) => setFormData(prev => ({ ...prev, description: html }))} 
+                    <RichTextEditor
+                      value={formData.description}
+                      onChange={(html) => setFormData(prev => ({ ...prev, description: html }))}
                       onPickImage={handlePickImageForEditor}
                     />
                   </div>
@@ -469,7 +469,56 @@ export default function ProductForm({ initialData, isEditMode = false }: Product
               </CardContent>
             </Card>
 
-            {/* 2. VIP PRICING & TIERED PLANS CARD */}
+            {/* 2. STANDARD DIGITAL DELIVERY CONTENT (DRIVE / MEGA / COURSE LINK & NOTES) */}
+            <Card className="bg-[#121215] border-zinc-800 text-zinc-100 shadow-xl rounded-2xl overflow-hidden">
+              <CardHeader className="bg-[#18181c] px-5 py-3.5 border-b border-zinc-800/80 flex flex-row items-center justify-between">
+                <CardTitle className="text-xs sm:text-sm font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-2">
+                  <LinkIcon className="w-4 h-4 text-emerald-400" />
+                  Standard Digital Delivery Content
+                </CardTitle>
+                <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 text-[10px] uppercase font-mono flex items-center gap-1">
+                  <Lock className="w-3 h-3" /> Private Admin Fields
+                </Badge>
+              </CardHeader>
+              <CardContent className="p-5 sm:p-6 space-y-4">
+                <div className="p-3 bg-[#18181c] border border-zinc-700/60 rounded-xl text-xs text-zinc-300 flex items-center gap-2.5">
+                  <Lock className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>
+                    These fields are <strong>private admin fields</strong> (hidden from public store) and are automatically delivered to customers upon order completion/approval.
+                  </span>
+                </div>
+
+                {/* Direct Course Link */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-zinc-200 uppercase tracking-wider flex items-center gap-1.5">
+                    <LinkIcon className="w-3.5 h-3.5 text-emerald-400" /> Direct Course Link (Google Drive / Mega / Telegram / Website Link)
+                  </Label>
+                  <Input
+                    name="accessLink"
+                    value={formData.accessLink}
+                    onChange={handleChange}
+                    placeholder="e.g. https://drive.google.com/drive/folders/..."
+                    className="bg-[#1a1a20] border-zinc-700 focus:border-emerald-500 text-white font-mono text-xs h-10 placeholder:text-zinc-500 rounded-xl"
+                  />
+                </div>
+
+                {/* Access Notes */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-zinc-200 uppercase tracking-wider flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5 text-blue-400" /> Delivery Instructions & Access Notes
+                  </Label>
+                  <Textarea
+                    name="accessNote"
+                    value={formData.accessNote}
+                    onChange={handleChange}
+                    placeholder="e.g. Join the Google Group using your email, password is..."
+                    className="bg-[#1a1a20] border-zinc-700 text-xs text-white min-h-[70px] resize-none placeholder:text-zinc-500 rounded-xl"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* 3. VIP PRICING & TIERED PLANS CARD */}
             <Card className="bg-[#121215] border-zinc-800 text-zinc-100 shadow-xl rounded-2xl overflow-hidden">
               <CardHeader className="bg-[#18181c] px-5 py-3.5 border-b border-zinc-800/80 flex flex-row items-center justify-between">
                 <CardTitle className="text-xs sm:text-sm font-bold uppercase tracking-wider text-zinc-200 flex items-center gap-2">
@@ -481,23 +530,23 @@ export default function ProductForm({ initialData, isEditMode = false }: Product
                 </Badge>
               </CardHeader>
               <CardContent className="p-5 sm:p-6">
-                
+
                 <Tabs defaultValue="monthly" className="w-full">
                   <TabsList className="grid grid-cols-3 bg-[#1a1a20] border border-zinc-700 p-1 rounded-xl mb-5">
-                    <TabsTrigger 
-                      value="monthly" 
+                    <TabsTrigger
+                      value="monthly"
                       className="text-xs font-bold text-zinc-300 hover:text-white data-[state=active]:!bg-emerald-600 data-[state=active]:!text-white rounded-lg transition-all py-2"
                     >
                       Monthly Plan
                     </TabsTrigger>
-                    <TabsTrigger 
-                      value="yearly" 
+                    <TabsTrigger
+                      value="yearly"
                       className="text-xs font-bold text-zinc-300 hover:text-white data-[state=active]:!bg-emerald-600 data-[state=active]:!text-white rounded-lg transition-all py-2"
                     >
                       Yearly Plan
                     </TabsTrigger>
-                    <TabsTrigger 
-                      value="lifetime" 
+                    <TabsTrigger
+                      value="lifetime"
                       className="text-xs font-bold text-zinc-300 hover:text-white data-[state=active]:!bg-emerald-600 data-[state=active]:!text-white rounded-lg transition-all py-2"
                     >
                       Lifetime Access
@@ -510,7 +559,7 @@ export default function ProductForm({ initialData, isEditMode = false }: Product
 
                     return (
                       <TabsContent key={planKey} value={planKey} className="space-y-4">
-                        
+
                         <div className="flex items-center justify-between bg-[#18181c] p-3.5 rounded-xl border border-zinc-700">
                           <div className="flex items-center gap-3">
                             <Crown className={`w-4 h-4 ${plan.isEnabled ? "text-amber-400" : "text-zinc-500"}`} />
@@ -521,10 +570,10 @@ export default function ProductForm({ initialData, isEditMode = false }: Product
                               <p className="text-[10px] text-zinc-400 font-mono">Allows customers to select {label} billing tier</p>
                             </div>
                           </div>
-                          <Switch 
-                            id={`${planKey}-toggle`} 
-                            checked={plan.isEnabled} 
-                            onCheckedChange={(c) => updatePlan(planKey, "isEnabled", c)} 
+                          <Switch
+                            id={`${planKey}-toggle`}
+                            checked={plan.isEnabled}
+                            onCheckedChange={(c) => updatePlan(planKey, "isEnabled", c)}
                           />
                         </div>
 
@@ -533,21 +582,21 @@ export default function ProductForm({ initialData, isEditMode = false }: Product
                             <div className="grid grid-cols-2 gap-3">
                               <div className="space-y-1">
                                 <Label className="text-[10px] text-zinc-300 uppercase font-bold">Sale Price (৳)</Label>
-                                <Input 
-                                  type="number" 
-                                  value={plan.price} 
-                                  onChange={(e) => updatePlan(planKey, "price", e.target.value)} 
-                                  placeholder="0" 
+                                <Input
+                                  type="number"
+                                  value={plan.price}
+                                  onChange={(e) => updatePlan(planKey, "price", e.target.value)}
+                                  placeholder="0"
                                   className="bg-[#121215] border-zinc-700 h-9 text-xs text-emerald-400 font-mono font-bold"
                                 />
                               </div>
                               <div className="space-y-1">
                                 <Label className="text-[10px] text-zinc-300 uppercase font-bold">Regular Price (৳)</Label>
-                                <Input 
-                                  type="number" 
-                                  value={plan.regularPrice} 
-                                  onChange={(e) => updatePlan(planKey, "regularPrice", e.target.value)} 
-                                  placeholder="0" 
+                                <Input
+                                  type="number"
+                                  value={plan.regularPrice}
+                                  onChange={(e) => updatePlan(planKey, "regularPrice", e.target.value)}
+                                  placeholder="0"
                                   className="bg-[#121215] border-zinc-700 h-9 text-xs text-zinc-400 font-mono"
                                 />
                               </div>
@@ -555,20 +604,20 @@ export default function ProductForm({ initialData, isEditMode = false }: Product
 
                             <div className="space-y-1">
                               <Label className="text-[10px] text-zinc-300 uppercase font-bold">Access Link (Optional Override)</Label>
-                              <Input 
-                                value={plan.accessLink} 
-                                onChange={(e) => updatePlan(planKey, "accessLink", e.target.value)} 
-                                placeholder="https://..." 
+                              <Input
+                                value={plan.accessLink}
+                                onChange={(e) => updatePlan(planKey, "accessLink", e.target.value)}
+                                placeholder="https://..."
                                 className="bg-[#121215] border-zinc-700 h-9 text-xs text-white"
                               />
                             </div>
 
                             <div className="space-y-1">
                               <Label className="text-[10px] text-zinc-300 uppercase font-bold">Access Notes (Optional Override)</Label>
-                              <Textarea 
-                                value={plan.accessNote} 
-                                onChange={(e) => updatePlan(planKey, "accessNote", e.target.value)} 
-                                placeholder="Instructions for tier..." 
+                              <Textarea
+                                value={plan.accessNote}
+                                onChange={(e) => updatePlan(planKey, "accessNote", e.target.value)}
+                                placeholder="Instructions for tier..."
                                 className="bg-[#121215] border-zinc-700 text-xs text-white min-h-[50px] resize-none"
                               />
                             </div>
@@ -590,9 +639,9 @@ export default function ProductForm({ initialData, isEditMode = false }: Product
                   <User className="w-4 h-4 text-purple-400" />
                   Account Credentials Delivery
                 </CardTitle>
-                <Switch 
-                  checked={accountAccess.isEnabled} 
-                  onCheckedChange={(c) => setAccountAccess(prev => ({ ...prev, isEnabled: c }))} 
+                <Switch
+                  checked={accountAccess.isEnabled}
+                  onCheckedChange={(c) => setAccountAccess(prev => ({ ...prev, isEnabled: c }))}
                 />
               </CardHeader>
               {accountAccess.isEnabled && (
@@ -600,30 +649,30 @@ export default function ProductForm({ initialData, isEditMode = false }: Product
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1">
                       <Label className="text-[10px] text-zinc-300 uppercase font-bold">Account Username / Email</Label>
-                      <Input 
-                        value={accountAccess.accountEmail} 
-                        onChange={(e) => setAccountAccess(prev => ({ ...prev, accountEmail: e.target.value }))} 
-                        placeholder="user@example.com" 
+                      <Input
+                        value={accountAccess.accountEmail}
+                        onChange={(e) => setAccountAccess(prev => ({ ...prev, accountEmail: e.target.value }))}
+                        placeholder="user@example.com"
                         className="bg-[#1a1a20] border-zinc-700 h-9 text-xs text-white"
                       />
                     </div>
                     <div className="space-y-1">
                       <Label className="text-[10px] text-zinc-300 uppercase font-bold">Account Password</Label>
-                      <Input 
-                        value={accountAccess.accountPassword} 
-                        onChange={(e) => setAccountAccess(prev => ({ ...prev, accountPassword: e.target.value }))} 
-                        placeholder="••••••••" 
+                      <Input
+                        value={accountAccess.accountPassword}
+                        onChange={(e) => setAccountAccess(prev => ({ ...prev, accountPassword: e.target.value }))}
+                        placeholder="••••••••"
                         className="bg-[#1a1a20] border-zinc-700 h-9 text-xs text-white font-mono"
                       />
                     </div>
                   </div>
                   <div className="space-y-1">
                     <Label className="text-[10px] text-zinc-300 uppercase font-bold">Account Access Price (৳)</Label>
-                    <Input 
-                      type="number" 
-                      value={accountAccess.price} 
-                      onChange={(e) => setAccountAccess(prev => ({ ...prev, price: e.target.value }))} 
-                      placeholder="0" 
+                    <Input
+                      type="number"
+                      value={accountAccess.price}
+                      onChange={(e) => setAccountAccess(prev => ({ ...prev, price: e.target.value }))}
+                      placeholder="0"
                       className="bg-[#1a1a20] border-zinc-700 h-9 text-xs text-purple-400 font-mono font-bold max-w-xs"
                     />
                   </div>
@@ -635,7 +684,7 @@ export default function ProductForm({ initialData, isEditMode = false }: Product
 
           {/* RIGHT COLUMN (Product Configuration & Media - 4 Cols) */}
           <div className="lg:col-span-4 space-y-6">
-            
+
             {/* 1. PRICING & AVAILABILITY CARD */}
             <Card className="bg-[#121215] border-zinc-800 text-zinc-100 shadow-xl rounded-2xl overflow-hidden">
               <CardHeader className="bg-[#18181c] px-5 py-3.5 border-b border-zinc-800/80">
@@ -645,28 +694,28 @@ export default function ProductForm({ initialData, isEditMode = false }: Product
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-5 space-y-4">
-                
+
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label className="text-[10px] text-zinc-300 uppercase font-bold">Regular Price (৳)</Label>
-                    <Input 
-                      type="number" 
-                      name="regularPrice" 
-                      value={formData.regularPrice} 
-                      onChange={handleChange} 
-                      placeholder="0" 
+                    <Input
+                      type="number"
+                      name="regularPrice"
+                      value={formData.regularPrice}
+                      onChange={handleChange}
+                      placeholder="0"
                       className="bg-[#1a1a20] border-zinc-700 h-9 text-xs text-zinc-400 font-mono"
                     />
                   </div>
 
                   <div className="space-y-1">
                     <Label className="text-[10px] text-zinc-300 uppercase font-bold">Sale Price (৳)</Label>
-                    <Input 
-                      type="number" 
-                      name="salePrice" 
-                      value={formData.salePrice} 
-                      onChange={handleChange} 
-                      placeholder="0" 
+                    <Input
+                      type="number"
+                      name="salePrice"
+                      value={formData.salePrice}
+                      onChange={handleChange}
+                      placeholder="0"
                       className="bg-[#1a1a20] border-zinc-700 h-9 text-xs text-emerald-400 font-mono font-bold"
                     />
                   </div>
@@ -674,12 +723,12 @@ export default function ProductForm({ initialData, isEditMode = false }: Product
 
                 <div className="space-y-1">
                   <Label className="text-[10px] text-zinc-300 uppercase font-bold">Display Price / Starts At (৳)</Label>
-                  <Input 
-                    type="number" 
-                    name="defaultPrice" 
-                    value={formData.defaultPrice} 
-                    onChange={handleChange} 
-                    placeholder="Main price on product card..." 
+                  <Input
+                    type="number"
+                    name="defaultPrice"
+                    value={formData.defaultPrice}
+                    onChange={handleChange}
+                    placeholder="Main price on product card..."
                     className="bg-[#1a1a20] border-zinc-700 h-9 text-xs text-amber-400 font-mono font-bold"
                   />
                 </div>
@@ -704,10 +753,10 @@ export default function ProductForm({ initialData, isEditMode = false }: Product
                     <Label className="text-xs font-bold text-white cursor-pointer" htmlFor="isAvailable-toggle">
                       Is Available for Purchase?
                     </Label>
-                    <Switch 
-                      id="isAvailable-toggle" 
-                      checked={formData.isAvailable} 
-                      onCheckedChange={(c) => setFormData(prev => ({ ...prev, isAvailable: c }))} 
+                    <Switch
+                      id="isAvailable-toggle"
+                      checked={formData.isAvailable}
+                      onCheckedChange={(c) => setFormData(prev => ({ ...prev, isAvailable: c }))}
                     />
                   </div>
 
@@ -715,10 +764,10 @@ export default function ProductForm({ initialData, isEditMode = false }: Product
                     <Label className="text-xs font-bold text-white cursor-pointer" htmlFor="isFeatured-toggle">
                       Featured Product Badge
                     </Label>
-                    <Switch 
-                      id="isFeatured-toggle" 
-                      checked={formData.isFeatured} 
-                      onCheckedChange={(c) => setFormData(prev => ({ ...prev, isFeatured: c }))} 
+                    <Switch
+                      id="isFeatured-toggle"
+                      checked={formData.isFeatured}
+                      onCheckedChange={(c) => setFormData(prev => ({ ...prev, isFeatured: c }))}
                     />
                   </div>
                 </div>
@@ -735,13 +784,13 @@ export default function ProductForm({ initialData, isEditMode = false }: Product
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-5 space-y-4">
-                
+
                 {/* Thumbnail Uploader */}
                 <div className="space-y-2">
                   <Label className="text-xs font-bold text-zinc-200 uppercase tracking-wider">Thumbnail Image</Label>
-                  <FileUpload 
-                    initialImages={thumbnail ? [thumbnail] : []} 
-                    onChange={(imgs) => setThumbnail(imgs[0] || "")} 
+                  <FileUpload
+                    initialImages={thumbnail ? [thumbnail] : []}
+                    onChange={(imgs) => setThumbnail(imgs[0] || "")}
                   />
                 </div>
 
@@ -750,11 +799,11 @@ export default function ProductForm({ initialData, isEditMode = false }: Product
                   <Label className="text-xs font-bold text-zinc-200 flex items-center gap-1.5 uppercase tracking-wider">
                     <Video className="w-3.5 h-3.5 text-purple-400" /> Video Trailer URL (Optional)
                   </Label>
-                  <Input 
-                    name="videoUrl" 
-                    value={formData.videoUrl} 
-                    onChange={handleChange} 
-                    placeholder="https://youtube.com/watch?v=..." 
+                  <Input
+                    name="videoUrl"
+                    value={formData.videoUrl}
+                    onChange={handleChange}
+                    placeholder="https://youtube.com/watch?v=..."
                     className="bg-[#1a1a20] border-zinc-700 h-9 text-xs text-white"
                   />
                 </div>
@@ -769,11 +818,11 @@ export default function ProductForm({ initialData, isEditMode = false }: Product
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                   Key Features
                 </CardTitle>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={addFeature} 
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addFeature}
                   className="h-7 text-[10px] border-zinc-700 text-emerald-400 hover:bg-emerald-500/10"
                 >
                   <Plus className="w-3 h-3 mr-1" /> Add Item
@@ -782,18 +831,18 @@ export default function ProductForm({ initialData, isEditMode = false }: Product
               <CardContent className="p-5 space-y-2.5">
                 {features.map((feat, idx) => (
                   <div key={idx} className="flex gap-2 items-center">
-                    <Input 
-                      value={feat} 
-                      onChange={(e) => handleFeatureChange(idx, e.target.value)} 
-                      placeholder={`Feature #${idx + 1}...`} 
+                    <Input
+                      value={feat}
+                      onChange={(e) => handleFeatureChange(idx, e.target.value)}
+                      placeholder={`Feature #${idx + 1}...`}
                       className="bg-[#1a1a20] border-zinc-700 h-8 text-xs text-white"
                     />
                     {features.length > 1 && (
-                      <Button 
-                        type="button" 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => removeFeature(idx)} 
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeFeature(idx)}
                         className="h-8 w-8 text-zinc-500 hover:text-red-400 shrink-0"
                       >
                         <X className="w-3.5 h-3.5" />
@@ -813,11 +862,11 @@ export default function ProductForm({ initialData, isEditMode = false }: Product
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-5 space-y-3">
-                <Input 
-                  value={tagInput} 
-                  onChange={(e) => setTagInput(e.target.value)} 
-                  onKeyDown={handleAddTag} 
-                  placeholder="Type tag and press Enter..." 
+                <Input
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={handleAddTag}
+                  placeholder="Type tag and press Enter..."
                   className="bg-[#1a1a20] border-zinc-700 h-9 text-xs text-white"
                 />
 
@@ -838,17 +887,17 @@ export default function ProductForm({ initialData, isEditMode = false }: Product
 
         {/* MOBILE STICKY BOTTOM SAVE BAR */}
         <div className="fixed bottom-0 left-0 right-0 p-3 bg-[#121216]/95 border-t border-zinc-800 backdrop-blur-md sm:hidden z-40 flex items-center justify-between gap-3">
-          <Button 
-            type="button" 
-            variant="outline" 
-            onClick={() => router.back()} 
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => router.back()}
             className="border-zinc-700 bg-zinc-900 text-zinc-300 text-xs h-10 flex-1"
           >
             Cancel
           </Button>
-          <Button 
-            type="submit" 
-            disabled={saving} 
+          <Button
+            type="submit"
+            disabled={saving}
             className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs h-10 flex-1 shadow-lg shadow-emerald-900/40"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Save className="w-4 h-4 mr-1" />}
